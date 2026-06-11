@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Achievement, UserAchievement } from '@/types';
-import { Medal, Flame, Sparkles, Trophy, Award, Lock } from 'lucide-react';
+import { Flame, Sparkles, Trophy, Award, Lock, Zap } from 'lucide-react';
 
 interface AchievementsTabProps {
   achievements: Achievement[];
@@ -23,105 +23,232 @@ export function AchievementsTab({ achievements, userAchievements, studentScore }
 
   // Maps custom icon strings to Lucide components
   const renderIcon = (iconName: string | null, unlocked: boolean) => {
-    const iconClass = unlocked ? 'text-amber-500' : 'text-slate-600';
+    if (iconName && (iconName.startsWith('http') || iconName.startsWith('data:image'))) {
+      return (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img 
+          src={iconName} 
+          alt="Achievement Badge" 
+          className={`w-8 h-8 md:w-10 md:h-10 object-contain rounded-full ${unlocked ? '' : 'grayscale opacity-30 contrast-75'}`} 
+        />
+      );
+    }
+
+    const iconClass = unlocked ? 'text-amber-400 filter drop-shadow-[0_0_5px_rgba(251,191,36,0.6)]' : 'text-slate-600';
     switch (iconName) {
       case 'Flame':
-        return <Flame className={iconClass} size={32} />;
+        return <Flame className={iconClass} size={24} />;
       case 'Sparkles':
-        return <Sparkles className={iconClass} size={32} />;
+        return <Sparkles className={iconClass} size={24} />;
       case 'Trophy':
-        return <Trophy className={iconClass} size={32} />;
+        return <Trophy className={iconClass} size={24} />;
       default:
-        return <Award className={iconClass} size={32} />;
+        return <Award className={iconClass} size={24} />;
     }
   };
 
   const unlockedCount = achievements.filter(ach => isUnlocked(ach.id)).length;
 
   return (
-    <div className="w-full max-w-4xl mx-auto space-y-6 animate-in fade-in duration-300">
+    <div className="w-full max-w-4xl mx-auto space-y-6 animate-in fade-in duration-300 p-6 bg-[#030303] text-white rounded-[2.5rem] border border-zinc-900 select-none shadow-[0_0_50px_rgba(0,0,0,0.85)]">
       
-      {/* Achievements summary box */}
-      <div className="glass-panel p-6 rounded-3xl border border-white/5 flex flex-col md:flex-row md:items-center justify-between gap-4 select-none light:bg-white light:border-slate-200">
-        <div>
-          <h2 className="text-sm font-black text-slate-400 uppercase tracking-widest">
-            修行成就進度
-          </h2>
-          <p className="text-2xl font-black text-white mt-2">
-            已解鎖 {unlockedCount} / {achievements.length} 個成就徽章
-          </p>
-        </div>
+      {/* 👑 Summary Progress Box */}
+      <div className="relative overflow-hidden p-6 md:p-8 rounded-[2rem] border border-amber-500/40 bg-[#070605] flex flex-row items-center justify-between gap-6 select-none shadow-[0_0_30px_rgba(245,158,11,0.08)]">
         
-        {/* Progress bar */}
-        <div className="flex-1 max-w-xs space-y-1">
-          <div className="flex justify-between text-xs font-mono text-slate-400">
-            <span>解鎖率：{Math.round((unlockedCount / (achievements.length || 1)) * 100)}%</span>
-            <span>當前分數：{studentScore.toLocaleString()}</span>
+        <div className="flex-1 space-y-4 z-10">
+          <div>
+            <h2 className="text-xs font-black uppercase tracking-widest" style={{ color: '#f59e0b' }}>
+              我的成就進度
+            </h2>
+            <p className="text-xl md:text-2xl font-black mt-1" style={{ color: '#ffffff' }}>
+              已解鎖 {unlockedCount} / {achievements.length} 個成就徽章
+            </p>
           </div>
-          <div className="w-full h-2 bg-slate-900 rounded-full overflow-hidden light:bg-slate-200">
-            <div 
-              className="h-full bg-gradient-to-r from-amber-500 to-orange-500 rounded-full transition-all duration-500" 
-              style={{ width: `${(unlockedCount / (achievements.length || 1)) * 100}%` }}
+          
+          {/* Progress bar */}
+          <div className="space-y-2">
+            <div className="flex justify-between text-xs font-mono" style={{ color: '#94a3b8' }}>
+              <span>解鎖率：{Math.round((unlockedCount / (achievements.length || 1)) * 100)}%</span>
+              <span>當前分數：{studentScore.toLocaleString()}</span>
+            </div>
+            <div className="w-full h-3 bg-zinc-950 rounded-full overflow-hidden border border-zinc-850">
+              <div 
+                className="h-full bg-gradient-to-r from-yellow-400 via-amber-500 to-amber-600 rounded-full transition-all duration-500 shadow-[0_0_12px_rgba(251,191,36,0.65)]" 
+                style={{ width: `${(unlockedCount / (achievements.length || 1)) * 100}%` }}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Right emblem inside summary box */}
+        <div className="relative w-24 h-24 md:w-28 md:h-28 flex items-center justify-center shrink-0 z-10 overflow-visible">
+          {/* Glow aura */}
+          <div className="absolute inset-0 rounded-full bg-amber-500/10 blur-lg animate-pulse pointer-events-none" />
+
+          {/* SVG wings & shield emblem */}
+          <svg className="absolute inset-0 w-full h-full text-amber-500" viewBox="0 0 120 120">
+            <polygon 
+              points="60,25 90,42 90,78 60,95 30,78 30,42" 
+              fill="#090806" 
+              stroke="url(#crestGold)" 
+              strokeWidth="2.5"
+              filter="url(#crestGlow)"
             />
+            <polygon 
+              points="60,30 85,45 85,75 60,90 35,75 35,45" 
+              fill="none" 
+              stroke="url(#crestGold)" 
+              strokeWidth="1"
+              opacity="0.6"
+            />
+          </svg>
+
+          {/* Inner lightning bolt */}
+          <div className="absolute z-20 text-amber-400 filter drop-shadow-[0_0_8px_rgba(251,191,36,0.95)]">
+            <Zap size={20} className="fill-current" />
           </div>
         </div>
       </div>
 
-      {/* Achievements Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {/* 🏆 Horizontal Achievements List */}
+      <div className="flex flex-col gap-4">
         {achievements.map((ach) => {
           const unlocked = isUnlocked(ach.id);
           
           return (
             <div
               key={ach.id}
-              className={`glass-panel p-6 rounded-3xl border flex flex-col justify-between h-56 transition-all relative overflow-hidden ${
+              className={`w-full p-4 md:p-6 rounded-[2rem] border flex flex-row justify-between items-center min-h-[140px] md:h-36 transition-all relative overflow-hidden select-none ${
                 unlocked 
-                  ? 'border-amber-500/20 bg-amber-500/5 hover:border-amber-500/30 hover:shadow-lg hover:-translate-y-0.5' 
-                  : 'border-white/5 opacity-60 light:bg-white light:border-slate-200'
+                  ? 'border-amber-500 bg-[#090806] text-amber-500 shadow-[0_0_25px_rgba(245,158,11,0.12)] hover:border-amber-400 hover:shadow-[0_0_35px_rgba(245,158,11,0.2)] hover:-translate-y-0.5' 
+                  : 'border-zinc-805/85 bg-[#121214] text-slate-500 opacity-80'
               }`}
             >
-              {/* Badge Icon */}
-              <div className="flex justify-between items-start">
-                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center border ${
-                  unlocked 
-                    ? 'bg-amber-500/10 border-amber-500/30' 
-                    : 'bg-slate-900 border-white/5 light:bg-slate-100 light:border-slate-200'
-                }`}>
-                  {renderIcon(ach.icon_url, unlocked)}
+              
+              {/* Left Section: Double circle badge and description side-by-side */}
+              <div className="flex-1 flex flex-col justify-between z-20 space-y-3 h-full pr-2 md:pr-4">
+                <div className="flex items-center gap-3 md:gap-5">
+                  {/* Double Circle Icon Frame */}
+                  <div className={`w-12 h-12 md:w-16 md:h-16 rounded-full flex items-center justify-center border-2 shrink-0 transition-all p-0.5 ${
+                    unlocked 
+                      ? 'border-amber-500 bg-black shadow-[0_0_10px_rgba(245,158,11,0.3)]' 
+                      : 'border-zinc-800 bg-[#161618]'
+                  }`}>
+                    <div className={`w-full h-full rounded-full border flex items-center justify-center ${
+                      unlocked ? 'border-amber-500/40 bg-[#0a0907]' : 'border-zinc-900 bg-[#1f1f23]'
+                    }`}>
+                      {renderIcon(ach.icon_url, unlocked)}
+                    </div>
+                  </div>
+
+                  {/* Title & Description */}
+                  <div>
+                    <h3 className="font-black text-base md:text-xl tracking-wide transition-colors" style={{ color: unlocked ? '#fbbf24' : '#94a3b8' }}>
+                      {ach.title}
+                    </h3>
+                    <p className="text-[11px] md:text-xs mt-0.5 transition-colors leading-relaxed" style={{ color: unlocked ? '#e2e8f0' : '#64748b' }}>
+                      {ach.description}
+                    </p>
+                  </div>
                 </div>
 
-                {!unlocked && (
-                  <span className="flex items-center gap-1 text-[10px] font-black text-slate-500 bg-slate-900 border border-white/5 px-2.5 py-1 rounded-full light:bg-slate-100 light:border-slate-300">
-                    <Lock size={10} />
-                    未解鎖
+                {/* Thin divider line */}
+                <div className={`w-full h-[1px] ${unlocked ? 'bg-amber-500/20' : 'bg-zinc-800/60'}`} />
+
+                {/* Bottom Meta Information */}
+                <div className="flex justify-between items-center text-[10px] md:text-xs font-mono select-none">
+                  <span style={{ color: unlocked ? '#f59e0b' : '#64748b' }}>
+                    門檻：{ach.condition_value.toLocaleString()} 分
                   </span>
-                )}
-                {unlocked && (
-                  <span className="flex items-center gap-1 text-[10px] font-black text-amber-500 bg-amber-500/10 px-2.5 py-1 rounded-full border border-amber-500/20 select-none">
-                    已解鎖
-                  </span>
-                )}
+                  {unlocked && (
+                    <span style={{ color: '#d97706' }}>
+                      {getUnlockTime(ach.id)} 解鎖
+                    </span>
+                  )}
+                </div>
               </div>
 
-              {/* Text */}
-              <div className="mt-4">
-                <h3 className={`font-black text-base ${unlocked ? 'text-white' : 'text-slate-500'}`}>
-                  {ach.title}
-                </h3>
-                <p className="text-xs text-slate-400 mt-2 line-clamp-2 leading-relaxed light:text-slate-500">
-                  {ach.description}
-                </p>
+              {/* Right Section: Compact Crest Shield */}
+              <div className="relative w-24 h-24 md:w-28 md:h-28 flex items-center justify-center z-10 shrink-0 select-none overflow-visible">
+                {/* Crest layout - Resized to be compact */}
+                <div className="relative w-full h-full flex items-center justify-center select-none overflow-visible">
+                  {/* Glow background aura */}
+                  {unlocked && (
+                    <div className="absolute inset-0 rounded-full bg-amber-500/10 blur-md animate-pulse pointer-events-none" />
+                  )}
+
+                  {/* Crest SVG (wings + shield hexagon) */}
+                  <svg className="absolute inset-0 w-full h-full z-10" viewBox="0 0 120 120">
+                    <defs>
+                      <linearGradient id="crestGold" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stopColor="#fef08a" />
+                        <stop offset="50%" stopColor="#fbbf24" />
+                        <stop offset="100%" stopColor="#b45309" />
+                      </linearGradient>
+                      <linearGradient id="crestGrey" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stopColor="#94a3b8" />
+                        <stop offset="100%" stopColor="#334155" />
+                      </linearGradient>
+                      <filter id="crestGlow">
+                        <feDropShadow dx="0" dy="0" stdDeviation="4" floodColor="#f59e0b" floodOpacity="0.5" />
+                      </filter>
+                    </defs>
+
+                    {/* Wings - Left */}
+                    <g stroke={unlocked ? 'url(#crestGold)' : 'url(#crestGrey)'} strokeWidth="1.5" fill="none" strokeLinecap="round" filter={unlocked ? 'url(#crestGlow)' : undefined}>
+                      <path d="M 42,35 C 25,32 10,48 18,65 C 20,70 28,78 38,82" />
+                      <path d="M 40,48 C 20,48 12,65 24,78 C 28,82 35,85 41,88" />
+                      <path d="M 42,62 C 28,65 20,80 34,90 C 38,92 42,93 45,94" />
+                    </g>
+
+                    {/* Wings - Right */}
+                    <g stroke={unlocked ? 'url(#crestGold)' : 'url(#crestGrey)'} strokeWidth="1.5" fill="none" strokeLinecap="round" filter={unlocked ? 'url(#crestGlow)' : undefined}>
+                      <path d="M 78,35 C 95,32 110,48 102,65 C 100,70 92,78 82,82" />
+                      <path d="M 80,48 C 100,48 108,65 96,78 C 92,82 85,85 79,88" />
+                      <path d="M 78,62 C 92,65 100,80 86,90 C 82,92 78,93 75,94" />
+                    </g>
+
+                    {/* Outer Hexagon Shield */}
+                    <polygon 
+                      points="60,25 90,42 90,78 60,95 30,78 30,42" 
+                      fill={unlocked ? '#090806' : '#121214'} 
+                      stroke={unlocked ? 'url(#crestGold)' : 'url(#crestGrey)'} 
+                      strokeWidth="2.5"
+                      filter={unlocked ? 'url(#crestGlow)' : undefined}
+                    />
+                    
+                    {/* Inner Hexagon Shield */}
+                    <polygon 
+                      points="60,30 85,45 85,75 60,90 35,75 35,45" 
+                      fill="none" 
+                      stroke={unlocked ? 'url(#crestGold)' : 'url(#crestGrey)'} 
+                      strokeWidth="1"
+                      opacity="0.6"
+                    />
+                  </svg>
+
+                  {/* Zap / Lock Icon inside the Crest */}
+                  <div className={`absolute z-20 flex items-center justify-center transition-all ${
+                    unlocked ? 'text-amber-400 filter drop-shadow-[0_0_8px_rgba(251,191,36,0.85)]' : 'text-zinc-650'
+                  }`}>
+                    {unlocked ? (
+                      <Zap size={18} className="fill-current" />
+                    ) : (
+                      <Lock size={18} />
+                    )}
+                  </div>
+                </div>
               </div>
 
-              {/* Requirement / Date */}
-              <div className="text-[10px] text-slate-500 font-mono border-t border-white/5 pt-3 mt-4 flex justify-between items-center select-none light:border-slate-200">
-                <span>
-                  門檻：{ach.condition_value.toLocaleString()} 分
-                </span>
-                {unlocked && (
-                  <span className="text-slate-600">
-                    {getUnlockTime(ach.id)} 解鎖
+              {/* Top-Right Badge Pill Button */}
+              <div className="absolute top-3 right-3 z-20 select-none">
+                {unlocked ? (
+                  <span className="flex items-center gap-1 text-[9px] md:text-[10px] font-black text-amber-400 bg-black/60 px-2.5 py-1.5 rounded-full border border-amber-500/40 shadow-[0_0_8px_rgba(245,158,11,0.15)]">
+                    ⚡ 已解鎖
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-1 text-[9px] md:text-[10px] font-black text-zinc-500 bg-black/40 px-2.5 py-1.5 rounded-full border border-zinc-800">
+                    🔒 未解鎖
                   </span>
                 )}
               </div>

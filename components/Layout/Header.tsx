@@ -15,6 +15,8 @@ interface HeaderProps {
   setGmMode: (gm: boolean) => void;
   selectedGmRole: string;
   setSelectedGmRole: (role: string) => void;
+  userEnrollments?: Profile[];
+  onSwitchCohort?: (batchId: string) => void;
 }
 
 export function Header({
@@ -27,7 +29,9 @@ export function Header({
   gmMode,
   setGmMode,
   selectedGmRole,
-  setSelectedGmRole
+  setSelectedGmRole,
+  userEnrollments = [],
+  onSwitchCohort
 }: HeaderProps) {
   // Simple level formula: 1 level per 1000 score, starting at level 1, cap at level 99
   const userLevel = Math.min(99, Math.floor(profile.score / 1000) + 1);
@@ -65,8 +69,26 @@ export function Header({
           </div>
 
           <div className="flex flex-col">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center flex-wrap gap-2">
               <span className="font-black text-lg text-white">{profile.name}</span>
+              {userEnrollments.length > 1 && onSwitchCohort && (
+                <select
+                  value={profile.batch_id || ''}
+                  onChange={(e) => onSwitchCohort(e.target.value)}
+                  className="bg-slate-900 border border-white/10 text-white text-xs font-bold rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-amber-500 cursor-pointer"
+                >
+                  {userEnrollments.map((enroll) => {
+                    const batch = batches.find(b => b.id === enroll.batch_id);
+                    const batchName = batch ? batch.name : `期數: ${enroll.batch_id || '未設定'}`;
+                    const statusText = enroll.status === 'ended' ? ' (已結束)' : enroll.status === 'inactive' ? ' (已停用)' : '';
+                    return (
+                      <option key={enroll.id} value={enroll.batch_id || ''}>
+                        {batchName}{statusText}
+                      </option>
+                    );
+                  })}
+                </select>
+              )}
               <span className={`text-[10px] font-black px-2 py-0.5 rounded-full border ${getRoleBadgeStyle(profile.role)}`}>
                 {getRoleLabel(profile.role)}
               </span>
@@ -101,7 +123,7 @@ export function Header({
               </div>
               <div className="flex items-center gap-1 mt-0.5">
                 <TrendingUp size={12} className="text-amber-500" />
-                <span className="font-black text-amber-500/90">{profile.score.toLocaleString()}</span> 修為
+                <span className="font-black text-amber-500/90">{profile.score.toLocaleString()}</span> 經驗
               </div>
             </div>
           </div>
@@ -160,7 +182,7 @@ export function Header({
                     : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
                 }`}
               >
-                原始大隊長
+                原始大隊長模式
               </button>
               <button
                 onClick={() => {
@@ -173,7 +195,7 @@ export function Header({
                     : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
                 }`}
               >
-                模擬一般修行者
+                模擬學員模式
               </button>
               <button
                 onClick={() => {
@@ -186,7 +208,7 @@ export function Header({
                     : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
                 }`}
               >
-                模擬小隊長
+                模擬小隊長模式
               </button>
             </div>
           </div>

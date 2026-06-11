@@ -86,10 +86,9 @@ body {
 }
 
 /* ── Glassmorphism 磨砂玻璃元件樣式 ── */
+/* NOTE: backdrop-filter: blur() 已移除，因為 WebKit 有已知 Bug 會讓內部 input/textarea 無法打字 */
 .glass-panel {
   background: var(--card-bg);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--card-border);
   box-shadow: 0 8px 32px 0 var(--shadow-color);
   transition: transform 0.2s, box-shadow 0.2s, background-color 0.3s, border-color 0.3s;
@@ -219,16 +218,54 @@ body {
 .text-slate-600 { color: #64748b !important; } /* 提亮至 slate-500 */
 
 /* ── 輸入框 placeholder 對比度修正 ── */
-/* 黑底模式：placeholder 至少要是 slate-400 */
+/* 黑底模式：placeholder 用 slate-500 灰色 */
 input::placeholder, textarea::placeholder {
-  color: #94a3b8 !important; /* slate-400 */
+  color: #64748b !important; /* slate-500 */
   opacity: 1;
 }
-/* 亮色模式：placeholder 要用深色 */
+/* 亮色模式：placeholder 用淺灰，明確區分打字的黑色 */
 .light input::placeholder, .light textarea::placeholder {
-  color: #44403c !important; /* stone-700 */
+  color: #9ca3af !important; /* gray-400 - 淺灰，跟黑字區分度高 */
   opacity: 1;
 }
+
+/* ── 輸入框聚焦時隱藏 placeholder ── */
+input:focus::placeholder,
+textarea:focus::placeholder,
+.light input:focus::placeholder,
+.light textarea:focus::placeholder,
+.modal-force-dark input:focus::placeholder,
+.modal-force-dark textarea:focus::placeholder,
+.light .modal-force-dark input:focus::placeholder,
+.light .modal-force-dark textarea:focus::placeholder {
+  color: transparent !important;
+  -webkit-text-fill-color: transparent !important;
+  opacity: 0 !important;
+}
+
+/* ── 確保輸入框永遠可以打字（不被 select-none 父層影響）── */
+input, textarea, [contenteditable] {
+  -webkit-user-select: text !important;
+  user-select: text !important;
+}
+
+/* ── modal-force-dark 內的 input/textarea 使用主題變數，不受 text-white 強制覆蓋 ── */
+.modal-force-dark input,
+.modal-force-dark textarea,
+.light .modal-force-dark input,
+.light .modal-force-dark textarea {
+  color: var(--text-primary) !important;
+  background-color: var(--input-bg) !important;
+  border-color: var(--input-border) !important;
+}
+.modal-force-dark input::placeholder,
+.modal-force-dark textarea::placeholder,
+.light .modal-force-dark input::placeholder,
+.light .modal-force-dark textarea::placeholder {
+  color: #9ca3af !important; /* gray-400 */
+}
+
+
 
 /* ── 實色彩色色塊強制對比文字（黑底 & 白底通用）── */
 /* 規則：琥珀/橘色底 → 深黑文字；其餘彩色實色底 → 白色文字 */
@@ -304,4 +341,350 @@ input::placeholder, textarea::placeholder {
   animation: shimmer-sweep 5.5s infinite;
   pointer-events: none;
 }
+
+/* ── Divine Beast Custom Animations ── */
+@keyframes float {
+  0%, 100% { transform: translate(-50%, -50%) scale(var(--pet-scale)) translateY(0); }
+  50% { transform: translate(-50%, -50%) scale(var(--pet-scale)) translateY(-8px); }
+}
+
+@keyframes breath {
+  0%, 100% { transform: translate(-50%, -50%) scale(var(--pet-scale)); }
+  50% { transform: translate(-50%, -50%) scale(calc(var(--pet-scale) * 1.04)); }
+}
+
+@keyframes wiggle {
+  0%, 100% { transform: translate(-50%, -50%) scale(var(--pet-scale)) rotate(0deg); }
+  25% { transform: translate(-50%, -50%) scale(var(--pet-scale)) rotate(1.5deg); }
+  75% { transform: translate(-50%, -50%) scale(var(--pet-scale)) rotate(-1.5deg); }
+}
+
+@keyframes glow-pulse {
+  0%, 100% { filter: drop-shadow(0 0 10px var(--glow-color, rgba(168, 85, 247, 0.4))); }
+  50% { filter: drop-shadow(0 0 25px var(--glow-color, rgba(168, 85, 247, 0.75))); }
+}
+
+.animate-float {
+  animation: float 4s ease-in-out infinite;
+}
+
+.animate-breath {
+  animation: breath 3.5s ease-in-out infinite;
+}
+
+.animate-wiggle {
+  animation: wiggle 2.5s ease-in-out infinite;
+}
+
+.animate-glow-pulse {
+  animation: glow-pulse 3s ease-in-out infinite;
+}
+
+/* ── Pet Stage Rendering System ── */
+.pet-stage {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 300px;
+  height: 300px;
+  background: transparent;
+  overflow: visible;
+}
+
+.pet-aura {
+  position: absolute;
+  width: 240px;
+  height: 240px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--glow-color, #A855F7) 0%, transparent 65%);
+  opacity: 0.35;
+  filter: blur(10px);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.pet-image {
+  --pet-scale: 1;
+  max-width: 95%;
+  max-height: 95%;
+  object-fit: contain;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  z-index: 2;
+  filter: drop-shadow(0 0 24px var(--glow-color, #A855F7));
+  
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(var(--pet-scale));
+  transform-origin: center center;
+  transition: transform 0.2s ease-out;
+}
+
+.pet-shadow {
+  position: absolute;
+  bottom: 25px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100px;
+  height: 16px;
+  background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.45) 0%, transparent 70%);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.pet-particles {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 3;
+}
+
+/* Simple CSS particles around the pet */
+.pet-particles::before, .pet-particles::after {
+  content: '';
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background-color: var(--glow-color, #A855F7);
+  box-shadow: 0 0 8px var(--glow-color, #A855F7);
+  opacity: 0.6;
+  animation: float-particle 3s ease-in-out infinite;
+}
+
+.pet-particles::before {
+  top: 20%;
+  left: 25%;
+  animation-delay: 0s;
+}
+
+.pet-particles::after {
+  bottom: 30%;
+  right: 20%;
+  animation-delay: 1.5s;
+}
+
+.animate-float-glow {
+  animation: float 4s ease-in-out infinite, glow-pulse 3s ease-in-out infinite;
+}
+
+@keyframes float-particle {
+  0%, 100% { transform: translateY(0) scale(0.8); opacity: 0.3; }
+  50% { transform: translateY(-12px) scale(1.2); opacity: 0.8; }
+}
+
+/* ── Lightbox Force Dark Styles ── */
+.lightbox-force-dark {
+  background-color: rgba(2, 6, 23, 0.98) !important;
+  color: #ffffff !important;
+}
+.lightbox-force-header {
+  background-color: #090d16 !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  color: #ffffff !important;
+}
+.lightbox-force-text {
+  color: #ffffff !important;
+}
+.lightbox-force-text-muted {
+  color: #94a3b8 !important;
+}
+.lightbox-force-btn {
+  background-color: #0f172a !important;
+  border-color: rgba(255, 255, 255, 0.25) !important;
+  color: #ffffff !important;
+}
+.lightbox-force-btn:hover {
+  background-color: #1e293b !important;
+}
+.lightbox-header-btn-back {
+  background-color: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  color: #0f172a !important;
+}
+.lightbox-header-btn-back:hover {
+  background-color: #f1f5f9 !important;
+  border-color: #94a3b8 !important;
+  color: #020617 !important;
+}
+.lightbox-header-btn-close {
+  background-color: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  color: #0f172a !important;
+}
+.lightbox-header-btn-close:hover {
+  background-color: #fee2e2 !important;
+  border-color: #fca5a5 !important;
+  color: #ef4444 !important;
+}
+
+/* ⚡ 金色雷電發光效果與動畫 */
+@keyframes lightning-flash {
+  0%, 100% {
+    opacity: 0.12;
+    transform: scale(0.96);
+    filter: drop-shadow(0 0 2px rgba(245, 158, 11, 0.2));
+  }
+  45% {
+    opacity: 0.12;
+    transform: scale(0.96);
+    filter: drop-shadow(0 0 2px rgba(245, 158, 11, 0.2));
+  }
+  50% {
+    opacity: 0.85;
+    transform: scale(1.08) skewX(-3deg);
+    filter: drop-shadow(0 0 20px rgba(251, 191, 36, 0.95)) drop-shadow(0 0 8px rgba(245, 158, 11, 0.8));
+  }
+  52% {
+    opacity: 0.25;
+    transform: scale(0.98);
+    filter: drop-shadow(0 0 5px rgba(245, 158, 11, 0.4));
+  }
+  54% {
+    opacity: 0.95;
+    transform: scale(1.12) skewX(3deg);
+    filter: drop-shadow(0 0 25px rgba(251, 191, 36, 1)) drop-shadow(0 0 12px rgba(245, 158, 11, 0.9));
+  }
+  60% {
+    opacity: 0.12;
+    transform: scale(0.96);
+    filter: drop-shadow(0 0 2px rgba(245, 158, 11, 0.2));
+  }
+}
+
+.animate-lightning {
+  animation: lightning-flash 5s infinite;
+}
+
+/* 🏆 成就牆專用文字顏色，防範 Light Mode 全域覆蓋導致字體變暗 */
+.ach-text-title-unlocked {
+  color: #fbbf24 !important; /* amber-400 */
+}
+.ach-text-title-locked {
+  color: #94a3b8 !important; /* slate-400 */
+}
+.ach-text-desc-unlocked {
+  color: #e2e8f0 !important; /* slate-200 */
+}
+.ach-text-desc-locked {
+  color: #64748b !important; /* slate-500 */
+}
+.ach-text-meta-unlocked {
+  color: #f59e0b !important; /* amber-500 */
+}
+.ach-text-meta-locked {
+  color: #64748b !important; /* slate-500 */
+}
+.ach-text-summary-title {
+  color: #f59e0b !important; /* amber-500 */
+}
+.ach-text-summary-count {
+  color: #ffffff !important;
+}
+.ach-text-summary-meta {
+  color: #94a3b8 !important; /* slate-400 */
+}
+.ach-text-meta-time {
+  color: #d97706 !important; /* amber-600 */
+}
+
+/* ── Invite Link Black Theme Override ── */
+.invite-link-input-black,
+.light .invite-link-input-black {
+  background-color: #000000 !important;
+  color: #ffffff !important;
+  border: 1px solid #1e293b !important;
+}
+
+/* ── 🔮 神祕進化與升級動畫補強 ── */
+.silhouette-pet {
+  filter: brightness(0) opacity(0.85) drop-shadow(0 0 8px var(--accent-glow));
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.silhouette-pet:hover {
+  filter: brightness(0) opacity(0.95) drop-shadow(0 0 16px var(--accent-color));
+  transform: scale(1.08);
+}
+
+@keyframes pulse-border-glow {
+  0%, 100% {
+    border-color: rgba(245, 158, 11, 0.2);
+    box-shadow: 0 0 15px rgba(245, 158, 11, 0.05);
+  }
+  50% {
+    border-color: rgba(245, 158, 11, 0.6);
+    box-shadow: 0 0 25px rgba(245, 158, 11, 0.25);
+  }
+}
+
+.level-up-glow-card {
+  animation: pulse-border-glow 3s infinite ease-in-out;
+}
+
+/* 進化卡片微調與漸變 */
+.evolution-card-mysterious {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.evolution-card-mysterious:hover {
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+/* ── 🎭 全螢幕暗色彈窗強制文字顯色 (解決 Light Mode 下字體變暗問題) ── */
+.modal-force-dark,
+.light .modal-force-dark {
+  color: #ffffff !important;
+}
+.modal-force-dark h2,
+.modal-force-dark h3,
+.modal-force-dark h4,
+.light .modal-force-dark h2,
+.light .modal-force-dark h3,
+.light .modal-force-dark h4 {
+  color: #ffffff !important;
+}
+.modal-force-dark p,
+.light .modal-force-dark p {
+  color: #94a3b8 !important; /* slate-400 */
+}
+.modal-force-dark .text-white,
+.light .modal-force-dark .text-white {
+  color: #ffffff !important;
+}
+.modal-force-dark .text-slate-50,
+.light .modal-force-dark .text-slate-50 {
+  color: #f8fafc !important;
+}
+.modal-force-dark .text-slate-100,
+.light .modal-force-dark .text-slate-100 {
+  color: #f1f5f9 !important;
+}
+.modal-force-dark .text-slate-200,
+.light .modal-force-dark .text-slate-200 {
+  color: #e2e8f0 !important;
+}
+.modal-force-dark .text-slate-300,
+.light .modal-force-dark .text-slate-300 {
+  color: #cbd5e1 !important;
+}
+.modal-force-dark .text-slate-400,
+.light .modal-force-dark .text-slate-400 {
+  color: #94a3b8 !important;
+}
+.modal-force-dark .text-slate-500,
+.light .modal-force-dark .text-slate-500 {
+  color: #64748b !important;
+}
+.modal-force-dark .text-slate-600,
+.light .modal-force-dark .text-slate-600 {
+  color: #475569 !important;
+}
+
+
+
 

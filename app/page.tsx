@@ -4,10 +4,10 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { CheckCircle2, Clock, AlertCircle } from 'lucide-react';
 import { 
-  Profile, Team, Task, Submission, ScoreLog, 
+  Profile, Team, Task, Submission, ScoreLog, SubmissionStatus,
   Course, CourseAttendance, Achievement, UserAchievement, 
   Announcement, StudentNote, UserRole,
-  Pet, UserPet, Card, Deck, DeckCard, UserDeck, Batch, MissionTemplate, BatchMissionTemplate, Mission
+  Pet, UserPet, Card, Deck, DeckCard, UserDeck, Batch, MissionTemplate, BatchMissionTemplate, Mission, PetLine, PetStage, CaptainCandidate
 } from '@/types';
 
 // Import layout components
@@ -33,6 +33,7 @@ import { WitnessTab } from '@/components/Tabs/WitnessTab';
 export default function Home() {
   // --- Auth / User State ---
   const [currentUser, setCurrentUser] = useState<Profile | null>(null);
+  const [userEnrollments, setUserEnrollments] = useState<Profile[]>([]);
   const [currentTeam, setCurrentTeam] = useState<Team | null>(null);
   const [viewState, setViewState] = useState<'login' | 'register' | 'app'>('login');
 
@@ -68,11 +69,15 @@ export default function Home() {
   const [decks, setDecks] = useState<Deck[]>([]);
   const [deckCards, setDeckCards] = useState<DeckCard[]>([]);
   const [userDecks, setUserDecks] = useState<UserDeck[]>([]);
+  const [petLines, setPetLines] = useState<PetLine[]>([]);
+  const [petStages, setPetStages] = useState<PetStage[]>([]);
+  const [captainCandidates, setCaptainCandidates] = useState<CaptainCandidate[]>([]);
 
   // --- UI States ---
   const [activeTab, setActiveTab] = useState<TabKey>('daily');
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [isSyncing, setIsSyncing] = useState(false);
+  const [adminSelectedTeamId, setAdminSelectedTeamId] = useState<string>('');
 
   // --- Toast & Confetti Animations States ---
   interface ToastInfo {
@@ -172,6 +177,7 @@ export default function Home() {
   // Fetch all data from localStorage/Supabase
   const fetchData = useCallback(async (userId?: string) => {
     setIsSyncing(true);
+    let loadedProfile: Profile | null = null;
     try {
       // 1. Fetch current profile
       const targetUserId = userId || currentUser?.id;
@@ -183,6 +189,7 @@ export default function Home() {
             prof.batch_id = 'batch-50';
           }
           setCurrentUser(prof);
+          loadedProfile = prof;
 
           // Fetch team of this profile
           if (prof.team_id) {
@@ -223,6 +230,9 @@ export default function Home() {
       const { data: deckCardsList } = await supabase.from('deck_cards').select('*');
       const { data: userDecksList } = await supabase.from('user_decks').select('*');
       const { data: missionsList } = await supabase.from('missions').select('*');
+      const { data: petLinesList } = await supabase.from('pet_lines').select('*');
+      const { data: petStagesList } = await supabase.from('pet_stages').select('*');
+      const { data: candidatesList } = await supabase.from('captain_candidates').select('*');
 
       if (batchesList) setBatches(batchesList);
       if (templatesList) setMissionTemplates(templatesList);
@@ -235,7 +245,19 @@ export default function Home() {
           return p;
         });
         setProfiles(mappedProfiles);
+
+        const activeProfile = loadedProfile || currentUser;
+        if (activeProfile) {
+          const enrolls = mappedProfiles.filter((p: any) =>
+            (activeProfile.phone && p.phone === activeProfile.phone) ||
+            (!activeProfile.phone && p.name === activeProfile.name)
+          );
+          setUserEnrollments(enrolls);
+        } else {
+          setUserEnrollments([]);
+        }
       }
+
       if (teamsList) setTeams(teamsList);
       if (tasksList) setTasks(tasksList);
       if (subsList) setSubmissions(subsList);
@@ -245,7 +267,7 @@ export default function Home() {
       
       if (batchesList && rulesList && templatesList) {
         for (const batch of batchesList) {
-          if (batch.status === 'active' || batch.id === 'batch-50') {
+          if (batch.status === 'active' || batch.status === 'ended' || batch.id === 'batch-50') {
             const rules = rulesList.filter((r: any) => r.batch_id === batch.id && r.is_enabled);
             if (rules.length > 0) {
                 const startDate = new Date(batch.start_date);
@@ -261,6 +283,8 @@ export default function Home() {
                   const title = template.title;
                   const desc = template.description;
                   const reviewType = template.review_type;
+                  const category = template.category;
+                  const maxCompletions = template.max_completions;
                   
                   if (type === 'daily') {
                     let cur = new Date(startDate);
@@ -274,28 +298,30 @@ export default function Home() {
                         points,
                         publishAt: `${dayStr} 00:00:00`,
                         deadlineAt: `${dayStr} 23:59:59`,
-                        reviewType: reviewType
+                        reviewType: reviewType,
+                        category: category,
+                        maxCompletions: maxCompletions
                       });
                       cur.setDate(cur.getDate() + 1);
                     }
                   } else if (type === 'weekly') {
                     const getMondayOfWeek = (dateStr: string) => {
                       const date = new Date(dateStr);
-                      const day = date.getDay();
+                      const day = date.getUTCDay();
                       const diff = day === 0 ? -6 : 1 - day;
                       const monday = new Date(date);
-                      monday.setDate(date.getDate() + diff);
-                      monday.setHours(0, 0, 0, 0);
+                      monday.setUTCDate(date.getUTCDate() + diff);
+                      monday.setUTCHours(0, 0, 0, 0);
                       return monday;
                     };
                     const firstMonday = getMondayOfWeek(batch.start_date);
                     const weekOffset = rule.week_offset !== null ? rule.week_offset : 1;
                     
                     const publishDate = new Date(firstMonday);
-                    publishDate.setDate(firstMonday.getDate() + (weekOffset - 1) * 7);
+                    publishDate.setUTCDate(firstMonday.getUTCDate() + (weekOffset - 1) * 7);
                     
                     const deadlineDate = new Date(publishDate);
-                    deadlineDate.setDate(publishDate.getDate() + 6);
+                    deadlineDate.setUTCDate(publishDate.getUTCDate() + 6);
                     
                     const pubStr = publishDate.toISOString().substring(0, 10);
                     const deadStr = deadlineDate.toISOString().substring(0, 10);
@@ -308,7 +334,9 @@ export default function Home() {
                       points,
                       publishAt: `${pubStr} 00:00:00`,
                       deadlineAt: `${deadStr} 23:59:59`,
-                      reviewType: reviewType
+                      reviewType: reviewType,
+                      category: category,
+                      maxCompletions: maxCompletions
                     });
                   } else if (type === 'special') {
                     const dayStr = startDate.toISOString().substring(0, 10);
@@ -320,7 +348,9 @@ export default function Home() {
                       points,
                       publishAt: `${dayStr} 00:00:00`,
                       deadlineAt: batch.end_date.substring(0, 10) + ' 23:59:59',
-                      reviewType: reviewType
+                      reviewType: reviewType,
+                      category: category,
+                      maxCompletions: maxCompletions
                     });
                   } else if (type === 'limited') {
                     const offset = rule.day_offset !== null ? Math.max(0, rule.day_offset - 1) : 0;
@@ -343,7 +373,9 @@ export default function Home() {
                       points,
                       publishAt: `${pubStr} 00:00:00`,
                       deadlineAt: `${deadStr} 23:59:59`,
-                      reviewType: reviewType
+                      reviewType: reviewType,
+                      category: category,
+                      maxCompletions: maxCompletions
                     });
                   }
                 });
@@ -369,6 +401,8 @@ export default function Home() {
                     deadline_at: p.deadlineAt,
                     status: 'scheduled',
                     review_type: p.reviewType,
+                    category: p.category,
+                    max_completions: p.maxCompletions,
                     created_at: new Date().toISOString(),
                     updated_at: new Date().toISOString()
                   }));
@@ -384,6 +418,66 @@ export default function Home() {
             }
           }
         }
+      // 🔮 Auto-publish the 4 evolution missions when a student reaches Lv.5 and has stage_index === 1
+      if (userPetsList && finalMissions && templatesList && batchesList) {
+        const studentsEligible = userPetsList.filter((up: any) => up.level >= 5 && up.current_stage_index === 1);
+        if (studentsEligible.length > 0) {
+          const batchIds = new Set<string>();
+          studentsEligible.forEach((up: any) => {
+            const prof = profilesList?.find((p: any) => p.id === up.student_id);
+            if (prof?.batch_id) {
+              batchIds.add(prof.batch_id);
+            }
+          });
+
+          let missionsUpdated = false;
+          for (const bid of Array.from(batchIds)) {
+            const templatesToPublish = ['temp-evolve-dragon', 'temp-evolve-lion', 'temp-evolve-fox', 'temp-evolve-spirit'];
+            const newMissionsToInsert: any[] = [];
+
+            for (const tid of templatesToPublish) {
+              const hasMission = finalMissions.some((m: any) => m.template_id === tid && m.batch_id === bid);
+              if (!hasMission) {
+                const template = templatesList.find((t: any) => t.id === tid);
+                const batch = batchesList.find((b: any) => b.id === bid);
+                if (template) {
+                  const publishAt = batch?.start_date || new Date().toISOString();
+                  const deadlineAt = batch?.end_date || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+                  newMissionsToInsert.push({
+                    batch_id: bid,
+                    template_id: template.id,
+                    title: template.title,
+                    description: template.description,
+                    mission_type: template.mission_type,
+                    points: template.points,
+                    publish_at: publishAt,
+                    deadline_at: deadlineAt,
+                    status: 'active',
+                    review_type: template.review_type,
+                    category: template.category || '神獸進化',
+                    max_completions: template.max_completions || 1,
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString()
+                  });
+                }
+              }
+            }
+
+            if (newMissionsToInsert.length > 0) {
+              await supabase.from('missions').insert(newMissionsToInsert);
+              missionsUpdated = true;
+            }
+          }
+
+          if (missionsUpdated) {
+            const { data: refetchedMissions } = await supabase.from('missions').select('*');
+            if (refetchedMissions) {
+              finalMissions = refetchedMissions;
+            }
+          }
+        }
+      }
+
       setMissions(finalMissions);
       if (coursesList) setCourses(coursesList);
       if (attendanceList) setAttendance(attendanceList);
@@ -398,9 +492,14 @@ export default function Home() {
       if (decksList) setDecks(decksList);
       if (deckCardsList) setDeckCards(deckCardsList);
       if (userDecksList) setUserDecks(userDecksList);
-
+      if (petLinesList) setPetLines(petLinesList);
+      if (petStagesList) setPetStages(petStagesList);
+      if (candidatesList) setCaptainCandidates(candidatesList);
+      
+      return loadedProfile;
     } catch (err) {
       console.error('Error fetching data:', err);
+      return null;
     } finally {
       setIsSyncing(false);
     }
@@ -413,16 +512,76 @@ export default function Home() {
       await fetchData();
 
       let queryInvite = '';
+      let queryBatch = '';
+      let queryTeam = '';
       if (typeof window !== 'undefined') {
         const params = new URLSearchParams(window.location.search);
         queryInvite = params.get('invite') || '';
+        queryBatch = params.get('batch') || '';
+        queryTeam = params.get('team') || '';
       }
 
       const { data } = await supabase.auth.getUser();
       if (data?.user) {
         setViewState('app');
-        setActiveTab('daily');
-        await fetchData(data.user.id);
+        const loadedProfile = await fetchData(data.user.id);
+        
+        // If they followed an invite link while logged in, check enrollment!
+        if (queryInvite && queryBatch && queryTeam) {
+          const { data: teamsList } = await supabase.from('teams').select('*');
+          const team = teamsList?.find((t: any) => t.invite_code === queryInvite);
+          
+          if (!team || team.id !== queryTeam || team.batch_id !== queryBatch) {
+            alert('邀請資訊不符，防竄改保護已啟動！');
+          } else if (!team.invite_enabled) {
+            alert('此邀請通道已關閉');
+          } else {
+            const { data: profilesList } = await supabase.from('profiles').select('*');
+            const isEnrolled = profilesList?.some((p: any) => p.profile_id === loadedProfile?.profile_id && p.batch_id === queryBatch);
+            
+            if (isEnrolled) {
+              const userEnrollment = profilesList?.find((p: any) => p.profile_id === loadedProfile?.profile_id && p.batch_id === queryBatch);
+              if (userEnrollment?.team_id === queryTeam) {
+                alert('您已是此小隊成員！');
+              } else {
+                alert('同一學員不可在同一期重複加入多個小隊。若需換隊，請洽後台管理員。');
+              }
+            } else {
+              setIsSyncing(true);
+              const { error: enrollErr } = await supabase.from('profiles').insert({
+                profile_id: loadedProfile?.profile_id,
+                batch_id: queryBatch,
+                team_id: queryTeam,
+                role: 'student',
+                score: 0,
+                status: 'active'
+              });
+              
+              if (enrollErr) {
+                alert(enrollErr.message || '加入小隊失敗');
+              } else {
+                alert('🎉 成功加入小隊！已為您切換至新期數。');
+                if (typeof window !== 'undefined') {
+                  window.history.replaceState({}, document.title, window.location.pathname);
+                }
+                const updatedProfiles = await fetchData(data.user.id);
+                const { data: newProfiles } = await supabase.from('profiles').select('*');
+                const newEnrollment = newProfiles?.find((p: any) => p.profile_id === loadedProfile?.profile_id && p.batch_id === queryBatch);
+                if (newEnrollment) {
+                  localStorage.setItem('nlp_session', JSON.stringify(newEnrollment));
+                  await fetchData(newEnrollment.id);
+                }
+              }
+              setIsSyncing(false);
+            }
+          }
+        }
+        
+        if (loadedProfile && loadedProfile.role === 'admin') {
+          setActiveTab('admin');
+        } else {
+          setActiveTab('daily');
+        }
       } else if (queryInvite) {
         setInviteCode(queryInvite);
         setViewState('register');
@@ -430,8 +589,13 @@ export default function Home() {
         // Validate invite code using DB data
         const { data: teamsList } = await supabase.from('teams').select('*');
         const team = teamsList?.find((t: any) => t.invite_code === queryInvite);
-        if (!team) {
-          setInviteError('此邀請連結無效');
+        
+        const params = new URLSearchParams(window.location.search);
+        const urlBatch = params.get('batch') || '';
+        const urlTeam = params.get('team') || '';
+
+        if (!team || team.id !== urlTeam || team.batch_id !== urlBatch) {
+          setInviteError('邀請資訊不符，防竄改保護已啟動！');
         } else if (!team.invite_enabled) {
           setInviteError('此邀請通道已關閉');
         } else {
@@ -471,10 +635,20 @@ export default function Home() {
 
     if (data?.user) {
       setViewState('app');
-      setActiveTab('daily');
-      await fetchData(data.user.id);
+      const loadedProfile = await fetchData(data.user.id);
+      if (loadedProfile && loadedProfile.role === 'admin') {
+        setActiveTab('admin');
+      } else {
+        setActiveTab('daily');
+      }
     }
   };
+
+  useEffect(() => {
+    if (teams.length > 0 && !adminSelectedTeamId) {
+      setAdminSelectedTeamId(teams[0].id);
+    }
+  }, [teams, adminSelectedTeamId]);
 
   const handleRegister = async (regData: { name: string; phone: string; role: UserRole }) => {
     setIsSyncing(true);
@@ -484,8 +658,11 @@ export default function Home() {
     let captain_id: string | null = null;
 
     if (inviteCode) {
+      const params = new URLSearchParams(window.location.search);
+      const urlBatch = params.get('batch') || '';
+      const urlTeam = params.get('team') || '';
       const { data: teamsList } = await supabase.from('teams').select('*');
-      const team = teamsList?.find((t: any) => t.invite_code === inviteCode);
+      const team = teamsList?.find((t: any) => t.invite_code === inviteCode && t.batch_id === urlBatch && t.id === urlTeam);
       if (team) {
         batch_id = team.batch_id || 'batch-50';
         team_id = team.id;
@@ -537,6 +714,16 @@ export default function Home() {
     setActiveTab('daily');
   };
 
+  const handleSwitchCohort = async (batchId: string) => {
+    const nextEnrollment = userEnrollments.find(e => e.batch_id === batchId);
+    if (nextEnrollment) {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('nlp_session', JSON.stringify(nextEnrollment));
+      }
+      await fetchData(nextEnrollment.id);
+    }
+  };
+
   // --- Student Actions ---
   const handleCheckIn = async (taskId: string, proofText?: string, proofImg?: string, proofLink?: string) => {
     if (!currentUser) return;
@@ -549,6 +736,7 @@ export default function Home() {
 
     const requiresApproval = task ? task.requires_approval : mission!.review_type !== 'auto';
     const points = task ? task.score : mission!.points;
+    const title = task ? task.name : mission!.title;
 
     const submissionData = {
       mission_id: taskId,
@@ -556,12 +744,65 @@ export default function Home() {
       proof_text: proofText || null,
       proof_image_url: proofImg || null,
       proof_link: proofLink || null,
-      status: requiresApproval ? 'pending' : 'approved',
+      status: (requiresApproval ? 'pending' : 'approved') as SubmissionStatus,
       score_awarded: requiresApproval ? 0 : points,
       reviewed_by: requiresApproval ? null : 'admin1',
       reviewed_at: requiresApproval ? null : new Date().toISOString(),
       created_at: new Date().toISOString()
     };
+
+    if (gmMode) {
+      const mockSubId = `mock-sub-${Date.now()}`;
+      const newSub: Submission = {
+        id: mockSubId,
+        ...submissionData,
+        profile: currentUser,
+        mission: mission || undefined
+      };
+      setSubmissions(prev => [newSub, ...prev]);
+
+      if (!requiresApproval) {
+        const nextScore = currentUser.score + points;
+        const nextUser = { ...currentUser, score: nextScore };
+        setCurrentUser(nextUser);
+        setProfiles(prev => prev.map(p => p.id === currentUser.id ? nextUser : p));
+
+        setUserPets(prev => prev.map(up => {
+          if (up.student_id === currentUser.id) {
+            const nextExp = up.total_exp + points;
+            const nextLv = Math.floor(nextExp / 500);
+            return {
+              ...up,
+              total_exp: nextExp,
+              level: nextLv,
+              updated_at: new Date().toISOString()
+            };
+          }
+          return up;
+        }));
+
+        const newLog: ScoreLog = {
+          id: `mock-log-${Date.now()}`,
+          student_id: currentUser.id,
+          amount: points,
+          reason: `完成任務: ${title}`,
+          submission_id: mockSubId,
+          created_by: 'admin1',
+          created_at: new Date().toISOString(),
+          profile: currentUser
+        };
+        setScoreLogs(prev => [newLog, ...prev]);
+      }
+
+      if (requiresApproval) {
+        showToast('✓ 證明已成功送出！等待小隊長審核中...', 'info');
+      } else {
+        showToast(`✓ 打卡成功！獲得 +${points} 經驗！`, 'success');
+        triggerConfetti();
+        triggerScoreFloat(`+${points} 經驗！`);
+      }
+      return;
+    }
 
     try {
       await supabase.from('submissions').insert(submissionData);
@@ -571,9 +812,9 @@ export default function Home() {
       if (requiresApproval) {
         showToast('✓ 證明已成功送出！等待小隊長審核中...', 'info');
       } else {
-        showToast(`✓ 打卡成功！獲得 +${points} 修為！`, 'success');
+        showToast(`✓ 打卡成功！獲得 +${points} 經驗！`, 'success');
         triggerConfetti();
-        triggerScoreFloat(`+${points} 修為！`);
+        triggerScoreFloat(`+${points} 經驗！`);
       }
     } catch (err) {
       console.error(err);
@@ -583,6 +824,20 @@ export default function Home() {
 
   const handleRegisterCourse = async (courseId: string) => {
     if (!currentUser) return;
+
+    if (gmMode) {
+      const newAtt: CourseAttendance = {
+        id: `mock-att-${Date.now()}`,
+        course_id: courseId,
+        student_id: currentUser.id,
+        status: 'registered',
+        attended_at: null,
+        created_at: new Date().toISOString()
+      };
+      setAttendance(prev => [newAtt, ...prev]);
+      return;
+    }
+
     await supabase.from('course_attendance').insert({
       course_id: courseId,
       student_id: currentUser.id,
@@ -595,6 +850,25 @@ export default function Home() {
   // --- Captain Actions ---
   const handleSaveNote = async (studentId: string, noteText: string) => {
     if (!currentUser) return;
+
+    if (gmMode) {
+      const existing = notes.find(n => n.student_id === studentId && n.captain_id === currentUser.id);
+      if (existing) {
+        setNotes(prev => prev.map(n => n.id === existing.id ? { ...n, note: noteText, updated_at: new Date().toISOString() } : n));
+      } else {
+        const newNote: StudentNote = {
+          id: `mock-note-${Date.now()}`,
+          student_id: studentId,
+          captain_id: currentUser.id,
+          note: noteText,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          student: profiles.find(p => p.id === studentId)
+        };
+        setNotes(prev => [newNote, ...prev]);
+      }
+      return;
+    }
     
     // Check if note already exists
     const existing = notes.find(n => n.student_id === studentId && n.captain_id === currentUser.id);
@@ -619,6 +893,67 @@ export default function Home() {
   // --- Admin Actions ---
   const handleReviewSubmission = async (submissionId: string, status: 'approved' | 'rejected') => {
     if (!currentUser) return;
+
+    if (gmMode) {
+      const sub = submissions.find(s => s.id === submissionId);
+      if (!sub) return;
+
+      const task = tasks.find(t => t.id === sub.mission_id);
+      const mission = !task ? missions.find(m => m.id === sub.mission_id) : null;
+      const points = status === 'approved' ? (task ? task.score : (mission ? mission.points : 0)) : 0;
+      const title = task ? task.name : (mission ? mission.title : '任務');
+
+      let scoreDiff = 0;
+      if (sub.status === 'approved' && status !== 'approved') {
+        scoreDiff = -sub.score_awarded;
+      } else if (sub.status !== 'approved' && status === 'approved') {
+        scoreDiff = points;
+      }
+
+      setSubmissions(prev => prev.map(s => s.id === submissionId ? {
+        ...s,
+        status,
+        score_awarded: status === 'approved' ? (sub.score_awarded || points) : 0,
+        reviewed_by: currentUser.id,
+        reviewed_at: new Date().toISOString()
+      } : s));
+
+      if (scoreDiff !== 0) {
+        setProfiles(prev => prev.map(p => {
+          if (p.id === sub.student_id) {
+            const nextScore = p.score + scoreDiff;
+            if (currentUser && p.id === currentUser.id) {
+              setCurrentUser(prevUser => prevUser ? { ...prevUser, score: nextScore } : null);
+            }
+            return { ...p, score: nextScore };
+          }
+          return p;
+        }));
+
+        setUserPets(prev => prev.map(up => {
+          if (up.student_id === sub.student_id) {
+            const nextExp = up.total_exp + scoreDiff;
+            const nextLv = Math.floor(nextExp / 500);
+            return { ...up, total_exp: nextExp, level: nextLv, updated_at: new Date().toISOString() };
+          }
+          return up;
+        }));
+
+        const newLog: ScoreLog = {
+          id: `mock-log-${Date.now()}`,
+          student_id: sub.student_id,
+          amount: scoreDiff,
+          reason: scoreDiff > 0 ? `完成任務: ${title}` : `取消已核准任務: ${title}`,
+          submission_id: submissionId,
+          created_by: currentUser.id,
+          created_at: new Date().toISOString(),
+          profile: profiles.find(p => p.id === sub.student_id)
+        };
+        setScoreLogs(prev => [newLog, ...prev]);
+      }
+      return;
+    }
+
     await supabase
       .from('submissions')
       .update({
@@ -628,6 +963,181 @@ export default function Home() {
       })
       .eq('id', submissionId);
     await fetchData();
+  };
+
+  const handleToggleCell = async (studentId: string, taskId: string) => {
+    if (!currentUser) return;
+    const dbTask = tasks.find(t => t.id === taskId);
+    const mission = !dbTask ? missions.find(m => m.id === taskId) : null;
+    if (!dbTask && !mission) return;
+    
+    const task = dbTask || {
+      id: mission!.id,
+      name: mission!.title,
+      score: mission!.points,
+      requires_approval: mission!.review_type !== 'auto',
+      max_completions: mission!.max_completions
+    } as any;
+    
+    const limit = task.max_completions ?? 1;
+    const studentSubs = submissions.filter(s => s.mission_id === taskId && s.student_id === studentId);
+    
+    const pendingSubs = studentSubs.filter(s => s.status === 'pending');
+    const approvedSubs = studentSubs.filter(s => s.status === 'approved');
+    
+    const sortedPending = [...pendingSubs].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+    const sortedApproved = [...approvedSubs].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    
+    if (gmMode) {
+      if (sortedPending.length > 0) {
+        const targetSub = sortedPending[0];
+        setSubmissions(prev => prev.map(s => s.id === targetSub.id ? {
+          ...s,
+          status: 'approved',
+          score_awarded: task.score,
+          reviewed_by: currentUser.id,
+          reviewed_at: new Date().toISOString()
+        } : s));
+        setProfiles(prev => prev.map(p => {
+          if (p.id === studentId) {
+            const nextScore = p.score + task.score;
+            if (p.id === currentUser.id) {
+              setCurrentUser(prevUser => prevUser ? { ...prevUser, score: nextScore } : null);
+            }
+            return { ...p, score: nextScore };
+          }
+          return p;
+        }));
+        setUserPets(prev => prev.map(up => {
+          if (up.student_id === studentId) {
+            const nextExp = up.total_exp + task.score;
+            const nextLv = Math.floor(nextExp / 500);
+            return { ...up, total_exp: nextExp, level: nextLv, updated_at: new Date().toISOString() };
+          }
+          return up;
+        }));
+        const newLog: ScoreLog = {
+          id: `mock-log-${Date.now()}`,
+          student_id: studentId,
+          amount: task.score,
+          reason: `完成任務: ${task.name}`,
+          submission_id: targetSub.id,
+          created_by: currentUser.id,
+          created_at: new Date().toISOString(),
+          profile: profiles.find(p => p.id === studentId)
+        };
+        setScoreLogs(prev => [newLog, ...prev]);
+      } else if (limit === 0 || approvedSubs.length < limit) {
+        const mockSubId = `mock-sub-${Date.now()}`;
+        const newSub: Submission = {
+          id: mockSubId,
+          mission_id: taskId,
+          student_id: studentId,
+          proof_text: '由小隊長於指揮所手動設定打卡',
+          proof_image_url: null,
+          proof_link: null,
+          status: 'approved',
+          score_awarded: task.score,
+          reviewed_by: currentUser.id,
+          reviewed_at: new Date().toISOString(),
+          created_at: new Date().toISOString(),
+          profile: profiles.find(p => p.id === studentId),
+          mission: undefined
+        };
+        setSubmissions(prev => [newSub, ...prev]);
+        setProfiles(prev => prev.map(p => {
+          if (p.id === studentId) {
+            const nextScore = p.score + task.score;
+            if (p.id === currentUser.id) {
+              setCurrentUser(prevUser => prevUser ? { ...prevUser, score: nextScore } : null);
+            }
+            return { ...p, score: nextScore };
+          }
+          return p;
+        }));
+        setUserPets(prev => prev.map(up => {
+          if (up.student_id === studentId) {
+            const nextExp = up.total_exp + task.score;
+            const nextLv = Math.floor(nextExp / 500);
+            return { ...up, total_exp: nextExp, level: nextLv, updated_at: new Date().toISOString() };
+          }
+          return up;
+        }));
+        const newLog: ScoreLog = {
+          id: `mock-log-${Date.now()}`,
+          student_id: studentId,
+          amount: task.score,
+          reason: `完成任務: ${task.name}`,
+          submission_id: mockSubId,
+          created_by: currentUser.id,
+          created_at: new Date().toISOString(),
+          profile: profiles.find(p => p.id === studentId)
+        };
+        setScoreLogs(prev => [newLog, ...prev]);
+      } else {
+        const targetSub = sortedApproved[0];
+        setSubmissions(prev => prev.filter(s => s.id !== targetSub.id));
+        setProfiles(prev => prev.map(p => {
+          if (p.id === studentId) {
+            const nextScore = p.score - targetSub.score_awarded;
+            if (p.id === currentUser.id) {
+              setCurrentUser(prevUser => prevUser ? { ...prevUser, score: nextScore } : null);
+            }
+            return { ...p, score: nextScore };
+          }
+          return p;
+        }));
+        setUserPets(prev => prev.map(up => {
+          if (up.student_id === studentId) {
+            const nextExp = up.total_exp - targetSub.score_awarded;
+            const nextLv = Math.floor(nextExp / 500);
+            return { ...up, total_exp: nextExp, level: nextLv, updated_at: new Date().toISOString() };
+          }
+          return up;
+        }));
+        const newLog: ScoreLog = {
+          id: `mock-log-${Date.now()}`,
+          student_id: studentId,
+          amount: -targetSub.score_awarded,
+          reason: `取消已核准任務: ${task.name}`,
+          submission_id: targetSub.id,
+          created_by: currentUser.id,
+          created_at: new Date().toISOString(),
+          profile: profiles.find(p => p.id === studentId)
+        };
+        setScoreLogs(prev => [newLog, ...prev]);
+      }
+      return;
+    }
+
+    try {
+      if (sortedPending.length > 0) {
+        await supabase.from('submissions').update({
+          status: 'approved',
+          score_awarded: task.score,
+          reviewed_by: currentUser.id,
+          reviewed_at: new Date().toISOString()
+        }).eq('id', sortedPending[0].id);
+      } else if (limit === 0 || approvedSubs.length < limit) {
+        await supabase.from('submissions').insert({
+          mission_id: taskId,
+          student_id: studentId,
+          proof_text: '由小隊長於指揮所手動設定打卡',
+          proof_image_url: null,
+          proof_link: null,
+          status: 'approved',
+          score_awarded: task.score,
+          reviewed_by: currentUser.id,
+          reviewed_at: new Date().toISOString(),
+          created_at: new Date().toISOString()
+        });
+      } else {
+        await supabase.from('submissions').delete().eq('id', sortedApproved[0].id);
+      }
+      await fetchData();
+    } catch (err) {
+      console.error('Error toggling cell:', err);
+    }
   };
 
   const handleCreateTask = async (taskData: Omit<Task, 'id' | 'created_at' | 'created_by'>) => {
@@ -645,12 +1155,12 @@ export default function Home() {
     await fetchData();
   };
 
-  const handleAddProfile = async (profileData: { name: string; phone: string; role: UserRole; batchId: string; teamId: string }) => {
+  const handleAddProfile = async (profileData: { name: string; phone: string; role: UserRole; batchId: string; teamId: string; divisionName?: string | null; directorId?: string | null }) => {
     setIsSyncing(true);
     
     // Check if phone number is already registered in this batch
     const { data: profilesList } = await supabase.from('profiles').select('*');
-    const duplicatePhone = profilesList?.some((p: any) => p.phone === profileData.phone && p.batch_id === profileData.batchId);
+    const duplicatePhone = profileData.phone && profilesList?.some((p: any) => p.phone === profileData.phone && p.batch_id === profileData.batchId);
     if (duplicatePhone) {
       setIsSyncing(false);
       throw new Error('此手機號碼在同一個期數中已重複註冊');
@@ -665,8 +1175,10 @@ export default function Home() {
       phone: profileData.phone,
       role: profileData.role,
       batch_id: profileData.batchId,
-      team_id: profileData.teamId,
+      team_id: profileData.teamId || null,
       captain_id,
+      division_name: profileData.role === 'admin' ? profileData.divisionName || null : null,
+      director_id: profileData.role === 'captain' ? profileData.directorId || null : null,
       score: 0,
       created_at: new Date().toISOString()
     });
@@ -681,6 +1193,14 @@ export default function Home() {
 
   const handleUpdateTeamSettings = async (teamId: string, settings: Partial<Team>) => {
     setIsSyncing(true);
+    if (gmMode) {
+      setTeams(prev => prev.map(t => t.id === teamId ? { ...t, ...settings } : t));
+      if (currentTeam && currentTeam.id === teamId) {
+        setCurrentTeam(prev => prev ? { ...prev, ...settings } : null);
+      }
+      setIsSyncing(false);
+      return;
+    }
     try {
       await supabase.from('teams').update(settings).eq('id', teamId);
       await fetchData();
@@ -695,17 +1215,101 @@ export default function Home() {
     studentId: string, 
     teamId: string | null, 
     role: UserRole, 
-    batchId?: string | null
+    batchId?: string | null,
+    divisionName?: string | null,
+    directorId?: string | null,
+    status?: 'active' | 'ended' | 'inactive'
   ) => {
-    const updateData: any = { team_id: teamId, role: role };
+    const updateData: any = { 
+      team_id: teamId, 
+      role: role,
+      division_name: role === 'admin' ? divisionName || null : null,
+      director_id: role === 'captain' ? directorId || null : null
+    };
     if (batchId !== undefined) {
       updateData.batch_id = batchId;
+    }
+    if (status !== undefined) {
+      updateData.status = status;
     }
     await supabase
       .from('profiles')
       .update(updateData)
       .eq('id', studentId);
     await fetchData();
+  };
+
+  const handleAddCaptainCandidate = async (profileId: string, status: 'eligible' | 'paused' | 'disabled') => {
+    setIsSyncing(true);
+    try {
+      const { error } = await supabase.from('captain_candidates').insert({ profile_id: profileId, status });
+      if (error) throw new Error(error.message);
+      await fetchData();
+    } catch (err: any) {
+      console.error(err);
+      alert(err.message || '新增小隊長候選人失敗');
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const handleUpdateCaptainCandidate = async (candidateId: string, status: 'eligible' | 'paused' | 'disabled') => {
+    setIsSyncing(true);
+    try {
+      const { error } = await supabase.from('captain_candidates').update({ status }).eq('id', candidateId);
+      if (error) throw new Error(error.message);
+      await fetchData();
+    } catch (err: any) {
+      console.error(err);
+      alert(err.message || '更新小隊長狀態失敗');
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const handleDeleteCaptainCandidate = async (candidateId: string) => {
+    setIsSyncing(true);
+    try {
+      const { error } = await supabase.from('captain_candidates').delete().eq('id', candidateId);
+      if (error) throw new Error(error.message);
+      await fetchData();
+    } catch (err: any) {
+      console.error(err);
+      alert(err.message || '移出小隊長候選人失敗');
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const handleQuickAssignCaptain = async (
+    batchId: string,
+    captainProfileId: string,
+    teamId: string,
+    directorId: string | null
+  ) => {
+    setIsSyncing(true);
+    try {
+      const { error } = await supabase.from('teams').update({ captain_id: captainProfileId }).eq('id', teamId);
+      if (error) throw new Error(error.message);
+      
+      const { data: profilesList } = await supabase.from('profiles').select('*');
+      const capEnrollment = profilesList?.find((p: any) => p.profile_id === captainProfileId && p.batch_id === batchId);
+      if (capEnrollment) {
+        const { error: assignErr } = await supabase
+          .from('profiles')
+          .update({ director_id: directorId })
+          .eq('id', capEnrollment.id);
+        if (assignErr) throw new Error(assignErr.message);
+      }
+      
+      await fetchData();
+      alert('⚡ 小隊長指派與大隊長綁定設定成功！');
+    } catch (err: any) {
+      console.error(err);
+      alert(err.message || '指派小隊長失敗');
+    } finally {
+      setIsSyncing(false);
+    }
   };
 
   const getChineseNumber = (n: number) => {
@@ -734,7 +1338,7 @@ export default function Home() {
           captain_id: null,
           total_score: 0,
           batch_id: batchId,
-          invite_code: `invite-${batchId}-${i}`,
+          invite_code: `invite-${batchId}-${i}-${Math.random().toString(36).substring(2, 6)}`,
           invite_enabled: true,
           max_members: 10,
           created_at: new Date().toISOString()
@@ -773,7 +1377,7 @@ export default function Home() {
             captain_id: null,
             total_score: 0,
             batch_id: batchId,
-            invite_code: `invite-${batchId}-${i}`,
+            invite_code: `invite-${batchId}-${i}-${Math.random().toString(36).substring(2, 6)}`,
             invite_enabled: true,
             max_members: 10,
             created_at: new Date().toISOString()
@@ -794,12 +1398,13 @@ export default function Home() {
   };
 
   const handleCreateMissionTemplate = async (templateData: Omit<MissionTemplate, 'id' | 'created_at' | 'updated_at'>) => {
-    await supabase.from('mission_templates').insert({
+    const { data } = await supabase.from('mission_templates').insert({
       ...templateData,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     });
     await fetchData();
+    return data?.[0] || (Array.isArray(data) ? data[0] : data);
   };
 
   const handleUpdateMissionTemplate = async (templateId: string, templateData: Partial<MissionTemplate>) => {
@@ -845,6 +1450,146 @@ export default function Home() {
         await supabase.from('missions').delete().in('id', missionsToDelete);
       }
     }
+
+    // 4. Auto-generate missions for this batch so user doesn't have to confirm manually
+    const batch = batches.find(b => b.id === batchId);
+    if (batch && rules.length > 0) {
+      const startDate = new Date(batch.start_date);
+      const endDate = new Date(batch.end_date);
+      const previews: any[] = [];
+      
+      rules.filter(r => r.is_enabled).forEach((rule: any) => {
+        const template = missionTemplates.find((t: any) => t.id === rule.template_id);
+        if (!template) return;
+        
+        const type = template.mission_type;
+        const points = template.points;
+        const title = template.title;
+        const desc = template.description;
+        const reviewType = template.review_type;
+        const category = template.category;
+        const maxCompletions = template.max_completions;
+        
+        if (type === 'daily') {
+          let cur = new Date(startDate);
+          while (cur <= endDate) {
+            const dayStr = cur.toISOString().substring(0, 10);
+            previews.push({
+              batch_id: batchId,
+              template_id: rule.template_id,
+              title,
+              description: desc,
+              mission_type: type,
+              points,
+              publish_at: `${dayStr} 00:00:00`,
+              deadline_at: `${dayStr} 23:59:59`,
+              status: 'scheduled',
+              review_type: reviewType,
+              category: category,
+              max_completions: maxCompletions,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            });
+            cur.setDate(cur.getDate() + 1);
+          }
+        } else if (type === 'weekly') {
+          const getMondayOfWeek = (dateStr: string) => {
+            const date = new Date(dateStr);
+            const day = date.getUTCDay();
+            const diff = day === 0 ? -6 : 1 - day;
+            const monday = new Date(date);
+            monday.setUTCDate(date.getUTCDate() + diff);
+            monday.setUTCHours(0, 0, 0, 0);
+            return monday;
+          };
+          const firstMonday = getMondayOfWeek(batch.start_date);
+          const weekOffset = rule.week_offset !== null ? rule.week_offset : 1;
+          
+          const publishDate = new Date(firstMonday);
+          publishDate.setUTCDate(firstMonday.getUTCDate() + (weekOffset - 1) * 7);
+          
+          const deadlineDate = new Date(publishDate);
+          deadlineDate.setUTCDate(publishDate.getUTCDate() + 6);
+          
+          const pubStr = publishDate.toISOString().substring(0, 10);
+          const deadStr = deadlineDate.toISOString().substring(0, 10);
+          
+          previews.push({
+            batch_id: batchId,
+            template_id: rule.template_id,
+            title,
+            description: desc,
+            mission_type: type,
+            points,
+            publish_at: `${pubStr} 00:00:00`,
+            deadline_at: `${deadStr} 23:59:59`,
+            status: 'scheduled',
+            review_type: reviewType,
+            category: category,
+            max_completions: maxCompletions,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          });
+        } else if (type === 'special') {
+          const dayStr = startDate.toISOString().substring(0, 10);
+          previews.push({
+            batch_id: batchId,
+            template_id: rule.template_id,
+            title,
+            description: desc,
+            mission_type: type,
+            points,
+            publish_at: `${dayStr} 00:00:00`,
+            deadline_at: batch.end_date.substring(0, 10) + ' 23:59:59',
+            status: 'scheduled',
+            review_type: reviewType,
+            category: category,
+            max_completions: maxCompletions,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          });
+        } else if (type === 'limited') {
+          const offset = rule.day_offset !== null ? Math.max(0, rule.day_offset - 1) : 0;
+          const duration = rule.duration_days !== null ? rule.duration_days : 1;
+          
+          const pubDate = new Date(startDate);
+          pubDate.setDate(pubDate.getDate() + offset);
+          
+          const deadDate = new Date(pubDate);
+          deadDate.setDate(deadDate.getDate() + duration);
+          
+          const pubStr = pubDate.toISOString().substring(0, 10);
+          const deadStr = deadDate.toISOString().substring(0, 10);
+          
+          previews.push({
+            batch_id: batchId,
+            template_id: rule.template_id,
+            title,
+            description: desc,
+            mission_type: type,
+            points,
+            publish_at: `${pubStr} 00:00:00`,
+            deadline_at: `${deadStr} 23:59:59`,
+            status: 'scheduled',
+            review_type: reviewType,
+            category: category,
+            max_completions: maxCompletions,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          });
+        }
+      });
+
+      if (previews.length > 0) {
+        const { data: existingMissions } = await supabase.from('missions').select('*').eq('batch_id', batchId);
+        const existingKeys = new Set((existingMissions || []).map((m: any) => `${m.template_id}_${m.publish_at}`));
+        
+        const missionsToInsert = previews.filter(p => !existingKeys.has(`${p.template_id}_${p.publish_at}`));
+        if (missionsToInsert.length > 0) {
+          await supabase.from('missions').insert(missionsToInsert);
+        }
+      }
+    }
     
     await fetchData();
   };
@@ -860,6 +1605,8 @@ export default function Home() {
       publishAt: string;
       deadlineAt: string;
       reviewType: 'auto' | 'leader' | 'admin';
+      category?: string;
+      maxCompletions?: number;
     }>
   ) => {
     setIsSyncing(true);
@@ -890,7 +1637,9 @@ export default function Home() {
             publish_at: p.publishAt,
             deadline_at: p.deadlineAt,
             status: 'scheduled',
-            review_type: p.reviewType
+            review_type: p.reviewType,
+            category: p.category,
+            max_completions: p.maxCompletions
           });
           successCount++;
         }
@@ -928,13 +1677,14 @@ export default function Home() {
     await fetchData();
   };
 
-  const handleCreateAnnouncement = async (title: string, content: string, batchId?: string | null) => {
+  const handleCreateAnnouncement = async (title: string, content: string, batchId?: string | null, publishAt?: string | null) => {
     if (!currentUser) return;
     await supabase.from('announcements').insert({
       title,
       content,
       created_by: currentUser.id,
-      batch_id: batchId || null
+      batch_id: batchId || null,
+      created_at: publishAt ? new Date(publishAt).toISOString() : new Date().toISOString()
     });
     await fetchData();
   };
@@ -955,11 +1705,11 @@ export default function Home() {
     await fetchData();
   };
 
-  const handleCreateAchievement = async (title: string, description: string, value: number) => {
+  const handleCreateAchievement = async (title: string, description: string, value: number, iconUrl?: string | null) => {
     await supabase.from('achievements').insert({
       title,
       description: description || null,
-      icon_url: 'Flame',
+      icon_url: iconUrl || 'Flame',
       condition_type: 'total_score',
       condition_value: value
     });
@@ -1005,7 +1755,79 @@ export default function Home() {
   const handleLevelUpPet = async (userPetId: string) => {
     const record = userPets.find(up => up.id === userPetId);
     if (record) {
-      await supabase.from('user_pets').update({ pet_level: record.pet_level + 1 }).eq('id', userPetId);
+      await supabase.from('user_pets').update({ pet_level: (record.pet_level ?? 1) + 1 }).eq('id', userPetId);
+      await fetchData();
+    }
+  };
+
+  const handleUpdatePetStage = async (stageId: string, updatedFields: Partial<PetStage>) => {
+    await supabase.from('pet_stages').update(updatedFields).eq('id', stageId);
+    await fetchData();
+  };
+
+  const handleUpdatePetLine = async (lineId: string, updatedFields: Partial<PetLine>) => {
+    await supabase.from('pet_lines').update(updatedFields).eq('id', lineId);
+    await fetchData();
+  };
+
+  const handleEvolvePet = async (studentId: string, lineKey: string) => {
+    const userPetRecord = userPets.find(up => up.student_id === studentId);
+    if (userPetRecord) {
+      await supabase.from('user_pets').update({
+        pet_line: lineKey,
+        current_stage_index: 2,
+        has_pending_evolution: false,
+        evolved_at: new Date().toISOString(),
+        selected_evolution_line: null // reset selection after evolution
+      }).eq('id', userPetRecord.id);
+      await fetchData();
+    }
+  };
+
+  const handleSelectEvolutionLine = async (studentId: string, lineKey: string) => {
+    const userPetRecord = userPets.find(up => up.student_id === studentId);
+    if (userPetRecord) {
+      const selectedLine = petLines.find(l => l.line_key === lineKey);
+      if (selectedLine && selectedLine.task_template_id) {
+        const studentBatchId = userPetRecord.profile?.batch_id || 'batch-50';
+        const matchedMission = missions.find(
+          m => m.template_id === selectedLine.task_template_id && m.batch_id === studentBatchId
+        );
+        
+        if (!matchedMission) {
+          const template = missionTemplates.find(t => t.id === selectedLine.task_template_id);
+          if (template) {
+            const batch = batches.find(b => b.id === studentBatchId);
+            const publishAt = batch?.start_date || new Date().toISOString();
+            const deadlineAt = batch?.end_date || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+            
+            const newMission: Mission = {
+              id: `mission-evolve-${lineKey}-${Date.now()}`,
+              batch_id: studentBatchId,
+              template_id: template.id,
+              title: template.title,
+              description: template.description,
+              mission_type: template.mission_type,
+              points: template.points,
+              publish_at: publishAt,
+              deadline_at: deadlineAt,
+              status: 'active',
+              review_type: template.review_type,
+              category: template.category || '神獸進化',
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+              max_completions: template.max_completions || 1
+            };
+            
+            await supabase.from('missions').insert(newMission);
+          }
+        }
+      }
+
+      await supabase.from('user_pets').update({
+        selected_evolution_line: lineKey
+      }).eq('id', userPetRecord.id);
+      
       await fetchData();
     }
   };
@@ -1079,11 +1901,19 @@ export default function Home() {
   // Compute active role for UI (GM override mode)
   const currentUiRole = (gmMode && currentUser.role === 'admin') ? selectedGmRole : currentUser.role;
 
+  // For admin (大隊長) viewing Captain Dashboard, we use their selected team; otherwise use their own team
+  const selectedTeamForCaptainView = (currentUser.role === 'admin' || currentUiRole === 'admin')
+    ? (teams.find(t => t.id === adminSelectedTeamId) || teams[0])
+    : (currentTeam || teams[0]);
+
   // Filter data by batch context
   const batchFilterId = currentUser.batch_id;
   const filteredTasks = currentUser.role === 'admin' ? tasks : tasks.filter(t => t.batch_id === batchFilterId);
   const filteredProfiles = currentUser.role === 'admin' ? profiles : profiles.filter(p => p.batch_id === batchFilterId);
-  const filteredAnnouncements = currentUser.role === 'admin' ? announcements : announcements.filter(ann => !ann.batch_id || ann.batch_id === batchFilterId);
+  const now = new Date();
+  const filteredAnnouncements = currentUser.role === 'admin' && currentUiRole === 'admin'
+    ? announcements
+    : announcements.filter(ann => (!ann.batch_id || ann.batch_id === batchFilterId) && new Date(ann.created_at) <= now);
   const filteredCourses = currentUser.role === 'admin' ? courses : courses.filter(c => !c.batch_id || c.batch_id === batchFilterId);
 
   // Filter submissions / logs for the active tab context
@@ -1105,6 +1935,8 @@ export default function Home() {
         setGmMode={setGmMode}
         selectedGmRole={selectedGmRole}
         setSelectedGmRole={setSelectedGmRole as any}
+        userEnrollments={userEnrollments}
+        onSwitchCohort={handleSwitchCohort}
       />
 
       {/* 2. Horizontal navigation tab bar */}
@@ -1126,14 +1958,29 @@ export default function Home() {
             isSyncing={isSyncing}
             missions={missions}
             showToast={showToast}
+            userPet={userPets.find(up => up.student_id === currentUser.id) || null}
+            petStages={petStages}
+            onEvolvePet={handleEvolvePet}
+            batchStartDate={batches.find(b => b.id === currentUser.batch_id)?.start_date || null}
+            allProfiles={profiles}
+            allUserPets={userPets}
+            batches={batches}
+            petLines={petLines}
+            missionTemplates={missionTemplates}
+            onSelectEvolutionLine={handleSelectEvolutionLine}
           />
         )}
 
         {activeTab === 'rank' && (
           <LeaderboardTab
-            profiles={filteredProfiles}
+            profiles={profiles}
             teams={teams}
-            currentUserId={currentUser.id}
+            batches={batches}
+            currentUser={currentUser}
+            currentUiRole={currentUiRole}
+            onToggleRankingsVisible={async (batchId, visible) => {
+              await handleUpdateBatch(batchId, { rankings_visible: visible });
+            }}
           />
         )}
 
@@ -1170,23 +2017,55 @@ export default function Home() {
             tasks={tasks}
             submissions={submissions}
             currentUserId={currentUser.id}
-            onRefresh={fetchData}
+            onRefresh={async () => { await fetchData(); }}
+            batches={batches}
           />
         )}
 
         {activeTab === 'captain' && currentUiRole !== 'student' && (
           <CaptainDashboard
-            team={currentTeam || teams[0]} // Fallback for GM test admin
+            team={selectedTeamForCaptainView}
+            allTeams={teams}
+            currentUserRole={currentUser.role}
+            onAdminSelectTeam={(teamId) => setAdminSelectedTeamId(teamId)}
             profiles={filteredProfiles}
-            tasks={filteredTasks}
+            tasks={[
+              ...tasks.filter(t => t.batch_id === (selectedTeamForCaptainView?.batch_id || teams[0]?.batch_id)),
+              ...missions
+                .filter(m => m.batch_id === (selectedTeamForCaptainView?.batch_id || teams[0]?.batch_id))
+                .map(m => ({
+                  id: m.id,
+                  name: m.title,
+                  description: m.description,
+                  type: m.mission_type === 'special' ? 'temporary' : m.mission_type,
+                  score: m.points,
+                  requires_approval: m.review_type !== 'auto',
+                  requires_proof: m.review_type !== 'auto',
+                  publish_time: m.publish_at,
+                  start_time: m.publish_at,
+                  end_time: m.deadline_at,
+                  target_type: 'all',
+                  target_team_id: null,
+                  target_user_id: null,
+                  batch_id: m.batch_id,
+                  category: m.category,
+                  max_completions: m.max_completions,
+                  created_by: null,
+                  created_at: m.created_at
+                } as Task))
+            ]}
             submissions={submissions}
             notes={notes}
             scoreLogs={scoreLogs}
             currentUserId={currentUser.id}
             onSaveNote={handleSaveNote}
             isSyncing={isSyncing}
-            onRefresh={fetchData}
+            onRefresh={async () => { await fetchData(); }}
             onUpdateTeamSettings={handleUpdateTeamSettings}
+            batches={batches}
+            gmMode={gmMode}
+            onReviewSubmission={handleReviewSubmission}
+            onToggleCell={handleToggleCell}
           />
         )}
 
@@ -1207,6 +2086,10 @@ export default function Home() {
             batches={batches}
             missionTemplates={missionTemplates}
             batchMissionTemplates={batchMissionTemplates}
+            petLines={petLines}
+            petStages={petStages}
+            onUpdatePetStage={handleUpdatePetStage}
+            onUpdatePetLine={handleUpdatePetLine}
             onReviewSubmission={handleReviewSubmission}
             onCreateTask={handleCreateTask}
             onDeleteTask={handleDeleteTask}
@@ -1228,6 +2111,12 @@ export default function Home() {
             onSaveBatchMissionTemplates={handleSaveBatchMissionTemplates}
             onGenerateMissions={handleGenerateMissions}
             onAddProfile={handleAddProfile}
+            captainCandidates={captainCandidates}
+            onAddCaptainCandidate={handleAddCaptainCandidate}
+            onUpdateCaptainCandidate={handleUpdateCaptainCandidate}
+            onDeleteCaptainCandidate={handleDeleteCaptainCandidate}
+            onUpdateTeamSettings={handleUpdateTeamSettings}
+            onQuickAssignCaptain={handleQuickAssignCaptain}
             isSyncing={isSyncing}
           />
         )}

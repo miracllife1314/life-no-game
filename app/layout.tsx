@@ -14,10 +14,10 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "NLP 人性溝通術評分系統",
-  description: "NLP人性溝通術評分系統 - 每日修行打卡、挑戰任務與修為排行榜",
+  description: "NLP人性溝通術評分系統 - 每日修行打卡、挑戰任務與經驗排行榜",
   openGraph: {
     title: "NLP 人性溝通術評分系統",
-    description: "NLP人性溝通術評分系統 - 每日修行打卡、挑戰任務與修為排行榜",
+    description: "NLP人性溝通術評分系統 - 每日修行打卡、挑戰任務與經驗排行榜",
     type: "website",
   }
 };

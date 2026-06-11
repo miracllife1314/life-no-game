@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Profile, Team, Task, Submission, StudentNote, ScoreLog } from '@/types';
+import { Profile, Team, Task, Submission, StudentNote, ScoreLog, Batch, UserRole } from '@/types';
 import { 
   Compass, Users, MessageSquare, Check, CheckCircle2,
   Clock, AlertCircle, Circle, Save, Edit3, Filter, 
@@ -29,6 +29,13 @@ interface CaptainDashboardProps {
   isSyncing: boolean;
   onRefresh?: () => Promise<void>;
   onUpdateTeamSettings?: (teamId: string, settings: Partial<Team>) => Promise<void>;
+  batches?: Batch[];
+  gmMode?: boolean;
+  onReviewSubmission?: (subId: string, status: 'approved' | 'rejected') => Promise<void>;
+  onToggleCell?: (studentId: string, taskId: string) => Promise<void>;
+  allTeams?: Team[];
+  currentUserRole?: UserRole;
+  onAdminSelectTeam?: (teamId: string) => void;
 }
 
 const QUEST_ROLES_DEFS = [
@@ -99,8 +106,181 @@ export function CaptainDashboard({
   onSaveNote,
   isSyncing,
   onRefresh,
-  onUpdateTeamSettings
+  onUpdateTeamSettings,
+  batches = [],
+  gmMode = false,
+  onReviewSubmission,
+  onToggleCell,
+  allTeams = [],
+  currentUserRole,
+  onAdminSelectTeam
 }: CaptainDashboardProps) {
+  // Get members of this team (both students and captain)
+  const squadMembers = profiles.filter(p => p.team_id === team?.id);
+
+  // Sort squad members so the captain is first, and students are sorted by score descending
+  const sortedMembers = [...squadMembers].sort((a, b) => {
+    if (a.role === 'captain' && b.role !== 'captain') return -1;
+    if (a.role !== 'captain' && b.role === 'captain') return 1;
+    return b.score - a.score;
+  });
+
+  // Calculate dynamic squad metrics
+  const currentBatch = batches.find(b => b.id === team?.batch_id);
+  const batchName = currentBatch ? currentBatch.name : '未指派期數';
+  const teamIdStr = team?.id || '未指派編號';
+  const squadCaptain = team ? profiles.find(p => p.id === team.captain_id) : null;
+  const directorProfile = squadCaptain?.director_id ? profiles.find(p => p.id === squadCaptain.director_id) : null;
+
+  // Filter and sort tasks for the matrix display:
+  // 1. Daily tasks show date in name (e.g. (6/11) 每日五感恩).
+  // 2. All daily tasks are grouped at the front, ordered by publish time.
+  // 3. Other tasks (weekly, temporary, limited) are placed after daily tasks.
+  const getPublishDatePart = (timeStr: string) => {
+    if (!timeStr) return null;
+    const match = timeStr.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (match) {
+      return {
+        yyyyStr: match[1],
+        mmStr: match[2],
+        ddStr: match[3],
+        month: parseInt(match[2], 10),
+        day: parseInt(match[3], 10)
+      };
+    }
+    const d = new Date(timeStr);
+    if (!isNaN(d.getTime())) {
+      return {
+        yyyyStr: String(d.getFullYear()),
+        mmStr: String(d.getMonth() + 1).padStart(2, '0'),
+        ddStr: String(d.getDate()).padStart(2, '0'),
+        month: d.getMonth() + 1,
+        day: d.getDate()
+      };
+    }
+    return null;
+  };
+
+  const matrixTasks = tasks
+    .map(t => {
+      const isDaily = t.type === 'daily';
+      if (isDaily && t.publish_time) {
+        const datePart = getPublishDatePart(t.publish_time);
+        if (datePart) {
+          return {
+            ...t,
+            name: `(${datePart.month}/${datePart.day}) ${t.name}`
+          };
+        }
+      }
+      return t;
+    })
+    .sort((a, b) => {
+      const aIsDaily = a.type === 'daily';
+      const bIsDaily = b.type === 'daily';
+      
+      if (aIsDaily && !bIsDaily) return -1;
+      if (!aIsDaily && bIsDaily) return 1;
+      
+      // If both are daily, sort by publish time ascending
+      if (aIsDaily && bIsDaily) {
+        const aTime = a.publish_time ? new Date(a.publish_time).getTime() : 0;
+        const bTime = b.publish_time ? new Date(b.publish_time).getTime() : 0;
+        return aTime - bTime;
+      }
+      
+      return 0;
+    });
+
+  // Group matrix tasks by date or ID to assign alternating background classes and group borders
+  let currentGroupKey = '';
+  let groupColorIndex = -1;
+  const taskGroupMeta = matrixTasks.map((t, index) => {
+    const isDaily = t.type === 'daily';
+    let groupKey = '';
+    
+    if (isDaily && t.publish_time) {
+      const datePart = getPublishDatePart(t.publish_time);
+      groupKey = datePart ? `${datePart.yyyyStr}-${datePart.mmStr}-${datePart.ddStr}` : t.id;
+    } else {
+      groupKey = t.id;
+    }
+    
+    if (groupKey !== currentGroupKey) {
+      groupColorIndex++;
+      currentGroupKey = groupKey;
+      return {
+        id: t.id,
+        groupColorIndex,
+        isGroupStart: true
+      };
+    }
+    
+    return {
+      id: t.id,
+      groupColorIndex,
+      isGroupStart: false
+    };
+  });
+
+  const getTaskGroupClass = (taskId: string, isHeader = false) => {
+    const meta = taskGroupMeta.find(m => m.id === taskId);
+    if (!meta) return '';
+    
+    const bgClass = meta.groupColorIndex % 2 === 0
+      ? (isHeader ? 'bg-slate-950/40 light:bg-slate-100/80' : 'bg-slate-950/10 light:bg-slate-50/20')
+      : (isHeader ? 'bg-slate-900/60 light:bg-slate-200/80' : 'bg-slate-900/30 light:bg-slate-100/40');
+      
+    const borderClass = meta.isGroupStart
+      ? 'border-l border-white/10 light:border-slate-300'
+      : '';
+      
+    return `${bgClass} ${borderClass}`;
+  };
+
+  const squadStudents = sortedMembers.filter(p => p.role === 'student' || p.role === 'captain');
+  const dailyMissions = tasks.filter(t => t.type === 'daily');
+  const weeklyMissions = tasks.filter(t => t.type === 'weekly');
+  const specialMissions = tasks.filter(t => t.type === 'temporary' || t.type === 'limited');
+
+  let totalDailyPossible = 0;
+  let totalDailyCompleted = 0;
+  let totalWeeklyPossible = 0;
+  let totalWeeklyCompleted = 0;
+  let totalSpecialPossible = 0;
+  let totalSpecialCompleted = 0;
+
+  squadStudents.forEach(m => {
+    dailyMissions.forEach(t => {
+      const limit = t.max_completions ?? 1;
+      const effectiveLimit = limit === 0 ? 1 : limit;
+      totalDailyPossible += effectiveLimit;
+      
+      const approvedCount = submissions.filter(s => s.mission_id === t.id && s.student_id === m.id && s.status === 'approved').length;
+      totalDailyCompleted += Math.min(approvedCount, effectiveLimit);
+    });
+    weeklyMissions.forEach(t => {
+      const limit = t.max_completions ?? 1;
+      const effectiveLimit = limit === 0 ? 1 : limit;
+      totalWeeklyPossible += effectiveLimit;
+      
+      const approvedCount = submissions.filter(s => s.mission_id === t.id && s.student_id === m.id && s.status === 'approved').length;
+      totalWeeklyCompleted += Math.min(approvedCount, effectiveLimit);
+    });
+    specialMissions.forEach(t => {
+      const limit = t.max_completions ?? 1;
+      const effectiveLimit = limit === 0 ? 1 : limit;
+      totalSpecialPossible += effectiveLimit;
+      
+      const approvedCount = submissions.filter(s => s.mission_id === t.id && s.student_id === m.id && s.status === 'approved').length;
+      totalSpecialCompleted += Math.min(approvedCount, effectiveLimit);
+    });
+  });
+
+  const teamDailyRate = totalDailyPossible > 0 ? Math.round((totalDailyCompleted / totalDailyPossible) * 100) : 0;
+  const teamWeeklyRate = totalWeeklyPossible > 0 ? Math.round((totalWeeklyCompleted / totalWeeklyPossible) * 100) : 0;
+  const teamSpecialRate = totalSpecialPossible > 0 ? Math.round((totalSpecialCompleted / totalSpecialPossible) * 100) : 0;
+
   // Member selection for details panel
   const [expandedMemberId, setExpandedMemberId] = useState<string | null>(null);
 
@@ -168,16 +348,6 @@ export function CaptainDashboard({
   // Member selection for bottom settings panel
   const [selectedSettingMemberId, setSelectedSettingMemberId] = useState<string>('');
 
-  // Get members of this team (both students and captain)
-  const squadMembers = profiles.filter(p => p.team_id === team?.id);
-
-  // Sort squad members so the captain is first, and students are sorted by score descending
-  const sortedMembers = [...squadMembers].sort((a, b) => {
-    if (a.role === 'captain' && b.role !== 'captain') return -1;
-    if (a.role !== 'captain' && b.role === 'captain') return 1;
-    return b.score - a.score;
-  });
-
   useEffect(() => {
     const map: Record<string, string> = {};
     sortedMembers.forEach(member => {
@@ -227,11 +397,28 @@ export function CaptainDashboard({
   const activeTasks = tasks.filter(t => t.type === 'daily' || t.type === 'weekly');
   const dailyQuests = tasks.filter(t => t.type === 'daily');
 
+  const getMemberTaskProgress = (studentId: string, taskId: string) => {
+    const task = tasks.find(t => t.id === taskId);
+    const limit = task?.max_completions ?? 1;
+
+    const studentSubs = submissions.filter(s => s.mission_id === taskId && s.student_id === studentId);
+    const validSubs = studentSubs.filter(s => s.status !== 'rejected');
+    const approvedCount = validSubs.filter(s => s.status === 'approved').length;
+    const pendingCount = validSubs.filter(s => s.status === 'pending').length;
+    const isDone = limit > 0 && validSubs.length >= limit;
+
+    return { limit, approvedCount, pendingCount, totalValid: validSubs.length, isDone };
+  };
+
   // Helper to check individual task completion
   const getMemberTaskStatus = (studentId: string, taskId: string) => {
-    const sub = submissions.find(s => s.mission_id === taskId && s.student_id === studentId);
-    if (!sub) return 'none';
-    return sub.status;
+    const { isDone, pendingCount, totalValid } = getMemberTaskProgress(studentId, taskId);
+    if (isDone) {
+      return pendingCount > 0 ? 'pending' : 'approved';
+    }
+    const studentSubs = submissions.filter(s => s.mission_id === taskId && s.student_id === studentId);
+    const hasRejected = studentSubs.some(s => s.status === 'rejected');
+    return hasRejected && totalValid === 0 ? 'rejected' : 'none';
   };
 
   const getTodayScore = (studentId: string) => {
@@ -287,11 +474,11 @@ export function CaptainDashboard({
       const needsCareName = sortedMembers[3]?.name || sortedMembers[2]?.name || '莊俊琦';
       
       setAiBriefing({
-        teamMorale: 'high',
-        teamSummary: `本分隊近七天學習氣勢非常旺盛，定課打卡率達到了 86%。隊員對於「映現」與「覆述」的練習心得反饋深刻，能將學理落實於日常開會與溝通互動中。`,
-        topPerformer: `${topMemberName}：定課打卡全勤，並撰寫了非常詳細的感官日記心得，堪為模範！`,
-        needsSupport: [needsCareName],
-        suggestion: `建議小隊長關懷【${needsCareName}】的近況，其定課打卡頻率有稍微下滑。本週推薦引導組員多在群組交流「卓越狀態」心錨的重塑練習。`
+        teamMorale: teamDailyRate >= 80 ? 'high' : teamDailyRate >= 50 ? 'medium' : 'low',
+        teamSummary: `本分隊打卡進度為 ${totalDailyCompleted + totalWeeklyCompleted}/${totalDailyPossible + totalWeeklyPossible}。定課達成率為 ${teamDailyRate}%，任務達成率為 ${teamWeeklyRate}%。`,
+        topPerformer: `${topMemberName}：目前獲得個人經驗 ${sortedMembers[1]?.score || 0}，為小隊主力！`,
+        needsSupport: teamDailyRate < 85 ? [needsCareName] : [],
+        suggestion: `建議小隊長多鼓勵大家，本週推薦引導組員多在群組交流「卓越狀態」心錨的重塑練習。`
       });
     }, 1200);
   };
@@ -344,20 +531,24 @@ export function CaptainDashboard({
     setSavingMemberId(subId);
     try {
       const reviewStatus = approve ? 'approved' : 'rejected';
-      const sub = submissions.find(s => s.id === subId);
-      const scoreAwarded = approve ? (sub?.mission?.points ?? tasks.find(t => t.id === sub?.mission_id)?.score ?? 0) : 0;
-      
-      await supabase
-        .from('submissions')
-        .update({
-          status: reviewStatus,
-          score_awarded: scoreAwarded,
-          reviewed_by: currentUserId,
-          reviewed_at: new Date().toISOString()
-        })
-        .eq('id', subId);
-      
-      if (onRefresh) await onRefresh();
+      if (onReviewSubmission) {
+        await onReviewSubmission(subId, reviewStatus);
+      } else {
+        const sub = submissions.find(s => s.id === subId);
+        const scoreAwarded = approve ? (sub?.mission?.points ?? tasks.find(t => t.id === sub?.mission_id)?.score ?? 0) : 0;
+        
+        await supabase
+          .from('submissions')
+          .update({
+            status: reviewStatus,
+            score_awarded: scoreAwarded,
+            reviewed_by: currentUserId,
+            reviewed_at: new Date().toISOString()
+          })
+          .eq('id', subId);
+        
+        if (onRefresh) await onRefresh();
+      }
     } catch (err) {
       console.error(err);
     } finally {
@@ -370,37 +561,45 @@ export function CaptainDashboard({
     if (!task) return;
     
     setSavingMemberId(studentId);
-    const sub = submissions.find(s => s.mission_id === taskId && s.student_id === studentId);
-    
     try {
-      if (!sub) {
-        // Create an approved submission (check-in)
-        await supabase.from('submissions').insert({
-          mission_id: taskId,
-          student_id: studentId,
-          proof_text: '由小隊長於指揮所手動設定打卡',
-          proof_image_url: null,
-          proof_link: null,
-          status: 'approved',
-          score_awarded: task.score,
-          reviewed_by: currentUserId,
-          reviewed_at: new Date().toISOString(),
-          created_at: new Date().toISOString()
-        });
-      } else if (sub.status === 'approved') {
-        // Delete submission (removes score automatically in adjustScoreLocal)
-        await supabase.from('submissions').delete().eq('id', sub.id);
+      if (onToggleCell) {
+        await onToggleCell(studentId, taskId);
       } else {
-        // If pending or rejected, change to approved
-        await supabase.from('submissions').update({
-          status: 'approved',
-          score_awarded: task.score,
-          reviewed_by: currentUserId,
-          reviewed_at: new Date().toISOString()
-        }).eq('id', sub.id);
+        const limit = task.max_completions ?? 1;
+        const studentSubs = submissions.filter(s => s.mission_id === taskId && s.student_id === studentId);
+        
+        const pendingSubs = studentSubs.filter(s => s.status === 'pending');
+        const approvedSubs = studentSubs.filter(s => s.status === 'approved');
+        
+        const sortedPending = [...pendingSubs].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+        const sortedApproved = [...approvedSubs].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        
+        if (sortedPending.length > 0) {
+          await supabase.from('submissions').update({
+            status: 'approved',
+            score_awarded: task.score,
+            reviewed_by: currentUserId,
+            reviewed_at: new Date().toISOString()
+          }).eq('id', sortedPending[0].id);
+        } else if (limit === 0 || approvedSubs.length < limit) {
+          await supabase.from('submissions').insert({
+            mission_id: taskId,
+            student_id: studentId,
+            proof_text: '由小隊長於指揮所手動設定打卡',
+            proof_image_url: null,
+            proof_link: null,
+            status: 'approved',
+            score_awarded: task.score,
+            reviewed_by: currentUserId,
+            reviewed_at: new Date().toISOString(),
+            created_at: new Date().toISOString()
+          });
+        } else {
+          await supabase.from('submissions').delete().eq('id', sortedApproved[0].id);
+        }
+        
+        if (onRefresh) await onRefresh();
       }
-      
-      if (onRefresh) await onRefresh();
     } catch (err) {
       console.error('Error toggling cell:', err);
     } finally {
@@ -417,6 +616,24 @@ export function CaptainDashboard({
   return (
     <div className="w-full max-w-4xl mx-auto space-y-6 animate-in fade-in duration-300">
       
+      {/* 大隊長專屬：小隊切換選單 */}
+      {currentUserRole === 'admin' && allTeams && allTeams.length > 0 && (
+        <div className="flex items-center gap-2 bg-slate-900/60 p-4 rounded-3xl border border-white/5 w-fit light:bg-slate-100 light:border-slate-200 select-none">
+          <span className="text-xs text-slate-400 font-bold light:text-slate-500">大隊長專屬檢視切換：</span>
+          <select
+            value={team?.id || ''}
+            onChange={(e) => onAdminSelectTeam && onAdminSelectTeam(e.target.value)}
+            className="bg-slate-950 border border-slate-800 text-white rounded-xl py-1.5 px-3 text-xs outline-none focus:border-red-500 light:bg-white light:border-slate-200 light:text-slate-900 cursor-pointer"
+          >
+            {allTeams.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.name} {t.custom_name ? `(${t.custom_name})` : ''}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
       {/* 🧭 隊長權限指揮所 (Squad Roster Header) */}
       <div className="glass-panel p-6 rounded-4xl border border-white/10 relative light:bg-white light:border-slate-200">
         <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-6">
@@ -435,8 +652,19 @@ export function CaptainDashboard({
             </div>
 
             <p className="text-sm text-slate-400 italic font-medium">{teamSlogan}</p>
-            <p className="text-xs text-slate-500 font-bold">
-              所屬大隊：定洋大隊 · <span className="text-amber-500">👑 劉定洋</span>
+            <p className="text-xs text-slate-500 font-bold flex flex-wrap gap-x-2 gap-y-1 items-center">
+              <span>期數：<span className="text-amber-500">{batchName}</span></span>
+              {directorProfile && (
+                <>
+                  <span className="text-slate-650">|</span>
+                  <span className="flex items-center gap-1.5 flex-wrap">
+                    <span>所屬大隊：{directorProfile.division_name || '未填寫'} ·</span>
+                    <span className="inline-flex items-center gap-0.5 text-amber-500 font-bold bg-amber-500/5 border border-amber-500/20 px-1.5 py-0.5 rounded-lg text-[10px] select-none">
+                      👑 {directorProfile.name}
+                    </span>
+                  </span>
+                </>
+              )}
             </p>
           </div>
 
@@ -490,6 +718,69 @@ export function CaptainDashboard({
         </div>
       </div>
 
+      {/* 📊 小隊整體學習指標 */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 animate-in fade-in duration-300">
+        {/* 1. 每日定課打卡進度 */}
+        <div className="glass-panel p-5 rounded-3xl text-left border border-white/10 light:bg-white light:border-slate-200 shadow-sm flex flex-col justify-between min-h-[145px]">
+          <div>
+            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest block">每日定課打卡進度</span>
+            <div className="flex items-baseline gap-2 mt-2">
+              <span className="text-3xl font-black text-amber-500 font-mono">
+                {totalDailyCompleted} / {totalDailyPossible} 件
+              </span>
+              <span className="text-sm font-black text-amber-500 font-mono">({teamDailyRate}%)</span>
+            </div>
+            <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-white/5 mt-2 light:bg-slate-100 light:border-slate-300">
+              <div 
+                className="bg-gradient-to-r from-amber-400 to-orange-500 h-full rounded-full transition-all duration-500 shadow-[0_0_8px_rgba(245,158,11,0.3)]"
+                style={{ width: `${teamDailyRate}%` }}
+              />
+            </div>
+          </div>
+          <span className="text-[10px] text-slate-500 light:text-slate-650 font-bold block mt-2">組員每日習慣養成，展現小隊基礎修行紀律</span>
+        </div>
+
+        {/* 2. 每週任務打卡進度 */}
+        <div className="glass-panel p-5 rounded-3xl text-left border border-white/10 light:bg-white light:border-slate-200 shadow-sm flex flex-col justify-between min-h-[145px]">
+          <div>
+            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest block">每週任務打卡進度</span>
+            <div className="flex items-baseline gap-2 mt-2">
+              <span className="text-3xl font-black text-amber-500 font-mono">
+                {totalWeeklyCompleted} / {totalWeeklyPossible} 件
+              </span>
+              <span className="text-sm font-black text-amber-500 font-mono">({teamWeeklyRate}%)</span>
+            </div>
+            <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-white/5 mt-2 light:bg-slate-100 light:border-slate-300">
+              <div 
+                className="bg-gradient-to-r from-amber-400 to-orange-500 h-full rounded-full transition-all duration-500 shadow-[0_0_8px_rgba(245,158,11,0.3)]"
+                style={{ width: `${teamWeeklyRate}%` }}
+              />
+            </div>
+          </div>
+          <span className="text-[10px] text-slate-500 light:text-slate-650 font-bold block mt-2">每週主線任務進度，展現核心心法修行深度</span>
+        </div>
+
+        {/* 3. 特殊任務打卡進度 */}
+        <div className="glass-panel p-5 rounded-3xl text-left border border-white/10 light:bg-white light:border-slate-200 shadow-sm flex flex-col justify-between min-h-[145px]">
+          <div>
+            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest block">特殊任務打卡進度</span>
+            <div className="flex items-baseline gap-2 mt-2">
+              <span className="text-3xl font-black text-teal-400 font-mono">
+                {totalSpecialCompleted} / {totalSpecialPossible} 件
+              </span>
+              <span className="text-sm font-black text-teal-400 font-mono">({teamSpecialRate}%)</span>
+            </div>
+            <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-white/5 mt-2 light:bg-slate-100 light:border-slate-300">
+              <div 
+                className="bg-gradient-to-r from-emerald-500 to-teal-450 h-full rounded-full transition-all duration-500 shadow-[0_0_8px_rgba(20,184,166,0.3)]"
+                style={{ width: `${teamSpecialRate}%` }}
+              />
+            </div>
+          </div>
+          <span className="text-[10px] text-slate-500 light:text-slate-650 font-bold block mt-2">限時加分與挑戰，展現小隊衝刺與積極度</span>
+        </div>
+      </div>
+
       {/* 🔗 小隊專屬招募通道 */}
       <section className="glass-panel p-6 rounded-3xl border border-white/10 text-left space-y-4 light:bg-white light:border-slate-200">
         <div className="flex items-center gap-2 font-black text-sm text-white light:text-slate-900">
@@ -500,12 +791,12 @@ export function CaptainDashboard({
         {team ? (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
             {/* Column 1: QR Code */}
-            <div className="flex flex-col items-center justify-center bg-slate-950/40 p-4 rounded-2xl border border-white/5 light:bg-slate-55">
+            <div className="flex flex-col items-center justify-center bg-slate-950/40 p-4 rounded-2xl border border-white/5 light:bg-slate-50">
               <div className="bg-white p-2 rounded-xl shadow-lg">
                 <img
                   src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(
                     typeof window !== 'undefined'
-                      ? `${window.location.origin}/register?invite=${team.invite_code || ''}`
+                      ? `${window.location.origin}/?invite=${team.invite_code || ''}&batch=${team.batch_id || ''}&team=${team.id || ''}`
                       : ''
                   )}`}
                   alt="Invitation QR Code"
@@ -525,15 +816,15 @@ export function CaptainDashboard({
                     type="text"
                     value={
                       typeof window !== 'undefined'
-                        ? `${window.location.origin}/register?invite=${team.invite_code || ''}`
+                        ? `${window.location.origin}/?invite=${team.invite_code || ''}&batch=${team.batch_id || ''}&team=${team.id || ''}`
                         : ''
                     }
-                    className="flex-1 bg-slate-950/80 border border-slate-800 rounded-xl px-3 py-2 text-xs font-mono text-slate-300 outline-none"
+                    className="flex-1 rounded-xl px-3 py-2 text-xs font-mono outline-none invite-link-input-black"
                   />
                   <button
                     onClick={() => {
                       if (typeof window !== 'undefined') {
-                        navigator.clipboard.writeText(`${window.location.origin}/register?invite=${team.invite_code || ''}`);
+                        navigator.clipboard.writeText(`${window.location.origin}/?invite=${team.invite_code || ''}&batch=${team.batch_id || ''}&team=${team.id || ''}`);
                         alert('邀請連結已複製到剪貼簿！');
                       }
                     }}
@@ -604,15 +895,15 @@ export function CaptainDashboard({
                 <thead>
                   <tr className="bg-slate-950/60 text-slate-450 font-bold border-b border-white/5 light:bg-slate-100 light:border-slate-300 light:text-slate-600">
                     <th className="p-3.5 whitespace-nowrap min-w-[90px] sticky left-0 z-20 bg-slate-950 light:bg-slate-100 border-r border-white/5 light:border-slate-300 shadow-[4px_0_8px_rgba(0,0,0,0.15)]">成員</th>
-                    {tasks.map(task => (
+                    {matrixTasks.map(task => (
                       <th 
                         key={task.id} 
-                        className="p-3.5 text-center min-w-[100px] max-w-[150px] truncate"
+                        className={`p-3.5 text-center min-w-[120px] ${getTaskGroupClass(task.id, true)}`}
                         title={task.name}
                       >
                         <div className="flex flex-col items-center gap-1">
                           {getTaskTypeBadge(task)}
-                          <span className="block truncate max-w-[90px] font-black text-[10px] text-white light:text-slate-800">
+                          <span className="block font-black text-[10px] text-white light:text-slate-800 whitespace-normal leading-tight text-center">
                             {task.name}
                           </span>
                         </div>
@@ -635,55 +926,83 @@ export function CaptainDashboard({
                             {isCap && <span className="text-[8px] bg-amber-500/20 text-amber-500 px-1 rounded font-sans">長</span>}
                           </div>
                         </td>
-                        {tasks.map(task => {
-                          const status = getMemberTaskStatus(member.id, task.id);
-                          
-                          return (
-                            <td 
-                              key={task.id}
-                              className="p-3.5 text-center align-middle"
-                            >
-                              <div className="flex items-center justify-center h-full">
-                                {status === 'approved' && (
-                                  <button 
-                                    onClick={() => handleToggleCell(member.id, task.id)}
-                                    title="已核准 (點擊可撤銷打卡)"
-                                    className="p-1 rounded hover:bg-slate-800 transition-colors shrink-0"
-                                  >
-                                    <CheckCircle2 size={16} className="text-emerald-500" />
-                                  </button>
-                                )}
-                                {status === 'pending' && (
-                                  <button 
-                                    onClick={() => handleToggleCell(member.id, task.id)}
-                                    title="待審核 (點擊可直接通過核准)"
-                                    className="p-1 rounded hover:bg-slate-800 transition-colors shrink-0 animate-pulse"
-                                  >
-                                    <Clock size={16} className="text-amber-500" />
-                                  </button>
-                                )}
-                                {status === 'rejected' && (
-                                  <button 
-                                    onClick={() => triggerManualCheckin(member.id, task)}
-                                    title="已被駁回 (點擊可手動補簽)"
-                                    className="p-1 rounded hover:bg-slate-800 transition-colors shrink-0"
-                                  >
-                                    <AlertCircle size={16} className="text-red-400" />
-                                  </button>
-                                )}
-                                {status === 'none' && (
-                                  <button 
-                                    onClick={() => triggerManualCheckin(member.id, task)}
-                                    title="尚未打卡 (點擊可進行手動補簽)"
-                                    className="p-1 rounded hover:bg-slate-800/40 transition-colors shrink-0 text-slate-700 hover:text-amber-500"
-                                  >
-                                    <Circle size={16} />
-                                  </button>
-                                )}
-                              </div>
-                            </td>
-                          );
-                        })}
+                         {matrixTasks.map(task => {
+                           return (
+                             <td 
+                               key={task.id}
+                               className={`p-3.5 text-center align-middle ${getTaskGroupClass(task.id, false)}`}
+                             >
+                               <div className="flex items-center justify-center h-full">
+                                 {(() => {
+                                   const { limit, approvedCount, pendingCount, isDone } = getMemberTaskProgress(member.id, task.id);
+
+                                   if (pendingCount > 0) {
+                                     return (
+                                       <button 
+                                         onClick={() => handleToggleCell(member.id, task.id)}
+                                         title={`待審核: ${pendingCount}次 (點擊可通過核准)${approvedCount > 0 ? `，已完成: ${approvedCount}次` : ''}`}
+                                         className="p-1 rounded hover:bg-slate-800 transition-colors shrink-0 flex items-center gap-0.5 animate-pulse"
+                                       >
+                                         <Clock size={16} className="text-amber-500" />
+                                         {pendingCount > 1 && <span className="text-[10px] font-black text-amber-400">x{pendingCount}</span>}
+                                         {approvedCount > 0 && (
+                                           <span className="text-[10px] font-black text-emerald-500 flex items-center ml-0.5">
+                                             (✓x{approvedCount})
+                                           </span>
+                                         )}
+                                       </button>
+                                     );
+                                   }
+
+                                   if (approvedCount > 0) {
+                                     return (
+                                       <button 
+                                         onClick={() => handleToggleCell(member.id, task.id)}
+                                         title={isDone 
+                                           ? `已達上限完成 ${approvedCount} 次 (點擊可撤銷最後一次打卡)` 
+                                           : `已完成 ${approvedCount} 次 / 上限 ${limit === 0 ? '無限制' : `${limit}次`} (點擊可手動加簽次數)`
+                                         }
+                                         className="p-1 rounded hover:bg-slate-800 transition-colors shrink-0 flex items-center gap-0.5"
+                                       >
+                                         <CheckCircle2 size={16} className="text-emerald-500" />
+                                         {approvedCount > 1 && <span className="text-[10px] font-black text-emerald-400">x{approvedCount}</span>}
+                                         {!isDone && (
+                                           <span className="text-[10px] font-black text-slate-500 hover:text-amber-500 ml-0.5">
+                                             +
+                                           </span>
+                                         )}
+                                       </button>
+                                     );
+                                   }
+
+                                   const studentSubs = submissions.filter(s => s.mission_id === task.id && s.student_id === member.id);
+                                   const hasRejected = studentSubs.some(s => s.status === 'rejected');
+                                   if (hasRejected) {
+                                     return (
+                                       <button 
+                                         onClick={() => triggerManualCheckin(member.id, task)}
+                                         title="已被駁回 (點擊可手動補簽)"
+                                         className="p-1 rounded hover:bg-slate-800 transition-colors shrink-0"
+                                       >
+                                         <AlertCircle size={16} className="text-red-400" />
+                                       </button>
+                                     );
+                                   }
+
+                                   return (
+                                     <button 
+                                       onClick={() => triggerManualCheckin(member.id, task)}
+                                       title={`尚未打卡 (點擊可手動簽到${limit > 1 || limit === 0 ? `，上限: ${limit === 0 ? '無限制' : `${limit}次`}` : ''})`}
+                                       className="p-1 rounded hover:bg-slate-800/40 transition-colors shrink-0 text-slate-700 hover:text-amber-500"
+                                     >
+                                       <Circle size={16} />
+                                     </button>
+                                   );
+                                 })()}
+                               </div>
+                             </td>
+                           );
+                         })}
                       </tr>
                     );
                   })}
@@ -825,14 +1144,15 @@ export function CaptainDashboard({
                     {(() => {
                       // Get all task statuses for this member
                       const memberTasks = tasks.map(task => {
+                        const progress = getMemberTaskProgress(member.id, task.id);
                         const status = getMemberTaskStatus(member.id, task.id);
                         const sub = submissions.find(s => s.mission_id === task.id && s.student_id === member.id);
-                        return { task, status, sub };
+                        return { task, status, sub, progress };
                       });
 
-                      const pendingTasks = memberTasks.filter(item => item.status === 'pending');
-                      const completedTasks = memberTasks.filter(item => item.status === 'approved');
-                      const uncompletedTasks = memberTasks.filter(item => item.status === 'none' || item.status === 'rejected');
+                      const pendingTasks = memberTasks.filter(item => item.progress.pendingCount > 0);
+                      const completedTasks = memberTasks.filter(item => item.progress.isDone);
+                      const uncompletedTasks = memberTasks.filter(item => !item.progress.isDone && item.progress.pendingCount === 0);
 
                       const totalCount = memberTasks.length;
                       const completedCount = completedTasks.length;
@@ -842,12 +1162,20 @@ export function CaptainDashboard({
                         <div className="space-y-5">
                           {/* Split Progress Bars (Daily Quests vs Other Quests) */}
                           {(() => {
-                            const dailyTotal = memberTasks.filter(item => item.task.type === 'daily').length;
-                            const dailyCompleted = memberTasks.filter(item => item.task.type === 'daily' && item.status === 'approved').length;
+                            const dailyTotal = memberTasks
+                              .filter(item => item.task.type === 'daily')
+                              .reduce((sum, item) => sum + (item.progress.limit === 0 ? 1 : item.progress.limit), 0);
+                            const dailyCompleted = memberTasks
+                              .filter(item => item.task.type === 'daily')
+                              .reduce((sum, item) => sum + Math.min(item.progress.approvedCount, item.progress.limit === 0 ? 1 : item.progress.limit), 0);
                             const dailyPercent = dailyTotal > 0 ? Math.round((dailyCompleted / dailyTotal) * 100) : 0;
 
-                            const otherTotal = memberTasks.filter(item => item.task.type !== 'daily').length;
-                            const otherCompleted = memberTasks.filter(item => item.task.type !== 'daily' && item.status === 'approved').length;
+                            const otherTotal = memberTasks
+                              .filter(item => item.task.type !== 'daily')
+                              .reduce((sum, item) => sum + (item.progress.limit === 0 ? 1 : item.progress.limit), 0);
+                            const otherCompleted = memberTasks
+                              .filter(item => item.task.type !== 'daily')
+                              .reduce((sum, item) => sum + Math.min(item.progress.approvedCount, item.progress.limit === 0 ? 1 : item.progress.limit), 0);
                             const otherPercent = otherTotal > 0 ? Math.round((otherCompleted / otherTotal) * 100) : 0;
 
                             return (
@@ -898,7 +1226,7 @@ export function CaptainDashboard({
                                 >
                                   <div className="flex items-center gap-1.5 text-[11px] font-black text-amber-500">
                                     <ScrollText size={13} />
-                                    <span>修為分數明細 ({memberLogs.length} 筆記錄)</span>
+                                    <span>經驗分數明細 ({memberLogs.length} 筆記錄)</span>
                                   </div>
                                   <span className="text-[10px] text-slate-500 font-bold hover:text-amber-500">
                                     {isShowing ? '隱藏明細 ▲' : '展開明細 ▼'}
@@ -908,7 +1236,7 @@ export function CaptainDashboard({
                                 {isShowing && (
                                   <div className="divide-y divide-white/5 max-h-[200px] overflow-y-auto pr-1 animate-in slide-in-from-top-1 duration-200 light:divide-slate-200">
                                     {memberLogs.length === 0 ? (
-                                      <p className="text-[10px] text-slate-500 text-center py-4 font-medium">目前無修為增減記錄</p>
+                                      <p className="text-[10px] text-slate-500 text-center py-4 font-medium">目前無經驗增減記錄</p>
                                     ) : (
                                       memberLogs.map(log => {
                                         const isPositive = log.amount >= 0;
@@ -987,37 +1315,49 @@ export function CaptainDashboard({
                               </div>
                             ) : (
                               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[360px] overflow-y-auto pr-1">
-                                {uncompletedTasks.map(({ task, status }) => (
-                                  <div 
-                                    key={task.id} 
-                                    className="bg-slate-900 border border-white/5 p-4 rounded-2xl flex flex-col justify-between gap-3 shadow-sm light:bg-white light:border-slate-355"
-                                  >
-                                    <div className="space-y-1 text-left">
-                                      <div className="flex items-center gap-1.5 flex-wrap">
-                                        <span className="text-xs font-black text-white light:text-slate-900 block truncate max-w-[150px]" title={task.name}>
-                                          {task.name}
-                                        </span>
-                                        {getTaskTypeBadge(task)}
-                                        <span className="text-[9px] font-black text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/10 font-mono">
-                                          +{task.score}分
+                                {uncompletedTasks.map(({ task, status }) => {
+                                  const { limit, approvedCount } = getMemberTaskProgress(member.id, task.id);
+                                  return (
+                                    <div 
+                                      key={task.id} 
+                                      className="bg-slate-900 border border-white/5 p-4 rounded-2xl flex flex-col justify-between gap-3 shadow-sm light:bg-white light:border-slate-355"
+                                    >
+                                      <div className="space-y-1 text-left">
+                                        <div className="flex items-center gap-1.5 flex-wrap">
+                                          <span className="text-xs font-black text-white light:text-slate-900 block truncate max-w-[150px]" title={task.name}>
+                                            {task.name}
+                                          </span>
+                                          {getTaskTypeBadge(task)}
+                                          <span className="text-[9px] font-black text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/10 font-mono">
+                                            +{task.score}分
+                                          </span>
+                                          {limit === 0 ? (
+                                            <span className="text-[9px] font-black text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded border border-blue-500/10 font-mono">
+                                              已打卡 {approvedCount} 次 / 無限制
+                                            </span>
+                                          ) : limit > 1 ? (
+                                            <span className="text-[9px] font-black text-purple-400 bg-purple-500/10 px-1.5 py-0.5 rounded border border-purple-500/10 font-mono">
+                                              已打卡 {approvedCount} / {limit} 次
+                                            </span>
+                                          ) : null}
+                                        </div>
+                                        <span className="text-[10px] text-slate-500 block leading-normal line-clamp-2 light:text-slate-650">
+                                          {task.description}
                                         </span>
                                       </div>
-                                      <span className="text-[10px] text-slate-500 block leading-normal line-clamp-2 light:text-slate-650">
-                                        {task.description}
-                                      </span>
-                                    </div>
 
-                                    {/* Action button */}
-                                    <div className="flex justify-end pt-1 select-none">
-                                      <button
-                                        onClick={() => triggerManualCheckin(member.id, task)}
-                                        className="w-full bg-gradient-to-r from-amber-400 via-orange-500 to-amber-500 hover:from-amber-300 hover:to-orange-400 active:scale-95 transition-all text-slate-950 text-[10px] font-black py-1.5 px-3 rounded-xl shadow-[0_0_10px_rgba(245,158,11,0.15)] border border-amber-400/20 cursor-pointer text-center"
-                                      >
-                                        手動補簽 / 立即完成
-                                      </button>
+                                      {/* Action button */}
+                                      <div className="flex justify-end pt-1 select-none">
+                                        <button
+                                          onClick={() => triggerManualCheckin(member.id, task)}
+                                          className="w-full bg-gradient-to-r from-amber-400 via-orange-500 to-amber-500 hover:from-amber-300 hover:to-orange-400 active:scale-95 transition-all text-slate-950 text-[10px] font-black py-1.5 px-3 rounded-xl shadow-[0_0_10px_rgba(245,158,11,0.15)] border border-amber-400/20 cursor-pointer text-center"
+                                        >
+                                          {approvedCount > 0 ? `繼續補簽 (已打卡 ${approvedCount} 次) →` : '手動補簽 / 立即完成'}
+                                        </button>
+                                      </div>
                                     </div>
-                                  </div>
-                                ))}
+                                  );
+                                })}
                               </div>
                             )}
                           </div>
@@ -1052,6 +1392,23 @@ export function CaptainDashboard({
                                       <span className="text-[9px] text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/10 font-black flex items-center gap-0.5 shrink-0">
                                         <Check size={10} /> +{task.score}分
                                       </span>
+                                      {(() => {
+                                        const { limit, approvedCount } = getMemberTaskProgress(member.id, task.id);
+                                        if (limit === 0) {
+                                          return (
+                                            <span className="text-[9px] font-black text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded border border-blue-500/10 font-mono shrink-0">
+                                              已完成 {approvedCount} 次
+                                            </span>
+                                          );
+                                        } else if (limit > 1) {
+                                          return (
+                                            <span className="text-[9px] font-black text-purple-400 bg-purple-500/10 px-1.5 py-0.5 rounded border border-purple-500/10 font-mono shrink-0">
+                                              已完成 {approvedCount} / {limit} 次
+                                            </span>
+                                          );
+                                        }
+                                        return null;
+                                      })()}
                                     </div>
                                     {sub && sub.proof_text && sub.proof_text !== '由小隊長於指揮所手動設定打卡' && (
                                       <div className="space-y-1.5">
@@ -1368,7 +1725,7 @@ export function CaptainDashboard({
                   {profiles.find(p => p.id === confirmStudentId)?.name} 的「{confirmTask.name}」
                 </p>
                 <p className="text-xs text-slate-400 leading-relaxed max-w-xs mx-auto light:text-slate-600">
-                  補簽後，系統將直接核准該任務，並發放該組員 <span className="text-amber-500 font-bold">+{confirmTask.score}</span> 點修為積分。
+                  補簽後，系統將直接核准該任務，並發放該組員 <span className="text-amber-500 font-bold">+{confirmTask.score}</span> 點經驗積分。
                 </p>
               </div>
             </div>

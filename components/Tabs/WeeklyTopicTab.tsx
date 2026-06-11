@@ -140,7 +140,7 @@ export function WeeklyTopicTab({ tasks, submissions, onCheckIn, isSyncing }: Wee
                   <div className="flex flex-wrap items-center gap-2">
                     {getCategoryBadge(task.type)}
                     <span className="text-[10px] font-black tracking-widest text-amber-500 bg-amber-500/10 px-2.5 py-1 rounded-md">
-                      +{task.score} 修為
+                      +{task.score} 經驗
                     </span>
                   </div>
                   

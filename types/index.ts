@@ -10,7 +10,11 @@ export interface Profile {
   active_pet_id?: string | null;
   phone?: string;
   captain_id?: string | null;
+  division_name?: string | null;
+  director_id?: string | null;
   created_at: string;
+  profile_id?: string;
+  status?: 'active' | 'ended' | 'inactive';
 }
 
 
@@ -45,8 +49,10 @@ export interface Task {
   target_team_id: string | null;
   target_user_id: string | null;
   batch_id?: string | null;
+  category?: string;
   created_by: string | null;
   created_at: string;
+  max_completions?: number;
 }
 
 export type SubmissionStatus = 'pending' | 'approved' | 'rejected';
@@ -155,13 +161,72 @@ export interface Pet {
 export interface UserPet {
   id: string;
   student_id: string;
-  pet_id: string;
-  pet_level: number;
-  current_skin: string;
-  unlocked_at: string;
+  pet_id?: string;
+  pet_level?: number;
+  current_skin?: string;
+  unlocked_at?: string;
+  // New evolutionary fields
+  pet_line: string | null;
+  current_stage_index: number;
+  total_exp: number;
+  level: number;
+  first_reached_lv5_at: string | null;
+  evolution_eligible_at: string | null;
+  evolved_at: string | null;
+  has_pending_evolution: boolean;
+  selected_evolution_line?: string | null;
+  created_at: string;
+  updated_at: string;
   // Joined fields
   pet?: Pet;
   profile?: Profile;
+  stage?: PetStage | null;
+}
+
+export interface PetLine {
+  id: string;
+  line_key: string;
+  name: string;
+  description: string;
+  core_traits: string;
+  is_active: boolean;
+  image_url?: string;
+  unlock_level?: number;
+  task_template_id?: string | null;
+  sort_order?: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PetStage {
+  id: string;
+  line_key: string | null;
+  stage_index: number;
+  stage_name: string;
+  min_level: number;
+  max_level: number;
+  image_url: string;
+  animation_type: string;
+  glow_color: string;
+  description: string;
+  evolution_text: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PetEvolutionLog {
+  id: string;
+  student_id: string;
+  from_stage_index: number;
+  to_stage_index: number;
+  from_stage_name: string;
+  to_stage_name: string;
+  pet_line: string;
+  level: number;
+  total_exp: number;
+  days_to_reach_level: number;
+  created_at: string;
 }
 
 export interface Card {
@@ -212,6 +277,7 @@ export interface Batch {
   start_date: string;
   end_date: string;
   status: 'draft' | 'active' | 'ended'; // 草稿 / 進行中 / 已結束
+  rankings_visible?: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -224,8 +290,10 @@ export interface MissionTemplate {
   points: number;
   review_type: 'auto' | 'leader' | 'admin';
   is_active: boolean;
+  category?: string;
   created_at: string;
   updated_at: string;
+  max_completions?: number;
 }
 
 export interface BatchMissionTemplate {
@@ -255,9 +323,24 @@ export interface Mission {
   deadline_at: string;
   status: 'draft' | 'active' | 'scheduled' | 'published' | 'ended';
   review_type: 'auto' | 'leader' | 'admin';
+  category?: string;
   created_at: string;
   updated_at: string;
+  max_completions?: number;
   // Joined fields
   batch?: Batch;
   template?: MissionTemplate;
 }
+
+export interface CaptainCandidate {
+  id: string;
+  profile_id: string;
+  status: 'eligible' | 'paused' | 'disabled';
+  created_at: string;
+  // Joined fields
+  name?: string;
+  phone?: string;
+  past_cohorts?: string[];
+  past_roles?: string[];
+}
+

@@ -56,7 +56,7 @@ export function Navigation({ activeTab, setActiveTab, userRole }: NavigationProp
   // Complete list of menu items (used in Desktop)
   const menuItems = [
     { key: 'daily' as TabKey, label: '個人面板', icon: Flame, color: 'bg-amber-500 text-slate-950 shadow-amber-500/25' },
-    { key: 'rank' as TabKey, label: '修為榜', icon: Trophy, color: 'bg-amber-500 text-slate-950 shadow-amber-500/25' },
+    { key: 'rank' as TabKey, label: '排行榜', icon: Trophy, color: 'bg-amber-500 text-slate-950 shadow-amber-500/25' },
     { key: 'achievements' as TabKey, label: '成就', icon: Medal, color: 'bg-amber-500 text-slate-950 shadow-amber-500/25' },
     { key: 'course' as TabKey, label: '課程', icon: CalendarDays, color: 'bg-amber-500 text-slate-950 shadow-amber-500/25' },
     { key: 'witness' as TabKey, label: '見證分享', icon: BookOpen, color: 'bg-purple-500 text-white shadow-purple-500/25' },
@@ -68,7 +68,7 @@ export function Navigation({ activeTab, setActiveTab, userRole }: NavigationProp
   // Mobile Bottom Bar main items (4 slots)
   const mobileMainItems = [
     { key: 'daily' as TabKey, label: '個人面板', icon: Flame },
-    { key: 'rank' as TabKey, label: '修為榜', icon: Trophy },
+    { key: 'rank' as TabKey, label: '排行榜', icon: Trophy },
     { key: 'witness' as TabKey, label: '見證分享', icon: BookOpen },
     { key: 'course' as TabKey, label: '課程', icon: CalendarDays },
   ];

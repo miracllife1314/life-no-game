@@ -3,14 +3,14 @@ import {
   Profile, Team, Task, Submission, ScoreLog, 
   Course, CourseAttendance, Achievement, UserAchievement, 
   Announcement, StudentNote,
-  Pet, UserPet, Card, Deck, DeckCard, UserDeck,
-  Batch, MissionTemplate, BatchMissionTemplate, Mission
+  Pet, UserPet, PetLine, PetStage, PetEvolutionLog, Card, Deck, DeckCard, UserDeck,
+  Batch, MissionTemplate, BatchMissionTemplate, Mission, CaptainCandidate
 } from '@/types';
 
 // Detect if Supabase URL and Key are provided and valid
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-const isRealSupabase = supabaseUrl && supabaseUrl !== 'your-supabase-url' && supabaseKey;
+export const isRealSupabase = !!(supabaseUrl && supabaseUrl !== 'your-supabase-url' && supabaseKey);
 
 // Base real supabase client
 export const realSupabase = isRealSupabase ? createClient(supabaseUrl, supabaseKey) : null;
@@ -35,16 +35,35 @@ const SEED_DATA = {
   ] as Team[],
 
   profiles: [
-    { id: 'admin1', name: '林大統', role: 'admin', team_id: null, batch_id: null, score: 15000, created_at: new Date('2026-04-16T08:00:00Z').toISOString() },
-    { id: 'captain-yuxi', name: '沈又希', role: 'captain', team_id: 'team1', batch_id: 'batch-47', score: 6950, created_at: new Date('2026-04-16T08:00:00Z').toISOString() },
-    { id: 'student-yuting', name: '林玉庭', role: 'student', team_id: 'team1', batch_id: 'batch-47', score: 4400, created_at: new Date('2026-04-16T08:00:00Z').toISOString() },
-    { id: 'student-zhenyang', name: '陳振揚', role: 'student', team_id: 'team1', batch_id: 'batch-47', score: 2900, created_at: new Date('2026-04-16T08:00:00Z').toISOString() },
-    { id: 'student-yiru', name: '蕭意儒', role: 'student', team_id: 'team1', batch_id: 'batch-47', score: 2600, created_at: new Date('2026-04-16T08:00:00Z').toISOString() },
-    { id: 'student-haocheng', name: '曾浩程', role: 'student', team_id: 'team1', batch_id: 'batch-47', score: 2550, created_at: new Date('2026-04-16T08:00:00Z').toISOString() },
-    { id: 'student-qunyi', name: '鄭群譯', role: 'student', team_id: 'team1', batch_id: 'batch-47', score: 2500, created_at: new Date('2026-04-16T08:00:00Z').toISOString() },
-    { id: 'student-yahan', name: '蕭雅韓', role: 'student', team_id: 'team1', batch_id: 'batch-47', score: 2150, created_at: new Date('2026-04-16T08:00:00Z').toISOString() },
-    { id: 'student-zongxuan', name: '蔡宗玹', role: 'student', team_id: 'team1', batch_id: 'batch-47', score: 1600, created_at: new Date('2026-04-16T08:00:00Z').toISOString() }
-  ] as Profile[],
+    { id: 'admin1', name: '林大統', phone: '0911111111', created_at: new Date('2026-04-16T08:00:00Z').toISOString() },
+    { id: 'admin-dingyang', name: '劉定洋', phone: '0922222222', created_at: new Date('2026-04-16T08:00:00Z').toISOString() },
+    { id: 'admin-panchan', name: '張品嬋', phone: '0933333333', created_at: new Date('2026-04-16T08:00:00Z').toISOString() },
+    { id: 'captain-yuxi', name: '沈又希', phone: '0944444444', created_at: new Date('2026-04-16T08:00:00Z').toISOString() },
+    { id: 'student-yuting', name: '林玉庭', phone: '0955555555', created_at: new Date('2026-04-16T08:00:00Z').toISOString() },
+    { id: 'student-zhenyang', name: '陳振揚', phone: '0966666666', created_at: new Date('2026-04-16T08:00:00Z').toISOString() },
+    { id: 'student-yiru', name: '蕭意儒', phone: '0977777777', created_at: new Date('2026-04-16T08:00:00Z').toISOString() },
+    { id: 'student-haocheng', name: '曾浩程', phone: '0988888888', created_at: new Date('2026-04-16T08:00:00Z').toISOString() },
+    { id: 'student-qunyi', name: '鄭群譯', phone: '0999999999', created_at: new Date('2026-04-16T08:00:00Z').toISOString() },
+    { id: 'student-yahan', name: '蕭雅韓', phone: '0900000000', created_at: new Date('2026-04-16T08:00:00Z').toISOString() },
+    { id: 'student-zongxuan', name: '蔡宗玹', phone: '0912345678', created_at: new Date('2026-04-16T08:00:00Z').toISOString() }
+  ] as any[],
+
+  user_batches: [
+    { id: 'admin1', profile_id: 'admin1', batch_id: null, team_id: null, role: 'admin', score: 15000, status: 'active', division_name: '大統大隊', created_at: new Date('2026-04-16T08:00:00Z').toISOString() },
+    { id: 'admin-dingyang', profile_id: 'admin-dingyang', batch_id: null, team_id: null, role: 'admin', score: 20000, status: 'active', division_name: '定洋大隊', created_at: new Date('2026-04-16T08:00:00Z').toISOString() },
+    { id: 'admin-panchan', profile_id: 'admin-panchan', batch_id: null, team_id: null, role: 'admin', score: 20000, status: 'active', division_name: '定洋大隊', created_at: new Date('2026-04-16T08:00:00Z').toISOString() },
+    { id: 'captain-yuxi', profile_id: 'captain-yuxi', batch_id: 'batch-47', team_id: 'team1', role: 'captain', score: 6950, status: 'ended', director_id: 'admin-dingyang', created_at: new Date('2026-04-16T08:00:00Z').toISOString() },
+    { id: 'student-yuting', profile_id: 'student-yuting', batch_id: 'batch-47', team_id: 'team1', role: 'student', score: 4400, status: 'ended', created_at: new Date('2026-04-16T08:00:00Z').toISOString() },
+    { id: 'student-zhenyang', profile_id: 'student-zhenyang', batch_id: 'batch-47', team_id: 'team1', role: 'student', score: 2900, status: 'ended', created_at: new Date('2026-04-16T08:00:00Z').toISOString() },
+    { id: 'student-yiru', profile_id: 'student-yiru', batch_id: 'batch-47', team_id: 'team1', role: 'student', score: 2600, status: 'ended', created_at: new Date('2026-04-16T08:00:00Z').toISOString() },
+    { id: 'student-haocheng', profile_id: 'student-haocheng', batch_id: 'batch-47', team_id: 'team1', role: 'student', score: 2550, status: 'ended', created_at: new Date('2026-04-16T08:00:00Z').toISOString() },
+    { id: 'student-qunyi', profile_id: 'student-qunyi', batch_id: 'batch-47', team_id: 'team1', role: 'student', score: 2500, status: 'ended', created_at: new Date('2026-04-16T08:00:00Z').toISOString() },
+    { id: 'student-yahan', profile_id: 'student-yahan', batch_id: 'batch-47', team_id: 'team1', role: 'student', score: 2150, status: 'ended', created_at: new Date('2026-04-16T08:00:00Z').toISOString() },
+    { id: 'student-zongxuan', profile_id: 'student-zongxuan', batch_id: 'batch-47', team_id: 'team1', role: 'student', score: 1600, status: 'ended', created_at: new Date('2026-04-16T08:00:00Z').toISOString() },
+
+    { id: 'yuting-50', profile_id: 'student-yuting', batch_id: 'batch-50', team_id: 'team1', role: 'student', score: 2000, status: 'active', created_at: new Date('2026-06-01T08:00:00Z').toISOString() },
+    { id: 'zhenyang-50', profile_id: 'student-zhenyang', batch_id: 'batch-50', team_id: 'team1', role: 'student', score: 1500, status: 'active', created_at: new Date('2026-06-01T08:00:00Z').toISOString() }
+  ] as any[],
 
   tasks: [] as Task[],
 
@@ -110,7 +129,7 @@ const SEED_DATA = {
   ] as UserAchievement[],
 
   announcements: [
-    { id: 'ann-welcome', title: '📢 歡迎來到第47期NLP台中場初階班計分系統！', content: '各位修行者好，本系統提供完整的每日定課簽到、每週主線任務以及特殊限時加分功能。您可以透過持續修行解鎖高階成就徽章，爭奪修為榜榜首！請使用您在試算表上的中文姓名直接登入，預設小隊長為：沈又希，學員為林玉庭、陳振揚等組員。', created_by: 'admin1', created_at: new Date('2026-04-16T08:00:00Z').toISOString() }
+    { id: 'ann-welcome', title: '📢 歡迎來到第47期NLP台中場初階班計分系統！', content: '各位修行者好，本系統提供完整的每日定課簽到、每週主線任務以及特殊限時加分功能。您可以透過持續修行解鎖高階成就徽章，爭奪排行榜榜首！請使用您在試算表上的中文姓名直接登入，預設小隊長為：沈又希，學員為林玉庭、陳振揚等組員。', created_by: 'admin1', created_at: new Date('2026-04-16T08:00:00Z').toISOString() }
   ] as Announcement[],
 
   student_notes: [
@@ -142,20 +161,436 @@ const SEED_DATA = {
     {
       id: 'upet-yuting-1',
       student_id: 'student-yuting',
-      pet_id: 'pet-dragon-egg',
-      pet_level: 3,
-      current_skin: 'default',
-      unlocked_at: new Date('2026-04-16T08:30:00Z').toISOString()
+      pet_line: null,
+      current_stage_index: 1,
+      total_exp: 4400,
+      level: 8,
+      first_reached_lv5_at: new Date('2026-06-03T12:00:00Z').toISOString(),
+      evolution_eligible_at: new Date('2026-06-03T12:00:00Z').toISOString(),
+      evolved_at: null,
+      has_pending_evolution: true,
+      created_at: new Date('2026-06-01T08:00:00Z').toISOString(),
+      updated_at: new Date('2026-06-01T08:00:00Z').toISOString()
     },
     {
       id: 'upet-yuxi-1',
       student_id: 'captain-yuxi',
-      pet_id: 'pet-spiritual-cat',
-      pet_level: 5,
-      current_skin: 'default',
-      unlocked_at: new Date('2026-04-17T09:00:00Z').toISOString()
+      pet_line: null,
+      current_stage_index: 1,
+      total_exp: 6950,
+      level: 13,
+      first_reached_lv5_at: new Date('2026-06-02T10:00:00Z').toISOString(),
+      evolution_eligible_at: new Date('2026-06-02T10:00:00Z').toISOString(),
+      evolved_at: null,
+      has_pending_evolution: true,
+      created_at: new Date('2026-06-01T08:00:00Z').toISOString(),
+      updated_at: new Date('2026-06-01T08:00:00Z').toISOString()
     }
   ] as UserPet[],
+
+  pet_lines: [
+    {
+      id: 'pl-dragon',
+      line_key: 'dragon',
+      name: '影響力龍系',
+      description: '代表極具感染力與說服力的語言能量。適合快速突破、感召他人的修行者。',
+      core_traits: '感召力、說服力、能量感',
+      is_active: true,
+      image_url: 'https://cdn-icons-png.flaticon.com/512/1792/1792807.png',
+      unlock_level: 5,
+      task_template_id: 'temp-evolve-dragon',
+      sort_order: 1,
+      created_at: new Date('2026-06-01T00:00:00Z').toISOString(),
+      updated_at: new Date('2026-06-01T00:00:00Z').toISOString()
+    },
+    {
+      id: 'pl-lion',
+      line_key: 'lion',
+      name: '行動力獅系',
+      description: '代表無畏的執行力與目標導向能量。適合迅速將知識轉化為實戰成果的修行者。',
+      core_traits: '執行力、勇氣、突破力',
+      is_active: true,
+      image_url: 'https://cdn-icons-png.flaticon.com/512/1792/1792811.png',
+      unlock_level: 5,
+      task_template_id: 'temp-evolve-lion',
+      sort_order: 2,
+      created_at: new Date('2026-06-01T00:00:00Z').toISOString(),
+      updated_at: new Date('2026-06-01T00:00:00Z').toISOString()
+    },
+    {
+      id: 'pl-fox',
+      line_key: 'fox',
+      name: '親和力狐系',
+      description: '代表溫暖和諧的同理與連結能量。適合建立深厚信任與感官呼應的修行者。',
+      core_traits: '親和感、感官呼應、人際連結',
+      is_active: true,
+      image_url: 'https://cdn-icons-png.flaticon.com/512/1792/1792817.png',
+      unlock_level: 5,
+      task_template_id: 'temp-evolve-fox',
+      sort_order: 3,
+      created_at: new Date('2026-06-01T00:00:00Z').toISOString(),
+      updated_at: new Date('2026-06-01T00:00:00Z').toISOString()
+    },
+    {
+      id: 'pl-spirit',
+      line_key: 'spirit',
+      name: '穩定靈獸系',
+      description: '代表沉穩的自我覺察與深層同理能量。適合提供穩定支持與自我對話的修行者。',
+      core_traits: '自我覺察、穩定度、同理心',
+      is_active: true,
+      image_url: 'https://cdn-icons-png.flaticon.com/512/1792/1792823.png',
+      unlock_level: 5,
+      task_template_id: 'temp-evolve-spirit',
+      sort_order: 4,
+      created_at: new Date('2026-06-01T00:00:00Z').toISOString(),
+      updated_at: new Date('2026-06-01T00:00:00Z').toISOString()
+    }
+  ] as PetLine[],
+
+  pet_stages: [
+    {
+      id: 'ps-egg',
+      line_key: null,
+      stage_index: 1,
+      stage_name: '混沌之卵',
+      min_level: 0,
+      max_level: 4,
+      image_url: 'https://cdn-icons-png.flaticon.com/512/1792/1792770.png',
+      animation_type: 'animate-pulse',
+      glow_color: '#A855F7',
+      description: '蘊含著無限可能的混沌之卵，靜靜等待能量積累以尋找其未來的進化方向。',
+      evolution_text: '當修行達到 Level 5 (2500 EXP) 時，混沌之卵將會破殼誕生出你專屬的 NLP 守護神獸！',
+      is_active: true,
+      created_at: new Date('2026-06-01T00:00:00Z').toISOString(),
+      updated_at: new Date('2026-06-01T00:00:00Z').toISOString()
+    },
+    // === 影響力龍系 ===
+    {
+      id: 'ps-dragon-2',
+      line_key: 'dragon',
+      stage_index: 2,
+      stage_name: '幼龍',
+      min_level: 5,
+      max_level: 9,
+      image_url: 'https://cdn-icons-png.flaticon.com/512/1792/1792807.png',
+      animation_type: 'animate-bounce',
+      glow_color: '#EF4444',
+      description: '龍系幼獸，呼吸吐納間皆是自信與感召力，能給予修行者強大的語言影響力與感召能量。',
+      evolution_text: '達到 LV.10 可進化為飛龍。',
+      is_active: true,
+      created_at: new Date('2026-06-01T00:00:00Z').toISOString(),
+      updated_at: new Date('2026-06-01T00:00:00Z').toISOString()
+    },
+    {
+      id: 'ps-dragon-3',
+      line_key: 'dragon',
+      stage_index: 3,
+      stage_name: '飛龍',
+      min_level: 10,
+      max_level: 14,
+      image_url: 'https://cdn-icons-png.flaticon.com/512/1792/1792777.png',
+      animation_type: 'animate-pulse',
+      glow_color: '#F97316',
+      description: '龍系成長體，周身烈火漸盛，象徵著在溝通對話中如火純青的語意框架與影響能量。',
+      evolution_text: '達到 LV.15 可進化為幻龍。',
+      is_active: true,
+      created_at: new Date('2026-06-01T00:00:00Z').toISOString(),
+      updated_at: new Date('2026-06-01T00:00:00Z').toISOString()
+    },
+    {
+      id: 'ps-dragon-4',
+      line_key: 'dragon',
+      stage_index: 4,
+      stage_name: '幻龍',
+      min_level: 15,
+      max_level: 19,
+      image_url: 'https://cdn-icons-png.flaticon.com/512/1792/1792823.png',
+      animation_type: 'animate-breath',
+      glow_color: '#DC2626',
+      description: '龍系成熟體，具備幻化莫測的思維框架與影響力，能引導與同理任何限制性信念。',
+      evolution_text: '達到 LV.20 可進化為聖龍。',
+      is_active: true,
+      created_at: new Date('2026-06-01T00:00:00Z').toISOString(),
+      updated_at: new Date('2026-06-01T00:00:00Z').toISOString()
+    },
+    {
+      id: 'ps-dragon-5',
+      line_key: 'dragon',
+      stage_index: 5,
+      stage_name: '聖龍',
+      min_level: 20,
+      max_level: 24,
+      image_url: 'https://cdn-icons-png.flaticon.com/512/1792/1792773.png',
+      animation_type: 'animate-wiggle',
+      glow_color: '#EC4899',
+      description: '龍系聖獸，散發著溫暖神聖的感召力量，協助修行者將溝通化為深刻的生命啟發。',
+      evolution_text: '達到 LV.25 可進化為終極創世龍。',
+      is_active: true,
+      created_at: new Date('2026-06-01T00:00:00Z').toISOString(),
+      updated_at: new Date('2026-06-01T00:00:00Z').toISOString()
+    },
+    {
+      id: 'ps-dragon-6',
+      line_key: 'dragon',
+      stage_index: 6,
+      stage_name: '創世龍',
+      min_level: 25,
+      max_level: 999,
+      image_url: 'https://cdn-icons-png.flaticon.com/512/1792/1792834.png',
+      animation_type: 'animate-float',
+      glow_color: '#8B5CF6',
+      description: '龍系創世神獸，掌控心靈溝通地圖的本源力量，舉手投足間引領眾人走向卓越。',
+      evolution_text: '已達最高進化階段！',
+      is_active: true,
+      created_at: new Date('2026-06-01T00:00:00Z').toISOString(),
+      updated_at: new Date('2026-06-01T00:00:00Z').toISOString()
+    },
+    // === 行動力獅系 ===
+    {
+      id: 'ps-lion-2',
+      line_key: 'lion',
+      stage_index: 2,
+      stage_name: '小戰獅',
+      min_level: 5,
+      max_level: 9,
+      image_url: 'https://cdn-icons-png.flaticon.com/512/1792/1792813.png',
+      animation_type: 'animate-pulse',
+      glow_color: '#F59E0B',
+      description: '獅系幼獸，步伐矯健，雙眼中透露出無畏的執行力，能引領修行者迅速將目標轉化為具體行動。',
+      evolution_text: '達到 LV.10 可進化為戰鬃獅。',
+      is_active: true,
+      created_at: new Date('2026-06-01T00:00:00Z').toISOString(),
+      updated_at: new Date('2026-06-01T00:00:00Z').toISOString()
+    },
+    {
+      id: 'ps-lion-3',
+      line_key: 'lion',
+      stage_index: 3,
+      stage_name: '戰鬃獅',
+      min_level: 10,
+      max_level: 14,
+      image_url: 'https://cdn-icons-png.flaticon.com/512/1792/1792779.png',
+      animation_type: 'animate-bounce',
+      glow_color: '#EAB308',
+      description: '獅系成長體，鬃毛如風暴般飛揚，步伐穩健沉重，代表著修行者不屈不撓的目標執行力量。',
+      evolution_text: '達到 LV.15 可進化為狂獅王。',
+      is_active: true,
+      created_at: new Date('2026-06-01T00:00:00Z').toISOString(),
+      updated_at: new Date('2026-06-01T00:00:00Z').toISOString()
+    },
+    {
+      id: 'ps-lion-4',
+      line_key: 'lion',
+      stage_index: 4,
+      stage_name: '狂獅王',
+      min_level: 15,
+      max_level: 19,
+      image_url: 'https://cdn-icons-png.flaticon.com/512/1792/1792831.png',
+      animation_type: 'animate-wiggle',
+      glow_color: '#D97706',
+      description: '獅系成熟體，王者風範霸氣展現，無所畏懼，能帶領團隊掃除一切修行障礙，具備極致的實踐能量。',
+      evolution_text: '達到 LV.20 可進化為王者戰獅。',
+      is_active: true,
+      created_at: new Date('2026-06-01T00:00:00Z').toISOString(),
+      updated_at: new Date('2026-06-01T00:00:00Z').toISOString()
+    },
+    {
+      id: 'ps-lion-5',
+      line_key: 'lion',
+      stage_index: 5,
+      stage_name: '王者戰獅',
+      min_level: 20,
+      max_level: 24,
+      image_url: 'https://cdn-icons-png.flaticon.com/512/1792/1792784.png',
+      animation_type: 'animate-pulse',
+      glow_color: '#10B981',
+      description: '獅系聖獸，象徵卓越執行力與堅毅行動力的化身，帶給團隊無可抵擋的突破能量。',
+      evolution_text: '達到 LV.25 可進化為聖獅皇。',
+      is_active: true,
+      created_at: new Date('2026-06-01T00:00:00Z').toISOString(),
+      updated_at: new Date('2026-06-01T00:00:00Z').toISOString()
+    },
+    {
+      id: 'ps-lion-6',
+      line_key: 'lion',
+      stage_index: 6,
+      stage_name: '聖獅皇',
+      min_level: 25,
+      max_level: 999,
+      image_url: 'https://cdn-icons-png.flaticon.com/512/1792/1792842.png',
+      animation_type: 'animate-breath',
+      glow_color: '#3B82F6',
+      description: '獅系終極至尊皇者，所向披靡，象徵徹底的自我突破與至高無上的行動實踐境界。',
+      evolution_text: '已達到行動力獅系的最高階段！',
+      is_active: true,
+      created_at: new Date('2026-06-01T00:00:00Z').toISOString(),
+      updated_at: new Date('2026-06-01T00:00:00Z').toISOString()
+    },
+    // === 親和力狐系 ===
+    {
+      id: 'ps-fox-2',
+      line_key: 'fox',
+      stage_index: 2,
+      stage_name: '小靈狐',
+      min_level: 5,
+      max_level: 9,
+      image_url: 'https://cdn-icons-png.flaticon.com/512/1792/1792825.png',
+      animation_type: 'animate-pulse',
+      glow_color: '#EC4899',
+      description: '狐系幼獸，靈動而富有智慧，親和力拉滿，能敏銳感知人際間的微妙情緒起伏，賦予修行者和諧共鳴的對話技巧。',
+      evolution_text: '達到 LV.10 可進化為靈狐。',
+      is_active: true,
+      created_at: new Date('2026-06-01T00:00:00Z').toISOString(),
+      updated_at: new Date('2026-06-01T00:00:00Z').toISOString()
+    },
+    {
+      id: 'ps-fox-3',
+      line_key: 'fox',
+      stage_index: 3,
+      stage_name: '靈狐',
+      min_level: 10,
+      max_level: 14,
+      image_url: 'https://cdn-icons-png.flaticon.com/512/1792/1792782.png',
+      animation_type: 'animate-float',
+      glow_color: '#D946EF',
+      description: '狐系成長體，尾泛流光，能巧妙進入對方的感官系統，幫助修行者建立更深層的親和感與信任。',
+      evolution_text: '達到 LV.15 可進化為月影仙狐。',
+      is_active: true,
+      created_at: new Date('2026-06-01T00:00:00Z').toISOString(),
+      updated_at: new Date('2026-06-01T00:00:00Z').toISOString()
+    },
+    {
+      id: 'ps-fox-4',
+      line_key: 'fox',
+      stage_index: 4,
+      stage_name: '月影仙狐',
+      min_level: 15,
+      max_level: 19,
+      image_url: 'https://cdn-icons-png.flaticon.com/512/1792/1792837.png',
+      animation_type: 'animate-breath',
+      glow_color: '#8B5CF6',
+      description: '狐系成熟體，九尾舒展、流光溢彩，能隨心所欲解鎖任何人際密碼，具備極致的和諧連結與親和力。',
+      evolution_text: '達到 LV.20 可進化為九尾仙狐。',
+      is_active: true,
+      created_at: new Date('2026-06-01T00:00:00Z').toISOString(),
+      updated_at: new Date('2026-06-01T00:00:00Z').toISOString()
+    },
+    {
+      id: 'ps-fox-5',
+      line_key: 'fox',
+      stage_index: 5,
+      stage_name: '九尾仙狐',
+      min_level: 20,
+      max_level: 24,
+      image_url: 'https://cdn-icons-png.flaticon.com/512/1792/1792789.png',
+      animation_type: 'animate-pulse',
+      glow_color: '#06B6D4',
+      description: '狐系聖狐仙獸，善用同理與和諧共振磁場，使修行者自然散發令人信賴的親和光環。',
+      evolution_text: '達到 LV.25 可進化為天狐聖獸。',
+      is_active: true,
+      created_at: new Date('2026-06-01T00:00:00Z').toISOString(),
+      updated_at: new Date('2026-06-01T00:00:00Z').toISOString()
+    },
+    {
+      id: 'ps-fox-6',
+      line_key: 'fox',
+      stage_index: 6,
+      stage_name: '天狐聖獸',
+      min_level: 25,
+      max_level: 999,
+      image_url: 'https://cdn-icons-png.flaticon.com/512/1792/1792848.png',
+      animation_type: 'animate-float',
+      glow_color: '#F472B6',
+      description: '狐系終極始祖天狐，通曉萬物情緒與人心共鳴，達到完美溝通和諧的心靈大圓滿之境。',
+      evolution_text: '已達到親和力狐系的最高階段！',
+      is_active: true,
+      created_at: new Date('2026-06-01T00:00:00Z').toISOString(),
+      updated_at: new Date('2026-06-01T00:00:00Z').toISOString()
+    },
+    // === 穩定靈獸系 ===
+    {
+      id: 'ps-spirit-2',
+      line_key: 'spirit',
+      stage_index: 2,
+      stage_name: '小靈獸',
+      min_level: 5,
+      max_level: 9,
+      image_url: 'https://cdn-icons-png.flaticon.com/512/3069/3069172.png',
+      animation_type: 'animate-pulse',
+      glow_color: '#3B82F6',
+      description: '水系靈獸幼體，沉靜如海，散發著寧靜與包容心靈的和諧光芒，賦予修行者穩定的支持與極致的同理能量。',
+      evolution_text: '達到 LV.10 可進化為覺醒靈獸。',
+      is_active: true,
+      created_at: new Date('2026-06-01T00:00:00Z').toISOString(),
+      updated_at: new Date('2026-06-01T00:00:00Z').toISOString()
+    },
+    {
+      id: 'ps-spirit-3',
+      line_key: 'spirit',
+      stage_index: 3,
+      stage_name: '覺醒靈獸',
+      min_level: 10,
+      max_level: 14,
+      image_url: 'https://cdn-icons-png.flaticon.com/512/3069/3069186.png',
+      animation_type: 'animate-float',
+      glow_color: '#06B6D4',
+      description: '水系成長體，凝聚深海露華，周圍流淌著無形的同理波紋，為修行者帶來安撫心靈的穩定磁場。',
+      evolution_text: '達到 LV.15 可進化為穩定靈獸。',
+      is_active: true,
+      created_at: new Date('2026-06-01T00:00:00Z').toISOString(),
+      updated_at: new Date('2026-06-01T00:00:00Z').toISOString()
+    },
+    {
+      id: 'ps-spirit-4',
+      line_key: 'spirit',
+      stage_index: 4,
+      stage_name: '穩定靈獸',
+      min_level: 15,
+      max_level: 19,
+      image_url: 'https://cdn-icons-png.flaticon.com/512/3069/3069224.png',
+      animation_type: 'animate-breath',
+      glow_color: '#0D9488',
+      description: '水系成熟體之終極型態，深邃包容、如水至柔，擁有強大而穩定的自我覺察與深層同理場域。',
+      evolution_text: '達到 LV.20 可進化為厚積聖獸。',
+      is_active: true,
+      created_at: new Date('2026-06-01T00:00:00Z').toISOString(),
+      updated_at: new Date('2026-06-01T00:00:00Z').toISOString()
+    },
+    {
+      id: 'ps-spirit-5',
+      line_key: 'spirit',
+      stage_index: 5,
+      stage_name: '厚積聖獸',
+      min_level: 20,
+      max_level: 24,
+      image_url: 'https://cdn-icons-png.flaticon.com/512/3069/3069190.png',
+      animation_type: 'animate-pulse',
+      glow_color: '#6366F1',
+      description: '水系聖獸，大器晚成、靜水流深，散發深邃和諧的氣場，帶給心靈無與倫比的安寧與力量。',
+      evolution_text: '達到 LV.25 可進化為自然神獸。',
+      is_active: true,
+      created_at: new Date('2026-06-01T00:00:00Z').toISOString(),
+      updated_at: new Date('2026-06-01T00:00:00Z').toISOString()
+    },
+    {
+      id: 'ps-spirit-6',
+      line_key: 'spirit',
+      stage_index: 6,
+      stage_name: '自然神獸',
+      min_level: 25,
+      max_level: 999,
+      image_url: 'https://cdn-icons-png.flaticon.com/512/3069/3069230.png',
+      animation_type: 'animate-float',
+      glow_color: '#10B981',
+      description: '水系終極自然化身神獸，與萬物自然融為一體，達到極致的同理支持與全然包容境界。',
+      evolution_text: '已達到穩定靈獸系的最高階段！',
+      is_active: true,
+      created_at: new Date('2026-06-01T00:00:00Z').toISOString(),
+      updated_at: new Date('2026-06-01T00:00:00Z').toISOString()
+    }
+  ] as PetStage[],
+
+  pet_evolution_logs: [] as PetEvolutionLog[],
 
   cards: [
     {
@@ -220,6 +655,7 @@ const SEED_DATA = {
       start_date: '2026-04-16T00:00:00Z',
       end_date: '2026-06-30T23:59:59Z',
       status: 'ended',
+      rankings_visible: false,
       created_at: new Date('2026-04-16T08:00:00Z').toISOString(),
       updated_at: new Date('2026-04-16T08:00:00Z').toISOString()
     },
@@ -229,6 +665,7 @@ const SEED_DATA = {
       start_date: '2026-06-01T00:00:00Z',
       end_date: '2026-06-30T23:59:59Z',
       status: 'active',
+      rankings_visible: false,
       created_at: new Date('2026-06-01T08:00:00Z').toISOString(),
       updated_at: new Date('2026-06-01T08:00:00Z').toISOString()
     },
@@ -238,16 +675,71 @@ const SEED_DATA = {
       start_date: '2026-07-01T00:00:00Z',
       end_date: '2026-07-31T23:59:59Z',
       status: 'draft',
+      rankings_visible: false,
       created_at: new Date('2026-06-01T08:00:00Z').toISOString(),
       updated_at: new Date('2026-06-01T08:00:00Z').toISOString()
     }
   ] as Batch[],
 
-  mission_templates: [] as MissionTemplate[],
+  mission_templates: [
+    {
+      id: 'temp-evolve-dragon',
+      title: '影響力龍系進化任務：發表一次 NLP 主題感召分享',
+      description: '在小組或社群中發表一次關於 NLP 溝通框架或人性的感召演說或心得分享，展現你的語言感染力。',
+      mission_type: 'special',
+      points: 500,
+      review_type: 'leader',
+      is_active: true,
+      category: '神獸進化',
+      created_at: new Date('2026-06-01T00:00:00Z').toISOString(),
+      updated_at: new Date('2026-06-01T00:00:00Z').toISOString()
+    },
+    {
+      id: 'temp-evolve-lion',
+      title: '行動力獅系進化任務：完成一次日常 NLP 溝通實戰',
+      description: '將所學的 NLP 語言模式實際應用在工作或生活對話中，並記錄下對方的具體反饋與自己的覺察。',
+      mission_type: 'special',
+      points: 500,
+      review_type: 'leader',
+      is_active: true,
+      category: '神獸進化',
+      created_at: new Date('2026-06-01T00:00:00Z').toISOString(),
+      updated_at: new Date('2026-06-01T00:00:00Z').toISOString()
+    },
+    {
+      id: 'temp-evolve-fox',
+      title: '親和力狐系進化任務：建立一段深度的親和感共鳴對話',
+      description: '運用「感官呼應與引導」技巧，與一位夥伴進行至少 15 分鐘的深度傾聽與親和感建立對話。',
+      mission_type: 'special',
+      points: 500,
+      review_type: 'leader',
+      is_active: true,
+      category: '神獸進化',
+      created_at: new Date('2026-06-01T00:00:00Z').toISOString(),
+      updated_at: new Date('2026-06-01T00:00:00Z').toISOString()
+    },
+    {
+      id: 'temp-evolve-spirit',
+      title: '穩定靈獸系進化任務：撰寫一篇深層自我覺察心錨筆記',
+      description: '安靜獨處 10 分鐘，記錄近期的一項情緒起伏，運用 NLP 心錨或重塑技巧進行自我對話與心境轉化。',
+      mission_type: 'special',
+      points: 500,
+      review_type: 'leader',
+      is_active: true,
+      category: '神獸進化',
+      created_at: new Date('2026-06-01T00:00:00Z').toISOString(),
+      updated_at: new Date('2026-06-01T00:00:00Z').toISOString()
+    }
+  ] as MissionTemplate[],
 
   batch_mission_templates: [] as BatchMissionTemplate[],
 
-  missions: [] as Mission[]
+  missions: [] as Mission[],
+
+  captain_candidates: [
+    { id: 'cand-yuxi', profile_id: 'captain-yuxi', status: 'eligible', created_at: new Date('2026-04-16T08:00:00Z').toISOString() },
+    { id: 'cand-yuting', profile_id: 'student-yuting', status: 'eligible', created_at: new Date('2026-04-16T08:00:00Z').toISOString() }
+  ] as CaptainCandidate[]
 };
 
 // Initialize localStorage if not present
@@ -265,15 +757,138 @@ const getLocalStorageData = (): typeof SEED_DATA => {
   }
   
   const parsed = JSON.parse(stored);
-  // Auto-upgrade schema if new keys are missing
   let upgraded = false;
-  const newKeys = ['pets', 'user_pets', 'cards', 'decks', 'deck_cards', 'user_decks', 'batches', 'mission_templates', 'batch_mission_templates', 'missions'];
+  const newKeys = ['pets', 'user_pets', 'cards', 'decks', 'deck_cards', 'user_decks', 'batches', 'mission_templates', 'batch_mission_templates', 'missions', 'pet_lines', 'pet_stages', 'pet_evolution_logs', 'user_batches', 'captain_candidates'];
   newKeys.forEach(key => {
     if (!parsed[key]) {
       parsed[key] = (SEED_DATA as any)[key] || [];
       upgraded = true;
     }
   });
+
+  if (!parsed.user_batches || parsed.user_batches.length === 0) {
+    parsed.user_batches = [];
+    if (parsed.profiles) {
+      const migratedProfiles: any[] = [];
+      parsed.profiles.forEach((p: any) => {
+        if (p.role !== undefined || p.score !== undefined || p.batch_id !== undefined) {
+          parsed.user_batches.push({
+            id: p.id,
+            profile_id: p.id,
+            batch_id: p.batch_id !== undefined ? p.batch_id : (p.role === 'admin' ? null : 'batch-50'),
+            team_id: p.team_id || null,
+            role: p.role || 'student',
+            score: p.score !== undefined ? p.score : 0,
+            status: p.status || 'active',
+            captain_id: p.captain_id || null,
+            division_name: p.division_name || null,
+            director_id: p.director_id || null,
+            created_at: p.created_at || new Date().toISOString()
+          });
+          
+          migratedProfiles.push({
+            id: p.id,
+            name: p.name,
+            phone: p.phone || '',
+            created_at: p.created_at || new Date().toISOString()
+          });
+        } else {
+          migratedProfiles.push(p);
+        }
+      });
+      parsed.profiles = migratedProfiles;
+      
+      const hasYuting50 = parsed.user_batches.some((ub: any) => ub.profile_id === 'student-yuting' && ub.batch_id === 'batch-50');
+      if (!hasYuting50 && parsed.profiles.some((p: any) => p.id === 'student-yuting')) {
+        parsed.user_batches.push({
+          id: 'yuting-50',
+          profile_id: 'student-yuting',
+          batch_id: 'batch-50',
+          team_id: 'team1',
+          role: 'student',
+          score: 2000,
+          status: 'active',
+          created_at: new Date('2026-06-01T08:00:00Z').toISOString()
+        });
+      }
+      
+      if (typeof window !== 'undefined') {
+        const sessionStr = localStorage.getItem('nlp_session');
+        if (sessionStr) {
+          try {
+            const sessionUser = JSON.parse(sessionStr);
+            const enrollment = parsed.user_batches.find((ub: any) => ub.profile_id === sessionUser.id && ub.status === 'active') || 
+                               parsed.user_batches.find((ub: any) => ub.profile_id === sessionUser.id);
+            const prof = parsed.profiles.find((pr: any) => pr.id === sessionUser.id);
+            if (enrollment && prof) {
+              const upgradedSession = {
+                ...prof,
+                id: enrollment.id,
+                profile_id: prof.id,
+                batch_id: enrollment.batch_id,
+                team_id: enrollment.team_id,
+                role: enrollment.role,
+                score: enrollment.score,
+                status: enrollment.status,
+                captain_id: enrollment.captain_id,
+                division_name: enrollment.division_name,
+                director_id: enrollment.director_id
+              };
+              localStorage.setItem('nlp_session', JSON.stringify(upgradedSession));
+            }
+          } catch (e) {
+            console.warn('Failed to upgrade nlp_session:', e);
+          }
+        }
+      }
+    } else {
+      parsed.user_batches = SEED_DATA.user_batches;
+    }
+    upgraded = true;
+  }
+
+  if (!parsed.pet_lines || parsed.pet_lines.length === 0 || parsed.pet_lines.some((l: any) => l.unlock_level === undefined)) {
+    parsed.pet_lines = SEED_DATA.pet_lines;
+    upgraded = true;
+  }
+  if (!parsed.mission_templates || parsed.mission_templates.length === 0 || !parsed.mission_templates.some((t: any) => t.id.startsWith('temp-evolve'))) {
+    const filtered = (parsed.mission_templates || []).filter((t: any) => !t.id.startsWith('temp-evolve'));
+    parsed.mission_templates = [...filtered, ...SEED_DATA.mission_templates];
+    upgraded = true;
+  }
+  if (!parsed.pet_stages || parsed.pet_stages.length < 21) {
+    parsed.pet_stages = SEED_DATA.pet_stages;
+    upgraded = true;
+  }
+
+  if (parsed.user_pets && (parsed.user_pets.length === 0 || parsed.user_pets.some((up: any) => up.current_stage_index === undefined))) {
+    parsed.user_pets = [];
+    parsed.profiles?.forEach((p: any) => {
+      if (p.role !== 'admin') {
+        const total_exp = p.score || 0;
+        const level = Math.floor(total_exp / 500);
+        const reachedLv5 = level >= 5;
+        const first_reached_lv5_at = reachedLv5 ? new Date('2026-06-03T12:00:00Z').toISOString() : null;
+
+        parsed.user_pets.push({
+          id: 'upet-' + p.id,
+          student_id: p.id,
+          pet_line: null,
+          current_stage_index: 1,
+          total_exp: total_exp,
+          level: level,
+          first_reached_lv5_at: first_reached_lv5_at,
+          evolution_eligible_at: first_reached_lv5_at,
+          evolved_at: null,
+          has_pending_evolution: reachedLv5,
+          selected_evolution_line: null,
+          created_at: p.created_at || new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        });
+      }
+    });
+    upgraded = true;
+  }
   if ((parsed as any).cohorts) {
     delete (parsed as any).cohorts;
     upgraded = true;
@@ -387,15 +1002,163 @@ const getLocalStorageData = (): typeof SEED_DATA => {
       upgraded = true;
     }
   }
+  if (parsed.profiles) {
+    if (parsed.batches) {
+      parsed.batches.forEach((b: any) => {
+        if (b.division_name !== undefined || b.director_name !== undefined) {
+          delete b.division_name;
+          delete b.director_name;
+          upgraded = true;
+        }
+      });
+    }
+
+    // Clean up all duplicate profiles for '劉定洋' and '張品嬋'
+    const targetNames = ['劉定洋', '張品嬋'];
+    targetNames.forEach(targetName => {
+      const matches = parsed.profiles.filter((p: any) => p.name === targetName);
+      if (matches.length > 1) {
+        const primaryId = targetName === '劉定洋' ? 'admin-dingyang' : 'admin-panchan';
+        let primary = matches.find((p: any) => p.id === primaryId);
+        if (!primary) {
+          primary = matches[0];
+        }
+
+        const secondaryIds: string[] = [];
+        parsed.profiles = parsed.profiles.filter((p: any) => {
+          if (p.name === targetName && p.id !== primary.id) {
+            secondaryIds.push(p.id);
+            return false;
+          }
+          return true;
+        });
+
+        const seenIds = new Set<string>();
+        parsed.profiles = parsed.profiles.filter((p: any) => {
+          if (p.id === primary.id) {
+            if (seenIds.has(p.id)) {
+              return false;
+            }
+            seenIds.add(p.id);
+          }
+          return true;
+        });
+
+        primary.id = primaryId;
+        primary.role = 'admin';
+        if (!primary.division_name) {
+          primary.division_name = '定洋大隊';
+        }
+
+        const maxScore = Math.max(...matches.map((p: any) => p.score || 0));
+        primary.score = maxScore;
+        upgraded = true;
+
+        if (secondaryIds.length > 0) {
+          if (parsed.submissions) {
+            parsed.submissions.forEach((sub: any) => {
+              if (secondaryIds.includes(sub.student_id)) sub.student_id = primary.id;
+              if (secondaryIds.includes(sub.reviewed_by)) sub.reviewed_by = primary.id;
+            });
+          }
+          if (parsed.score_logs) {
+            parsed.score_logs.forEach((log: any) => {
+              if (secondaryIds.includes(log.student_id)) log.student_id = primary.id;
+              if (secondaryIds.includes(log.created_by)) log.created_by = primary.id;
+            });
+          }
+          if (parsed.user_pets) {
+            parsed.user_pets.forEach((up: any) => {
+              if (secondaryIds.includes(up.student_id)) up.student_id = primary.id;
+            });
+          }
+          if (parsed.student_notes) {
+            parsed.student_notes.forEach((note: any) => {
+              if (secondaryIds.includes(note.student_id)) note.student_id = primary.id;
+              if (secondaryIds.includes(note.captain_id)) note.captain_id = primary.id;
+            });
+          }
+          parsed.profiles.forEach((p: any) => {
+            if (secondaryIds.includes(p.captain_id)) p.captain_id = primary.id;
+            if (secondaryIds.includes(p.director_id)) p.director_id = primary.id;
+          });
+          if (parsed.teams) {
+            parsed.teams.forEach((t: any) => {
+              if (secondaryIds.includes(t.captain_id)) t.captain_id = primary.id;
+            });
+          }
+        }
+      }
+    });
+
+    // Handle single duplicate elements by ID for all profiles
+    const seenProfileIds = new Set<string>();
+    const originalCount = parsed.profiles.length;
+    parsed.profiles = parsed.profiles.filter((p: any) => {
+      if (!p.id) return false;
+      if (seenProfileIds.has(p.id)) {
+        return false;
+      }
+      seenProfileIds.add(p.id);
+      return true;
+    });
+    if (parsed.profiles.length !== originalCount) {
+      upgraded = true;
+    }
+
+    const hasDingyang = parsed.profiles.some((p: any) => p.id === 'admin-dingyang');
+    if (!hasDingyang) {
+      parsed.profiles.push({
+        id: 'admin-dingyang',
+        name: '劉定洋',
+        role: 'admin',
+        team_id: null,
+        batch_id: null,
+        division_name: '定洋大隊',
+        score: 20000,
+        created_at: new Date('2026-04-16T08:00:00Z').toISOString()
+      });
+      upgraded = true;
+    }
+
+    const hasPanchan = parsed.profiles.some((p: any) => p.id === 'admin-panchan');
+    if (!hasPanchan) {
+      parsed.profiles.push({
+        id: 'admin-panchan',
+        name: '張品嬋',
+        role: 'admin',
+        team_id: null,
+        batch_id: null,
+        division_name: '定洋大隊',
+        score: 20000,
+        created_at: new Date('2026-04-16T08:00:00Z').toISOString()
+      });
+      upgraded = true;
+    }
+
+    const yuxi = parsed.profiles.find((p: any) => p.id === 'captain-yuxi');
+    if (yuxi && !yuxi.director_id) {
+      yuxi.director_id = 'admin-dingyang';
+      upgraded = true;
+    }
+  }
   if (upgraded) {
-    localStorage.setItem('nlp_game_db', JSON.stringify(parsed));
+    try {
+      localStorage.setItem('nlp_game_db', JSON.stringify(parsed));
+    } catch (e) {
+      console.warn('Failed to upgrade local storage db schema:', e);
+    }
   }
   return parsed;
 };
 
 const saveLocalStorageData = (data: typeof SEED_DATA) => {
   if (typeof window !== 'undefined') {
-    localStorage.setItem('nlp_game_db', JSON.stringify(data));
+    try {
+      localStorage.setItem('nlp_game_db', JSON.stringify(data));
+    } catch (e) {
+      console.warn('Failed to save to local storage (quota exceeded):', e);
+    }
   }
 };
 
@@ -477,8 +1240,52 @@ class SupabaseQueryBuilder {
   async then(resolve: (value: any) => void) {
     const db = getLocalStorageData();
 
+    // Dynamically construct merged profiles
+    const mergedProfiles = (db.user_batches || []).map((ub: any) => {
+      const p = db.profiles.find((prof: any) => prof.id === ub.profile_id);
+      if (!p) return null;
+      return {
+        ...p,
+        id: ub.id,
+        profile_id: p.id,
+        batch_id: ub.batch_id,
+        team_id: ub.team_id,
+        role: ub.role,
+        score: ub.score,
+        status: ub.status,
+        captain_id: ub.captain_id,
+        division_name: ub.division_name,
+        director_id: ub.director_id
+      };
+    }).filter(Boolean);
+
     if (this.action === 'select') {
       let data = (db as any)[this.tableName] || [];
+      if (this.tableName === 'profiles') {
+        data = mergedProfiles;
+      } else if (this.tableName === 'captain_candidates') {
+        data = ((db as any).captain_candidates || []).map((cand: any) => {
+          const p = db.profiles.find((prof: any) => prof.id === cand.profile_id);
+          if (!p) return null;
+          const enrollments = db.user_batches.filter((ub: any) => ub.profile_id === p.id);
+          const past_cohorts = enrollments.map((ub: any) => {
+            const b = db.batches.find((batch: any) => batch.id === ub.batch_id);
+            return b ? b.name : null;
+          }).filter(Boolean);
+          const past_roles = Array.from(new Set(enrollments.map((ub: any) => {
+            if (ub.role === 'admin') return '大隊長';
+            if (ub.role === 'captain') return '小隊長';
+            return '學員';
+          })));
+          return {
+            ...cand,
+            name: p.name,
+            phone: p.phone || '',
+            past_cohorts,
+            past_roles
+          };
+        }).filter(Boolean);
+      }
       
       // Apply filters
       for (const filter of this.filters) {
@@ -509,12 +1316,12 @@ class SupabaseQueryBuilder {
       if (this.tableName === 'submissions') {
         clonedData.forEach((sub: any) => {
           sub.mission = db.missions?.find(m => m.id === sub.mission_id);
-          sub.profile = db.profiles.find(p => p.id === sub.student_id);
+          sub.profile = mergedProfiles.find(p => p.id === sub.student_id);
         });
       } else if (this.tableName === 'course_attendance') {
         clonedData.forEach((att: any) => {
           att.course = db.courses.find(c => c.id === att.course_id);
-          att.profile = db.profiles.find(p => p.id === att.student_id);
+          att.profile = mergedProfiles.find(p => p.id === att.student_id);
         });
       } else if (this.tableName === 'user_achievements') {
         clonedData.forEach((uach: any) => {
@@ -522,12 +1329,22 @@ class SupabaseQueryBuilder {
         });
       } else if (this.tableName === 'student_notes') {
         clonedData.forEach((sn: any) => {
-          sn.student = db.profiles.find(p => p.id === sn.student_id);
+          sn.student = mergedProfiles.find(p => p.id === sn.student_id);
         });
       } else if (this.tableName === 'user_pets') {
         clonedData.forEach((up: any) => {
-          up.pet = db.pets?.find(p => p.id === up.pet_id);
-          up.profile = db.profiles.find(prof => prof.id === up.student_id);
+          const activeStage = db.pet_stages?.find((s: any) => s.line_key === up.pet_line && s.stage_index === up.current_stage_index);
+          up.stage = activeStage || null;
+          up.pet = activeStage ? {
+            id: activeStage.id,
+            name: activeStage.stage_name,
+            description: activeStage.description,
+            image_url: activeStage.image_url,
+            evolution_image_url: activeStage.image_url,
+            unlock_score_threshold: activeStage.min_level * 500,
+            created_at: activeStage.created_at
+          } : null;
+          up.profile = mergedProfiles.find(prof => prof.id === up.student_id);
         });
       } else if (this.tableName === 'deck_cards') {
         clonedData.forEach((dc: any) => {
@@ -556,6 +1373,37 @@ class SupabaseQueryBuilder {
       }
 
     } else if (this.action === 'delete') {
+      if (this.tableName === 'profiles') {
+        const remaining: any[] = [];
+        const deleted: any[] = [];
+        db.user_batches.forEach((ub: any) => {
+          const merged = mergedProfiles.find(mp => mp.id === ub.id);
+          if (!merged) return;
+          let matches = true;
+          for (const filter of this.filters) {
+            if (!filter(merged)) {
+              matches = false;
+              break;
+            }
+          }
+          if (matches) {
+            deleted.push(merged);
+            if (ub.role === 'captain' && ub.team_id) {
+              const t = db.teams.find((team: any) => team.id === ub.team_id);
+              if (t && t.captain_id === ub.profile_id) {
+                t.captain_id = null;
+              }
+            }
+          } else {
+            remaining.push(ub);
+          }
+        });
+        db.user_batches = remaining;
+        saveLocalStorageData(db);
+        resolve({ data: deleted, error: null });
+        return;
+      }
+
       let data = (db as any)[this.tableName] || [];
       const remaining: any[] = [];
       const deleted: any[] = [];
@@ -595,6 +1443,177 @@ class SupabaseQueryBuilder {
       resolve({ data: deleted, error: null });
 
     } else if (this.action === 'update') {
+      if (this.tableName === 'profiles') {
+        let updatedRows: any[] = [];
+        db.user_batches.forEach((ub: any) => {
+          const p = db.profiles.find(prof => prof.id === ub.profile_id);
+          if (!p) return;
+          const merged = mergedProfiles.find(mp => mp.id === ub.id);
+          if (!merged) return;
+
+          let matches = true;
+          for (const filter of this.filters) {
+            if (!filter(merged)) {
+              matches = false;
+              break;
+            }
+          }
+
+          if (matches) {
+            if (this.updateValues.name !== undefined) p.name = this.updateValues.name;
+            if (this.updateValues.phone !== undefined) p.phone = this.updateValues.phone;
+            
+            const oldRole = ub.role;
+            const oldTeamId = ub.team_id;
+            
+            if (this.updateValues.batch_id !== undefined) ub.batch_id = this.updateValues.batch_id;
+            if (this.updateValues.team_id !== undefined) ub.team_id = this.updateValues.team_id;
+            if (this.updateValues.role !== undefined) ub.role = this.updateValues.role;
+            if (this.updateValues.score !== undefined) ub.score = this.updateValues.score;
+            if (this.updateValues.status !== undefined) ub.status = this.updateValues.status;
+            if (this.updateValues.captain_id !== undefined) ub.captain_id = this.updateValues.captain_id;
+            if (this.updateValues.division_name !== undefined) ub.division_name = this.updateValues.division_name;
+            if (this.updateValues.director_id !== undefined) ub.director_id = this.updateValues.director_id;
+            
+            const newRole = ub.role;
+            const newTeamId = ub.team_id;
+            const batchId = ub.batch_id || 'batch-50';
+
+            // Bidirectional sync for captain assignment
+            if (oldRole === 'captain' && (newRole !== 'captain' || newTeamId !== oldTeamId)) {
+              if (oldTeamId) {
+                const t = db.teams.find((team: any) => team.id === oldTeamId);
+                if (t && t.captain_id === ub.profile_id) {
+                  t.captain_id = null;
+                }
+              }
+            }
+            
+            if (newRole === 'captain' && newTeamId && (oldRole !== 'captain' || newTeamId !== oldTeamId)) {
+              const duplicateTeam = db.teams.find((team: any) => team.batch_id === batchId && team.captain_id === ub.profile_id && team.id !== newTeamId);
+              if (duplicateTeam) {
+                resolve({ data: null, error: { message: '此人在此期數已擔任其他小隊的小隊長！' } });
+                return;
+              }
+              const t = db.teams.find((team: any) => team.id === newTeamId);
+              if (t) {
+                t.captain_id = ub.profile_id;
+              }
+              db.user_batches.forEach((studentUb: any) => {
+                if (studentUb.batch_id === batchId && studentUb.team_id === newTeamId && studentUb.role === 'student') {
+                  studentUb.captain_id = ub.profile_id;
+                }
+              });
+            }
+
+            if (newRole === 'student' && newTeamId) {
+              const t = db.teams.find((team: any) => team.id === newTeamId);
+              ub.captain_id = t ? t.captain_id : null;
+            }
+            
+            const newMerged = {
+              ...p,
+              id: ub.id,
+              profile_id: p.id,
+              batch_id: ub.batch_id,
+              team_id: ub.team_id,
+              role: ub.role,
+              score: ub.score,
+              status: ub.status,
+              captain_id: ub.captain_id,
+              division_name: ub.division_name,
+              director_id: ub.director_id
+            };
+            updatedRows.push(newMerged);
+          }
+        });
+        saveLocalStorageData(db);
+        resolve({ data: updatedRows, error: null });
+        return;
+      }
+
+      if (this.tableName === 'teams') {
+        let updatedRows: any[] = [];
+        let errorMsg: string | null = null;
+        db.teams.forEach((item: any, idx: number) => {
+          let matches = true;
+          for (const filter of this.filters) {
+            if (!filter(item)) {
+              matches = false;
+              break;
+            }
+          }
+          if (matches) {
+            const oldCaptainId = item.captain_id;
+            const newCaptainId = this.updateValues.captain_id !== undefined ? this.updateValues.captain_id : oldCaptainId;
+            const batchId = item.batch_id || 'batch-50';
+
+            if (newCaptainId && newCaptainId !== oldCaptainId) {
+              const alreadyCaptainOfOtherTeam = db.teams.some((t: any) => t.batch_id === batchId && t.captain_id === newCaptainId && t.id !== item.id);
+              if (alreadyCaptainOfOtherTeam) {
+                errorMsg = '此人在此期數已擔任其他小隊的小隊長！';
+                return;
+              }
+            }
+
+            const newItem = { ...item, ...this.updateValues };
+            db.teams[idx] = newItem;
+            updatedRows.push(newItem);
+
+            if (newCaptainId !== oldCaptainId) {
+              if (oldCaptainId) {
+                const oldCapEnrollment = db.user_batches.find((ub: any) => ub.profile_id === oldCaptainId && ub.batch_id === batchId && ub.team_id === item.id);
+                if (oldCapEnrollment && oldCapEnrollment.role === 'captain') {
+                  oldCapEnrollment.role = 'student';
+                }
+              }
+              if (newCaptainId) {
+                let newCapEnrollment = db.user_batches.find((ub: any) => ub.profile_id === newCaptainId && ub.batch_id === batchId);
+                if (newCapEnrollment) {
+                  newCapEnrollment.role = 'captain';
+                  newCapEnrollment.team_id = item.id;
+                  newCapEnrollment.captain_id = null;
+                } else {
+                  db.user_batches.push({
+                    id: 'ub-' + Math.random().toString(36).substring(2, 11),
+                    profile_id: newCaptainId,
+                    batch_id: batchId,
+                    team_id: item.id,
+                    role: 'captain',
+                    score: 0,
+                    status: 'active',
+                    captain_id: null,
+                    division_name: null,
+                    director_id: null,
+                    created_at: new Date().toISOString()
+                  });
+                }
+                db.user_batches.forEach((ub: any) => {
+                  if (ub.batch_id === batchId && ub.team_id === item.id && ub.role === 'student') {
+                    ub.captain_id = newCaptainId;
+                  }
+                });
+              } else {
+                db.user_batches.forEach((ub: any) => {
+                  if (ub.batch_id === batchId && ub.team_id === item.id && ub.role === 'student') {
+                    ub.captain_id = null;
+                  }
+                });
+              }
+            }
+          }
+        });
+
+        if (errorMsg) {
+          resolve({ data: null, error: { message: errorMsg } });
+          return;
+        }
+
+        saveLocalStorageData(db);
+        resolve({ data: updatedRows, error: null });
+        return;
+      }
+
       let data = (db as any)[this.tableName] || [];
       let updatedRows: any[] = [];
       
@@ -644,6 +1663,85 @@ class SupabaseQueryBuilder {
       resolve({ data: updatedRows, error: null });
 
     } else if (this.action === 'insert') {
+      if (this.tableName === 'profiles') {
+        const rows = Array.isArray(this.insertValues) ? this.insertValues : [this.insertValues];
+        const insertedEnrollments: any[] = [];
+        
+        rows.forEach(row => {
+          let existingProfile = db.profiles.find((p: any) => 
+            (row.phone && p.phone === row.phone) || 
+            (row.name && p.name === row.name)
+          );
+          
+          let profileId = existingProfile?.id;
+          if (!existingProfile) {
+            profileId = row.profile_id || row.id || 'usr-' + Math.random().toString(36).substring(2, 11);
+            const newProfile = {
+              id: profileId,
+              name: row.name,
+              phone: row.phone || '',
+              created_at: row.created_at || new Date().toISOString()
+            };
+            db.profiles.push(newProfile);
+            existingProfile = newProfile;
+          }
+          
+          const enrollmentId = row.id && row.id !== profileId ? row.id : 'ub-' + Math.random().toString(36).substring(2, 11);
+          const newEnrollment = {
+            id: enrollmentId,
+            profile_id: profileId,
+            batch_id: row.batch_id || null,
+            team_id: row.team_id || null,
+            role: row.role || 'student',
+            score: row.score !== undefined ? row.score : 0,
+            status: row.status || 'active',
+            captain_id: row.captain_id || null,
+            division_name: row.division_name || null,
+            director_id: row.director_id || null,
+            created_at: row.created_at || new Date().toISOString()
+          };
+          
+          if (newEnrollment.role === 'captain' && newEnrollment.team_id) {
+            const batchId = newEnrollment.batch_id || 'batch-50';
+            const duplicateTeam = db.teams.find((t: any) => t.batch_id === batchId && t.captain_id === newEnrollment.profile_id && t.id !== newEnrollment.team_id);
+            if (duplicateTeam) {
+              resolve({ data: null, error: { message: '此人在此期數已擔任其他小隊的小隊長！' } });
+              return;
+            }
+            const t = db.teams.find((team: any) => team.id === newEnrollment.team_id);
+            if (t) {
+              t.captain_id = newEnrollment.profile_id;
+            }
+          } else if (newEnrollment.role === 'student' && newEnrollment.team_id) {
+            const t = db.teams.find((team: any) => team.id === newEnrollment.team_id);
+            newEnrollment.captain_id = t ? t.captain_id : null;
+          }
+
+          if (!db.user_batches) {
+            db.user_batches = [];
+          }
+          db.user_batches.push(newEnrollment);
+          
+          insertedEnrollments.push({
+            ...existingProfile,
+            id: enrollmentId,
+            profile_id: profileId,
+            batch_id: newEnrollment.batch_id,
+            team_id: newEnrollment.team_id,
+            role: newEnrollment.role,
+            score: newEnrollment.score,
+            status: newEnrollment.status,
+            captain_id: newEnrollment.captain_id,
+            division_name: newEnrollment.division_name,
+            director_id: newEnrollment.director_id
+          });
+        });
+        
+        saveLocalStorageData(db);
+        resolve({ data: insertedEnrollments, error: null });
+        return;
+      }
+
       const rows = Array.isArray(this.insertValues) ? this.insertValues : [this.insertValues];
       
       rows.forEach(row => {
@@ -698,16 +1796,48 @@ class SupabaseQueryBuilder {
   }
 }
 
+// Helper to calculate evolution line based on days since batch start
+const calculateEvolutionLine = (studentId: string, upetCreatedAt: string | null, db: typeof SEED_DATA): string => {
+  const enrollment = db.user_batches.find(ub => ub.id === studentId);
+  const batchId = enrollment?.batch_id || 'batch-50';
+  const batch = db.batches?.find(b => b.id === batchId);
+  
+  const batchStartStr = batch?.start_date || upetCreatedAt || enrollment?.created_at || new Date().toISOString();
+  
+  const startOfDay = (dStr: string) => {
+    const d = new Date(dStr);
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  };
+  
+  const now = new Date();
+  const diffMs = startOfDay(now.toISOString()) - startOfDay(batchStartStr);
+  const days = Math.max(1, Math.floor(diffMs / (24 * 60 * 60 * 1000)) + 1);
+  
+  if (days <= 3) return 'dragon';
+  if (days <= 5) return 'lion';
+  if (days <= 7) return 'fox';
+  return 'spirit';
+};
+
+export function getRequiredStageByLevel(level: number): number {
+  if (level >= 25) return 6;
+  if (level >= 20) return 5;
+  if (level >= 15) return 4;
+  if (level >= 10) return 3;
+  if (level >= 5) return 2;
+  return 1;
+}
+
 // Local helper to adjust score and update team/logs
 const adjustScoreLocal = (studentId: string, amount: number, reason: string, createdBy: string | null, submissionId: string | null = null, db: typeof SEED_DATA) => {
-  // Update Profile
-  const profile = db.profiles.find(p => p.id === studentId);
-  if (profile) {
-    profile.score = Math.max(0, profile.score + amount);
+  // Update User Batch Enrollment Score
+  const enrollment = db.user_batches.find(ub => ub.id === studentId);
+  if (enrollment) {
+    enrollment.score = Math.max(0, enrollment.score + amount);
     
     // Update Team score
-    if (profile.team_id) {
-      const team = db.teams.find(t => t.id === profile.team_id);
+    if (enrollment.team_id) {
+      const team = db.teams.find(t => t.id === enrollment.team_id);
       if (team) {
         team.total_score = Math.max(0, team.total_score + amount);
       }
@@ -726,7 +1856,7 @@ const adjustScoreLocal = (studentId: string, amount: number, reason: string, cre
 
     // Check Achievements auto-unlock trigger
     db.achievements.forEach(ach => {
-      if (ach.condition_type === 'total_score' && profile.score >= ach.condition_value) {
+      if (ach.condition_type === 'total_score' && enrollment.score >= ach.condition_value) {
         const alreadyHas = db.user_achievements.some(ua => ua.student_id === studentId && ua.achievement_id === ach.id);
         if (!alreadyHas) {
           db.user_achievements.push({
@@ -739,23 +1869,59 @@ const adjustScoreLocal = (studentId: string, amount: number, reason: string, cre
       }
     });
 
-    // Check Pets auto-unlock trigger
-    if (db.pets) {
-      db.pets.forEach(pet => {
-        if (profile.score >= pet.unlock_score_threshold) {
-          const alreadyHas = db.user_pets.some(up => up.student_id === studentId && up.pet_id === pet.id);
-          if (!alreadyHas) {
-            db.user_pets.push({
-              id: 'upet-' + Math.random().toString(36).substring(2, 11),
-              student_id: studentId,
-              pet_id: pet.id,
-              pet_level: 1,
-              current_skin: 'default',
-              unlocked_at: new Date().toISOString()
-            });
+    // Update UserPet total_exp, level and eligibility
+    if ((db as any).user_pets) {
+      let upet = (db as any).user_pets.find((up: any) => up.student_id === studentId);
+      const total_exp = enrollment.score || 0;
+      const level = Math.floor(total_exp / 500);
+      const reachedLv5 = level >= 5;
+      const nowStr = new Date().toISOString();
+      
+      if (!upet) {
+        upet = {
+          id: 'upet-' + studentId,
+          student_id: studentId,
+          pet_line: null,
+          current_stage_index: 1,
+          total_exp: total_exp,
+          level: level,
+          first_reached_lv5_at: null,
+          evolution_eligible_at: null,
+          evolved_at: null,
+          has_pending_evolution: false,
+          created_at: nowStr,
+          updated_at: nowStr
+        };
+        
+        if (reachedLv5) {
+          upet.has_pending_evolution = true;
+          upet.first_reached_lv5_at = nowStr;
+          upet.evolution_eligible_at = nowStr;
+        }
+        
+        (db as any).user_pets.push(upet);
+      } else {
+        upet.total_exp = total_exp;
+        upet.level = level;
+        
+        const shouldTriggerEvolution = reachedLv5 && upet.current_stage_index === 1 && !upet.has_pending_evolution && upet.pet_line === null;
+        if (shouldTriggerEvolution) {
+          upet.has_pending_evolution = true;
+          upet.first_reached_lv5_at = nowStr;
+          upet.evolution_eligible_at = nowStr;
+        }
+        
+        // Sync stage index based on level (only if already evolved past stage 1)
+        if (upet.pet_line !== null && upet.current_stage_index > 1) {
+          const requiredStage = getRequiredStageByLevel(level);
+          if (requiredStage > upet.current_stage_index && !upet.has_pending_evolution) {
+            upet.has_pending_evolution = true;
+            upet.evolution_eligible_at = nowStr;
           }
         }
-      });
+        
+        upet.updated_at = nowStr;
+      }
     }
   }
 };
@@ -785,55 +1951,109 @@ const mockAuth = {
     const team_id = options?.data?.team_id || null;
     const captain_id = options?.data?.captain_id || null;
     
-    // Check if user already exists (by name or phone+batch)
-    const exists = db.profiles.some(p => p.name.toLowerCase() === name.toLowerCase());
-    if (exists) {
-      return { data: null, error: { message: '姓名或使用者已存在' } };
+    // Check if profile already exists by name or phone
+    let p = db.profiles.find((prof: any) => 
+      prof.name.toLowerCase() === name.toLowerCase() || 
+      (phone && prof.phone === phone)
+    );
+    
+    if (p) {
+      // Check if they are already enrolled in this batch
+      const alreadyEnrolled = db.user_batches.some((ub: any) => ub.profile_id === p.id && ub.batch_id === batch_id);
+      if (alreadyEnrolled) {
+        return { data: null, error: { message: '此學員在此期數中已存在' } };
+      }
+    } else {
+      // Create new profile
+      p = {
+        id: 'usr-' + Math.random().toString(36).substring(2, 11),
+        name,
+        phone,
+        created_at: new Date().toISOString()
+      };
+      db.profiles.push(p);
     }
     
-    if (phone && batch_id) {
-      const duplicatePhone = db.profiles.some(p => p.phone === phone && p.batch_id === batch_id);
-      if (duplicatePhone) {
-        return { data: null, error: { message: '此手機號碼在同一個期數中已重複註冊' } };
-      }
-    }
-
-    const newUser: Profile = {
-      id: 'usr-' + Math.random().toString(36).substring(2, 11),
-      name,
-      role,
-      team_id,
+    // Create new enrollment
+    const enrollment = {
+      id: 'ub-' + Math.random().toString(36).substring(2, 11),
+      profile_id: p.id,
       batch_id,
-      phone,
-      captain_id,
+      team_id,
+      role,
       score: 0,
+      status: 'active',
+      captain_id,
+      division_name: null,
+      director_id: null,
       created_at: new Date().toISOString()
     };
-
-    db.profiles.push(newUser);
+    db.user_batches.push(enrollment);
+    
     saveLocalStorageData(db);
     
-    const session = { user: { id: newUser.id, email, user_metadata: { name, role } } };
+    const profile = {
+      ...p,
+      id: enrollment.id,
+      profile_id: p.id,
+      batch_id: enrollment.batch_id,
+      team_id: enrollment.team_id,
+      role: enrollment.role,
+      score: enrollment.score,
+      status: enrollment.status,
+      captain_id: enrollment.captain_id,
+      division_name: enrollment.division_name,
+      director_id: enrollment.director_id
+    };
+    
     if (typeof window !== 'undefined') {
-      localStorage.setItem('nlp_session', JSON.stringify(newUser));
+      localStorage.setItem('nlp_session', JSON.stringify(profile));
     }
     
+    const session = { user: { id: profile.id, email, user_metadata: { name, role } } };
     return { data: session, error: null };
   },
 
   async signInWithPassword({ email, password }: any) {
     const db = getLocalStorageData();
-    // Simulate lookup: we check if there is a profile matching the email prefix or the text
     const loginName = email.split('@')[0];
-    const profile = db.profiles.find(p => 
-      p.phone === loginName || 
-      p.name.toLowerCase() === loginName.toLowerCase() || 
-      p.id === loginName
+    
+    // Find profile
+    const p = db.profiles.find((prof: any) => 
+      prof.phone === loginName || 
+      prof.name.toLowerCase() === loginName.toLowerCase() || 
+      prof.id === loginName
     );
     
-    if (!profile) {
+    if (!p) {
       return { data: null, error: { message: '找不到此帳號，請確認電話號碼或名稱是否正確。' } };
     }
+    
+    // Find enrollments
+    const enrollments = db.user_batches.filter((ub: any) => ub.profile_id === p.id);
+    if (enrollments.length === 0) {
+      return { data: null, error: { message: '此帳號尚未加入任何期數。' } };
+    }
+    
+    // Find active enrollment, else take first
+    let activeEnrollment = enrollments.find((ub: any) => ub.status === 'active');
+    if (!activeEnrollment) {
+      activeEnrollment = enrollments[0];
+    }
+    
+    const profile = {
+      ...p,
+      id: activeEnrollment.id,
+      profile_id: p.id,
+      batch_id: activeEnrollment.batch_id,
+      team_id: activeEnrollment.team_id,
+      role: activeEnrollment.role,
+      score: activeEnrollment.score,
+      status: activeEnrollment.status,
+      captain_id: activeEnrollment.captain_id,
+      division_name: activeEnrollment.division_name,
+      director_id: activeEnrollment.director_id
+    };
 
     if (typeof window !== 'undefined') {
       localStorage.setItem('nlp_session', JSON.stringify(profile));
@@ -856,9 +2076,27 @@ const mockAuth = {
     if (!session) return { data: { user: null }, error: null };
     
     const profile = JSON.parse(session) as Profile;
-    // Re-verify against DB to get latest scores
     const db = getLocalStorageData();
-    const latestProfile = db.profiles.find(p => p.id === profile.id) || profile;
+    const enrollment = db.user_batches?.find(ub => ub.id === profile.id);
+    let latestProfile = profile;
+    if (enrollment) {
+      const p = db.profiles.find(prof => prof.id === enrollment.profile_id);
+      if (p) {
+        latestProfile = {
+          ...p,
+          id: enrollment.id,
+          profile_id: p.id,
+          batch_id: enrollment.batch_id,
+          team_id: enrollment.team_id,
+          role: enrollment.role,
+          score: enrollment.score,
+          status: enrollment.status,
+          captain_id: enrollment.captain_id,
+          division_name: enrollment.division_name,
+          director_id: enrollment.director_id
+        };
+      }
+    }
     
     const user = {
       id: latestProfile.id,
@@ -872,12 +2110,11 @@ const mockAuth = {
   },
 
   onAuthStateChange(callback: any) {
-    // Just simple callback setup
     return { data: { subscription: { unsubscribe() {} } } };
   }
 };
 
-// ==========================================
+// ==========================
 // EXPORT UNIFIED SUPABASE CLIENT
 // ==========================================
 
