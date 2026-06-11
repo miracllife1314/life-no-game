@@ -187,6 +187,7 @@ export function AdminDashboard({
   const [taskScore, setTaskScore] = useState(100);
   const [taskReqProof, setTaskReqProof] = useState(true);
   const [taskCategory, setTaskCategory] = useState<string>('初階');
+  const [deletingTemplateId, setDeletingTemplateId] = useState<string | null>(null);
 
   const pad = (n: number) => n.toString().padStart(2, '0');
   const formatDateToLocal = (date: Date) => {
@@ -4499,25 +4500,56 @@ export function AdminDashboard({
                                     {template.is_active ? '啟用中' : '已停用'}
                                   </span>
                                 </td>
-                                <td className="p-3 text-right select-none space-x-1">
-                                  <button
-                                    onClick={() => startEditTemplate(template)}
-                                    className="px-2 py-1 bg-slate-900 border border-white/5 text-[10px] rounded hover:border-amber-500/30 text-amber-400 font-bold light:bg-slate-100 light:border-slate-300"
-                                  >
-                                    編輯模板
-                                  </button>
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      e.preventDefault();
-                                      if (confirm(`確定要刪除「${template.title}」此任務模板嗎？\n這也會一併刪除所有期數中引用此模板的規則。`)) {
-                                        onDeleteMissionTemplate?.(template.id);
-                                      }
-                                    }}
-                                    className="px-2 py-1 bg-slate-900 border border-white/5 text-[10px] rounded hover:border-rose-500/30 text-rose-400 font-bold light:bg-slate-100 light:border-slate-300"
-                                  >
-                                    刪除
-                                  </button>
+                                <td className="p-3 text-right select-none whitespace-nowrap">
+                                  {deletingTemplateId === template.id ? (
+                                    <div className="inline-flex items-center space-x-1">
+                                      <span className="text-[10px] text-rose-400 font-bold mr-1">確定？</span>
+                                      <button
+                                        type="button"
+                                        onClick={async (e) => {
+                                          e.stopPropagation();
+                                          e.preventDefault();
+                                          await onDeleteMissionTemplate?.(template.id);
+                                          setDeletingTemplateId(null);
+                                        }}
+                                        className="px-2 py-1 bg-rose-600 hover:bg-rose-700 text-white text-[10px] rounded font-bold"
+                                      >
+                                        是
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          e.preventDefault();
+                                          setDeletingTemplateId(null);
+                                        }}
+                                        className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] rounded font-bold"
+                                      >
+                                        否
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    <div className="inline-flex space-x-1">
+                                      <button
+                                        type="button"
+                                        onClick={() => startEditTemplate(template)}
+                                        className="px-2 py-1 bg-slate-900 border border-white/5 text-[10px] rounded hover:border-amber-500/30 text-amber-400 font-bold light:bg-slate-100 light:border-slate-300"
+                                      >
+                                        編輯模板
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          e.preventDefault();
+                                          setDeletingTemplateId(template.id);
+                                        }}
+                                        className="px-2 py-1 bg-slate-900 border border-white/5 text-[10px] rounded hover:border-rose-500/30 text-rose-400 font-bold light:bg-slate-100 light:border-slate-300"
+                                      >
+                                        刪除
+                                      </button>
+                                    </div>
+                                  )}
                                 </td>
                               </>
                             )}
