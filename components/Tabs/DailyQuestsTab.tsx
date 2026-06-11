@@ -1319,7 +1319,7 @@ export function DailyQuestsTab({
       {/* 📝 簽到證明上傳 Modal */}
       {showProofModal && selectedTask && (
         <div className="fixed inset-0 bg-black/80 z-[60] flex items-center justify-center p-4 modal-force-dark" onClick={(e) => { if (e.target === e.currentTarget) { setShowProofModal(false); setSelectedTask(null); }}}>
-          <div className="glass-panel w-full max-w-md p-6 rounded-3xl border border-white/10 shadow-2xl relative animate-in zoom-in-95 duration-200">
+          <div className="glass-panel w-full max-w-md p-6 rounded-3xl border border-white/10 shadow-2xl relative animate-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
             <h3 className="text-lg font-black text-white mb-4">
               提交修行證明：{selectedTask.name || selectedTask.title}
             </h3>
