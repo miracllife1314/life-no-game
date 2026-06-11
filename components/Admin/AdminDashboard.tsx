@@ -99,6 +99,7 @@ interface AdminDashboardProps {
   onLevelUpPet: (userPetId: string) => Promise<void>;
   onCreateBatch?: (batchData: Omit<Batch, 'id' | 'created_at' | 'updated_at'>, teamCount?: number) => Promise<void>;
   onUpdateBatch?: (batchId: string, batchData: Partial<Batch>, teamCount?: number) => Promise<void>;
+  onDeleteBatch?: (batchId: string) => Promise<void>;
   onCreateMissionTemplate?: (templateData: Omit<MissionTemplate, 'id' | 'created_at' | 'updated_at'>) => Promise<any>;
   onUpdateMissionTemplate?: (templateId: string, templateData: Partial<MissionTemplate>) => Promise<void>;
   onSaveBatchMissionTemplates?: (batchId: string, rules: Omit<BatchMissionTemplate, 'id' | 'created_at' | 'updated_at'>[]) => Promise<void>;
@@ -158,6 +159,7 @@ export function AdminDashboard({
   onLevelUpPet,
   onCreateBatch,
   onUpdateBatch,
+  onDeleteBatch,
   onCreateMissionTemplate,
   onUpdateMissionTemplate,
   onSaveBatchMissionTemplates,
@@ -4082,6 +4084,18 @@ export function AdminDashboard({
                                   </button>
                                 );
                               })()}
+                              {onDeleteBatch && (
+                                <button
+                                  onClick={() => {
+                                    if (confirm(`⚠️ 確定要刪除「${batch.name}」這個期數嗎？\n\n此操作無法復原，該期數的相關任務與規則資料也會一併刪除。`)) {
+                                      onDeleteBatch(batch.id);
+                                    }
+                                  }}
+                                  className="px-2 py-1 bg-red-500/10 border border-red-500/20 text-[10px] rounded hover:bg-red-500 hover:text-white text-red-400 font-bold cursor-pointer inline-block transition-colors"
+                                >
+                                  🗑️ 刪除
+                                </button>
+                              )}
                             </td>
                           </>
                         )}

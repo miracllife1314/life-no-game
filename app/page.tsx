@@ -1397,6 +1397,19 @@ export default function Home() {
     await fetchData();
   };
 
+  const handleDeleteBatch = async (batchId: string) => {
+    // Delete related data in order (cascade-safe)
+    await supabase.from('batch_mission_templates').delete().eq('batch_id', batchId);
+    await supabase.from('missions').delete().eq('batch_id', batchId);
+    // Clear profiles' batch_id that belong to this batch
+    await supabase.from('profiles').update({ batch_id: null, team_id: null }).eq('batch_id', batchId);
+    // Delete teams in this batch
+    await supabase.from('teams').delete().eq('batch_id', batchId);
+    // Finally delete the batch itself
+    await supabase.from('batches').delete().eq('id', batchId);
+    await fetchData();
+  };
+
   const handleCreateMissionTemplate = async (templateData: Omit<MissionTemplate, 'id' | 'created_at' | 'updated_at'>) => {
     const { data } = await supabase.from('mission_templates').insert({
       ...templateData,
@@ -2106,6 +2119,7 @@ export default function Home() {
             onLevelUpPet={handleLevelUpPet}
             onCreateBatch={handleCreateBatch}
             onUpdateBatch={handleUpdateBatch}
+            onDeleteBatch={handleDeleteBatch}
             onCreateMissionTemplate={handleCreateMissionTemplate}
             onUpdateMissionTemplate={handleUpdateMissionTemplate}
             onSaveBatchMissionTemplates={handleSaveBatchMissionTemplates}
