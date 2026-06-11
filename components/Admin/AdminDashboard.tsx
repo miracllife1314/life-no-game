@@ -102,6 +102,7 @@ interface AdminDashboardProps {
   onDeleteBatch?: (batchId: string) => Promise<void>;
   onCreateMissionTemplate?: (templateData: Omit<MissionTemplate, 'id' | 'created_at' | 'updated_at'>) => Promise<any>;
   onUpdateMissionTemplate?: (templateId: string, templateData: Partial<MissionTemplate>) => Promise<void>;
+  onDeleteMissionTemplate?: (templateId: string) => Promise<void>;
   onSaveBatchMissionTemplates?: (batchId: string, rules: Omit<BatchMissionTemplate, 'id' | 'created_at' | 'updated_at'>[]) => Promise<void>;
   onGenerateMissions?: (batchId: string, previewData: Array<{
     templateId: string;
@@ -162,6 +163,7 @@ export function AdminDashboard({
   onDeleteBatch,
   onCreateMissionTemplate,
   onUpdateMissionTemplate,
+  onDeleteMissionTemplate,
   onSaveBatchMissionTemplates,
   onGenerateMissions,
   onAddProfile,
@@ -4497,12 +4499,24 @@ export function AdminDashboard({
                                     {template.is_active ? '啟用中' : '已停用'}
                                   </span>
                                 </td>
-                                <td className="p-3 text-right select-none">
+                                <td className="p-3 text-right select-none space-x-1">
                                   <button
                                     onClick={() => startEditTemplate(template)}
                                     className="px-2 py-1 bg-slate-900 border border-white/5 text-[10px] rounded hover:border-amber-500/30 text-amber-400 font-bold light:bg-slate-100 light:border-slate-300"
                                   >
                                     編輯模板
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      e.preventDefault();
+                                      if (confirm(`確定要刪除「${template.title}」此任務模板嗎？\n這也會一併刪除所有期數中引用此模板的規則。`)) {
+                                        onDeleteMissionTemplate?.(template.id);
+                                      }
+                                    }}
+                                    className="px-2 py-1 bg-slate-900 border border-white/5 text-[10px] rounded hover:border-rose-500/30 text-rose-400 font-bold light:bg-slate-100 light:border-slate-300"
+                                  >
+                                    刪除
                                   </button>
                                 </td>
                               </>

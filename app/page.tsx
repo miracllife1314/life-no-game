@@ -1143,6 +1143,7 @@ export default function Home() {
   const handleCreateTask = async (taskData: Omit<Task, 'id' | 'created_at' | 'created_by'>) => {
     if (!currentUser) return;
     await supabase.from('tasks').insert({
+      id: crypto.randomUUID(),
       ...taskData,
       created_by: currentUser.id,
       created_at: new Date().toISOString()
@@ -1412,6 +1413,7 @@ export default function Home() {
 
   const handleCreateMissionTemplate = async (templateData: Omit<MissionTemplate, 'id' | 'created_at' | 'updated_at'>) => {
     const { data } = await supabase.from('mission_templates').insert({
+      id: crypto.randomUUID(),
       ...templateData,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
@@ -1428,6 +1430,12 @@ export default function Home() {
         updated_at: new Date().toISOString()
       })
       .eq('id', templateId);
+    await fetchData();
+  };
+
+  const handleDeleteMissionTemplate = async (templateId: string) => {
+    await supabase.from('batch_mission_templates').delete().eq('template_id', templateId);
+    await supabase.from('mission_templates').delete().eq('id', templateId);
     await fetchData();
   };
 
@@ -2122,6 +2130,7 @@ export default function Home() {
             onDeleteBatch={handleDeleteBatch}
             onCreateMissionTemplate={handleCreateMissionTemplate}
             onUpdateMissionTemplate={handleUpdateMissionTemplate}
+            onDeleteMissionTemplate={handleDeleteMissionTemplate}
             onSaveBatchMissionTemplates={handleSaveBatchMissionTemplates}
             onGenerateMissions={handleGenerateMissions}
             onAddProfile={handleAddProfile}
