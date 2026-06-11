@@ -4350,8 +4350,13 @@ export function AdminDashboard({
                            <tr key={template.id} className="hover:bg-white/[0.01] light:hover:bg-slate-100/30">
                              {isEditing ? (
                                <>
-                                 <td className="p-3 font-bold text-white light:text-slate-900 select-none sticky left-0 z-10 bg-slate-950 light:bg-white border-r border-white/5 light:border-slate-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.2)]">
-                                   {template.title}
+                                 <td className="p-3 font-bold text-white light:text-slate-900 sticky left-0 z-10 bg-slate-950 light:bg-white border-r border-white/5 light:border-slate-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.2)]">
+                                   <input
+                                     type="text"
+                                     value={editTemplateTitle}
+                                     onChange={e => setEditTemplateTitle(e.target.value)}
+                                     className="w-full bg-slate-950 border border-slate-800 text-white rounded p-1.5 text-xs font-bold outline-none light:bg-white light:border-slate-200 light:text-slate-900"
+                                   />
                                  </td>
                                  <td className="p-2">
                                    <textarea
