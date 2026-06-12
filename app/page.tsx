@@ -2364,14 +2364,28 @@ export default function Home() {
     if (displayReason === '完成任務' && log.submission_id) {
       const sub = submissions.find(s => s.id === log.submission_id);
       if (sub) {
+        let taskName = '';
+        let taskType = '';
+        
         const t = tasks.find(t => t.id === sub.mission_id);
         if (t) {
+          taskName = t.name;
+          taskType = t.type;
+        } else {
+          const m = missions.find(m => m.id === sub.mission_id);
+          if (m) {
+            taskName = m.title;
+            taskType = m.mission_type;
+          }
+        }
+
+        if (taskName) {
           let prefix = '[特殊]';
-          if (t.type === 'daily') prefix = '[每日]';
-          else if (t.type === 'weekly') prefix = '[每週]';
-          else if (t.type === 'limited' || t.name.includes('限時') || t.name.includes('最後一週')) prefix = '[限時]';
+          if (taskType === 'daily') prefix = '[每日]';
+          else if (taskType === 'weekly') prefix = '[每週]';
+          else if (taskType === 'limited' || taskName.includes('限時') || taskName.includes('最後一週')) prefix = '[限時]';
           
-          displayReason = `完成任務：${prefix} ${t.name}`;
+          displayReason = `完成任務：${prefix} ${taskName}`;
         }
       }
     }
