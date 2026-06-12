@@ -1017,8 +1017,6 @@ export function CaptainDashboard({
                 <span className="flex items-center gap-1"><Clock size={12} className="text-amber-500 animate-pulse" /> 待審核</span>
                 <span className="flex items-center gap-1"><AlertCircle size={12} className="text-red-400" /> 被退回</span>
                 <span className="flex items-center gap-1"><Circle size={12} className="text-slate-700" /> 未打卡</span>
-              </div>
-              <p className="text-amber-500/80">※ 小提示：點擊矩陣即可直接為該隊員進行審核與撤銷</p>
             </div>
           </div>
         )}
