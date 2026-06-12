@@ -22,6 +22,36 @@ export const realSupabase = isRealSupabase ? createClient(supabaseUrl, supabaseK
 }) : null;
 
 // ==========================================
+// 證明圖片上傳：把 base64 data-URL 上傳到 proof-images bucket，回傳公開 URL。
+// - 本地模式或非 data-URL：原樣返回（保留 base64）
+// - 上傳失敗：fallback 回原本 base64，確保打卡不會因此失敗
+// ==========================================
+export async function uploadProofImage(
+  input: string | null | undefined
+): Promise<string | null> {
+  if (!input) return null;
+  if (!isRealSupabase || !realSupabase || !input.startsWith('data:')) return input;
+  try {
+    const res = await fetch(input);
+    const blob = await res.blob();
+    const ext = (blob.type.split('/')[1] || 'webp').replace('+xml', '');
+    const path = `proof-${Date.now()}-${Math.random().toString(36).slice(2, 10)}.${ext}`;
+    const { error } = await realSupabase.storage
+      .from('proof-images')
+      .upload(path, blob, { contentType: blob.type || 'image/webp', upsert: true });
+    if (error) {
+      console.error('[uploadProofImage] upload failed, fallback to base64:', error);
+      return input;
+    }
+    const { data } = realSupabase.storage.from('proof-images').getPublicUrl(path);
+    return data.publicUrl;
+  } catch (e) {
+    console.error('[uploadProofImage] error, fallback to base64:', e);
+    return input;
+  }
+}
+
+// ==========================================
 // LOCAL PERSISTENCE STORAGE ENGINE (LOCAL DB)
 // ==========================================
 

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/lib/supabase';
+import { supabase, uploadProofImage } from '@/lib/supabase';
 import { CheckCircle2, Clock, AlertCircle } from 'lucide-react';
 import { 
   Profile, Team, Task, Submission, ScoreLog, SubmissionStatus,
@@ -380,13 +380,14 @@ export default function Home() {
                   }
                 });
                 
+                // 用 epoch 毫秒正規化時間，避免 DB 格式與預覽字串不符導致每次載入重複注入
                 const existingKeys = new Set(
                   finalMissions
                     .filter((m: any) => m.batch_id === batch.id)
-                    .map((m: any) => `${m.template_id}_${m.publish_at}`)
+                    .map((m: any) => `${m.template_id}_${new Date(m.publish_at).getTime()}`)
                 );
                 const missingPreviews = previews.filter(
-                  p => !existingKeys.has(`${p.templateId}_${p.publishAt}`)
+                  p => !existingKeys.has(`${p.templateId}_${new Date(p.publishAt).getTime()}`)
                 );
                 
                 if (missingPreviews.length > 0) {
@@ -478,20 +479,82 @@ export default function Home() {
         }
       }
 
-      setMissions(finalMissions);
+      // ---- 在 JS 端補上巢狀關聯（真實 PostgREST 不會自動 embed）----
+      const profArr: any[] = profilesList || [];
+      const attachUserPet = (up: any) => {
+        const stage = petStagesList?.find(
+          (s: any) => s.line_key === up.pet_line && s.stage_index === up.current_stage_index
+        ) || null;
+        return {
+          ...up,
+          stage,
+          pet: stage ? {
+            id: stage.id,
+            name: stage.stage_name,
+            description: stage.description,
+            image_url: stage.image_url,
+            evolution_image_url: stage.image_url,
+            unlock_score_threshold: (stage.min_level || 0) * 500,
+            created_at: stage.created_at
+          } : null,
+          profile: profArr.find((p: any) => p.id === up.student_id)
+        };
+      };
+
+      const joinedMissions = finalMissions.map((m: any) => ({
+        ...m,
+        batch: batchesList?.find((b: any) => b.id === m.batch_id),
+        template: templatesList?.find((t: any) => t.id === m.template_id)
+      }));
+      const joinedSubs = (subsList || []).map((sub: any) => ({
+        ...sub,
+        mission: joinedMissions.find((m: any) => m.id === sub.mission_id),
+        profile: profArr.find((p: any) => p.id === sub.student_id)
+      }));
+      const joinedAttendance = (attendanceList || []).map((att: any) => ({
+        ...att,
+        course: coursesList?.find((c: any) => c.id === att.course_id),
+        profile: profArr.find((p: any) => p.id === att.student_id)
+      }));
+      const joinedUserAchs = (userAchsList || []).map((ua: any) => ({
+        ...ua,
+        achievement: achsList?.find((a: any) => a.id === ua.achievement_id)
+      }));
+      const joinedNotes = (notesList || []).map((sn: any) => ({
+        ...sn,
+        student: profArr.find((p: any) => p.id === sn.student_id)
+      }));
+      const joinedRules = (rulesList || []).map((bmt: any) => ({
+        ...bmt,
+        batch: batchesList?.find((b: any) => b.id === bmt.batch_id),
+        template: templatesList?.find((t: any) => t.id === bmt.template_id)
+      }));
+      const joinedDeckCards = (deckCardsList || []).map((dc: any) => ({
+        ...dc,
+        card: cardsList?.find((c: any) => c.id === dc.card_id)
+      }));
+      const joinedUserDecks = (userDecksList || []).map((ud: any) => ({
+        ...ud,
+        deck: decksList?.find((d: any) => d.id === ud.deck_id)
+      }));
+      const joinedUserPets = (userPetsList || []).map(attachUserPet);
+
+      setMissions(joinedMissions);
+      setBatchMissionTemplates(joinedRules);
+      setSubmissions(joinedSubs);
+      setAttendance(joinedAttendance);
+      setUserAchievements(joinedUserAchs);
+      setNotes(joinedNotes);
+      setUserPets(joinedUserPets);
+      setDeckCards(joinedDeckCards);
+      setUserDecks(joinedUserDecks);
       if (coursesList) setCourses(coursesList);
-      if (attendanceList) setAttendance(attendanceList);
       if (achsList) setAchievements(achsList);
-      if (userAchsList) setUserAchievements(userAchsList);
       if (annsList) setAnnouncements(annsList);
-      if (notesList) setNotes(notesList);
       if (scoreLogsList) setScoreLogs(scoreLogsList);
       if (petsList) setPets(petsList);
-      if (userPetsList) setUserPets(userPetsList);
       if (cardsList) setCards(cardsList);
       if (decksList) setDecks(decksList);
-      if (deckCardsList) setDeckCards(deckCardsList);
-      if (userDecksList) setUserDecks(userDecksList);
       if (petLinesList) setPetLines(petLinesList);
       if (petStagesList) setPetStages(petStagesList);
       if (candidatesList) setCaptainCandidates(candidatesList);
@@ -553,13 +616,21 @@ export default function Home() {
               }
             } else {
               setIsSyncing(true);
+              const enrollId = (typeof crypto !== 'undefined' && crypto.randomUUID)
+                ? crypto.randomUUID()
+                : `usr-${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
               const { error: enrollErr } = await supabase.from('profiles').insert({
+                id: enrollId,
                 profile_id: loadedProfile?.profile_id,
+                name: loadedProfile?.name,
+                phone: loadedProfile?.phone,
                 batch_id: queryBatch,
                 team_id: queryTeam,
+                captain_id: team?.captain_id || null,
                 role: 'student',
                 score: 0,
-                status: 'active'
+                status: 'active',
+                created_at: new Date().toISOString()
               });
               
               if (enrollErr) {
@@ -627,10 +698,12 @@ export default function Home() {
   const handleLogin = async (name: string) => {
     setIsSyncing(true);
     try {
+      // PostgREST .or() 的值不可包雙引號（會被當成字面字元而比對不到）
+      const safe = name.replace(/[(),"]/g, ' ').trim();
       const { data: profile, error } = await supabase
         .from('profiles')
         .select('*')
-        .or(`name.eq."${name}",phone.eq."${name}"`)
+        .or(`name.eq.${safe},phone.eq.${safe}`)
         .limit(1)
         .maybeSingle();
 
@@ -681,20 +754,23 @@ export default function Home() {
       }
     }
 
-    const email = `${regData.name.toLowerCase()}@nlpgame.local`;
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password: 'dummy-password',
-      options: {
-        data: {
-          name: regData.name,
-          role: regData.role,
-          phone: regData.phone,
-          batch_id,
-          team_id,
-          captain_id
-        }
-      }
+    // 本系統不走 Supabase Auth：直接在 profiles 建立一筆報名列（id 與 profile_id 同值＝新的人）
+    const newId = (typeof crypto !== 'undefined' && crypto.randomUUID)
+      ? crypto.randomUUID()
+      : `usr-${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
+
+    const { error } = await supabase.from('profiles').insert({
+      id: newId,
+      profile_id: newId,
+      name: regData.name,
+      phone: regData.phone,
+      role: regData.role,
+      batch_id,
+      team_id,
+      captain_id,
+      score: 0,
+      status: 'active',
+      created_at: new Date().toISOString()
     });
 
     if (error) {
@@ -702,18 +778,19 @@ export default function Home() {
       throw new Error(error.message);
     }
 
-    if (data?.user) {
-      setViewState('app');
-      setActiveTab('daily');
-      setInviteCode('');
-      setInvitedTeamName('');
-      setInvitedCaptainName('');
-      setInviteError('');
-      if (typeof window !== 'undefined') {
-        window.history.replaceState({}, document.title, window.location.pathname);
-      }
-      await fetchData(data.user.id);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('nlp_mock_user_id', newId);
     }
+    setViewState('app');
+    setActiveTab('daily');
+    setInviteCode('');
+    setInvitedTeamName('');
+    setInvitedCaptainName('');
+    setInviteError('');
+    if (typeof window !== 'undefined') {
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+    await fetchData(newId);
   };
 
   const handleLogout = async () => {
@@ -755,7 +832,7 @@ export default function Home() {
     const title = task ? task.name : mission!.title;
 
     const submissionData = {
-      task_id: taskId,         // Supabase schema 用 task_id（not mission_id）
+      mission_id: taskId,      // 全站讀寫一致使用 mission_id（適用 tasks 與 missions 的 id）
       student_id: currentUser.id,
       proof_text: proofText || '免證明直接簽到',
       proof_image_url: proofImg || null,
@@ -830,7 +907,11 @@ export default function Home() {
     }
 
     try {
-      const { error: insertError } = await supabase.from('submissions').insert(submissionData);
+      // 證明圖片若為 base64，先上傳到 Storage 換成公開 URL（避免把大圖塞進 DB 欄位）
+      const uploadedImg = await uploadProofImage(submissionData.proof_image_url);
+      const { error: insertError } = await supabase
+        .from('submissions')
+        .insert({ ...submissionData, proof_image_url: uploadedImg });
       if (insertError) {
         console.error('[CheckIn] submissions insert error:', insertError);
         showToast(`❌ 打卡失敗：${insertError.message}`, 'error');
@@ -1667,14 +1748,15 @@ export default function Home() {
     try {
       // 1. Fetch existing missions for the batch
       const { data: existing } = await supabase.from('missions').select('*').eq('batch_id', batchId);
+      // 用 epoch 毫秒正規化時間，避免 DB 格式 (+00:00) 與 JS toISOString (.000Z) 不相等導致去重失敗
       const existingSet = new Set(
-        (existing || []).map((m: any) => `${m.batch_id}_${m.template_id}_${m.publish_at}`)
+        (existing || []).map((m: any) => `${m.batch_id}_${m.template_id}_${new Date(m.publish_at).getTime()}`)
       );
-      
+
       const newMissions: Omit<Mission, 'id' | 'created_at' | 'updated_at'>[] = [];
-      
+
       previews.forEach(p => {
-        const key = `${batchId}_${p.templateId}_${p.publishAt}`;
+        const key = `${batchId}_${p.templateId}_${new Date(p.publishAt).getTime()}`;
         if (existingSet.has(key)) {
           skipCount++;
         } else {
@@ -1757,10 +1839,12 @@ export default function Home() {
   };
 
   const handleCreateAchievement = async (title: string, description: string, value: number, iconUrl?: string | null) => {
+    // 若 icon 是上傳的 base64 圖片，先上傳 Storage 換 URL；若是 lucide 圖示名稱則原樣保留
+    const uploadedIcon = await uploadProofImage(iconUrl);
     await supabase.from('achievements').insert({
       title,
       description: description || null,
-      icon_url: iconUrl || 'Flame',
+      icon_url: uploadedIcon || 'Flame',
       condition_type: 'total_score',
       condition_value: value
     });

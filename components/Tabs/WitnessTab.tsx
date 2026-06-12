@@ -8,7 +8,7 @@ import {
   MessageCircle, Send, X, ChevronDown, ChevronUp,
   Sparkles, ZoomIn, Plus, Loader2, ChevronLeft
 } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
+import { supabase, uploadProofImage } from '@/lib/supabase';
 
 interface WitnessComment {
   id: string;
@@ -241,11 +241,13 @@ export function WitnessTab({ profiles, tasks, submissions, currentUserId, onRefr
       });
 
       // 2. Insert the custom post as an approved submission
+      // 先把每張 base64 圖片上傳到 Storage，避免多張大圖塞進單一 DB 欄位導致存入失敗
+      const uploadedImgs = (await Promise.all(customImgs.map(img => uploadProofImage(img)))).filter(Boolean);
       const submissionData = {
         mission_id: 'task-custom-post',
         student_id: currentUserId,
         proof_text: customText.trim() || null,
-        proof_image_url: customImgs.join('|') || null,
+        proof_image_url: uploadedImgs.join('|') || null,
         proof_link: null,
         status: 'approved',
         score_awarded: 0,
