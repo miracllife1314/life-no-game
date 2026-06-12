@@ -77,7 +77,13 @@ export function trimCenterSquare(srcUrl: string, maxSide = 512, padFraction = 0.
  */
 export function useTrimmedPetImage(url?: string | null): string {
   const clean = url || '';
-  const [out, setOut] = useState<string>(() => trimCache.get(clean) || clean);
+  
+  const [out, setOut] = useState<string>(() => {
+    if (!clean) return '';
+    const manual = parsePetOffset(clean);
+    if (manual.x || manual.y) return clean;
+    return trimCache.get(clean) || ''; // 如果還沒快取，先回傳空字串隱藏，避免載入中跑版
+  });
 
   useEffect(() => {
     if (!clean) { setOut(''); return; }
@@ -88,67 +94,90 @@ export function useTrimmedPetImage(url?: string | null): string {
     const cached = trimCache.get(clean);
     if (cached) { setOut(cached); return; }
 
-    setOut(clean); // 先顯示原圖，裁切完成後再替換
+    setOut(''); // 確保載入時隱藏原圖
+
     if (typeof window === 'undefined') return;
 
     let cancelled = false;
-    const img = new window.Image();
-    img.crossOrigin = 'anonymous';
-    // 用乾淨網址(去掉 #fragment) + 強制防快取參數，避免拿到「非跨域」的快取造成畫布污染
-    const base = clean.split('#')[0];
-    const corsUrl = clean.startsWith('data:')
-      ? clean
-      : base + (base.includes('?') ? '&' : '?') + 'corscb=' + Math.random().toString(36).substring(2, 8) + Date.now().toString(36);
-    img.onload = () => {
-      if (cancelled) return;
+    let objectUrl = '';
+
+    const fetchAndTrim = async () => {
       try {
-        const maxDim = 420;
-        const sc = Math.min(1, maxDim / Math.max(img.width, img.height));
-        const w = Math.max(1, Math.round(img.width * sc));
-        const h = Math.max(1, Math.round(img.height * sc));
-        const c = document.createElement('canvas');
-        c.width = w; c.height = h;
-        const ctx = c.getContext('2d', { willReadFrequently: true });
-        if (!ctx) return;
-        ctx.drawImage(img, 0, 0, w, h);
-        const data = ctx.getImageData(0, 0, w, h).data;
+        // 使用 fetch 強制取得跨域圖片，並拒絕使用快取，保證畫布不被污染
+        const response = await fetch(clean, { mode: 'cors', cache: 'no-cache' });
+        if (!response.ok) throw new Error('Network response was not ok');
+        const blob = await response.blob();
+        if (cancelled) return;
 
-        let minX = w, minY = h, maxX = -1, maxY = -1;
-        for (let y = 0; y < h; y++) {
-          for (let x = 0; x < w; x++) {
-            if (data[(y * w + x) * 4 + 3] > 16) {
-              if (x < minX) minX = x; if (x > maxX) maxX = x;
-              if (y < minY) minY = y; if (y > maxY) maxY = y;
-            }
+        objectUrl = URL.createObjectURL(blob);
+        const img = new window.Image();
+        
+        img.onload = () => {
+          if (cancelled) {
+            URL.revokeObjectURL(objectUrl);
+            return;
           }
-        }
-        if (maxX < minX || maxY < minY) return;           // 全透明，放棄
-        const bw = maxX - minX + 1, bh = maxY - minY + 1;
-        if (bw > w * 0.93 && bh > h * 0.93) return;        // 主體已幾乎填滿，免裁
+          try {
+            const maxDim = 420;
+            const sc = Math.min(1, maxDim / Math.max(img.width, img.height));
+            const w = Math.max(1, Math.round(img.width * sc));
+            const h = Math.max(1, Math.round(img.height * sc));
+            const c = document.createElement('canvas');
+            c.width = w; c.height = h;
+            const ctx = c.getContext('2d', { willReadFrequently: true });
+            if (!ctx) throw new Error('Canvas context failed');
+            ctx.drawImage(img, 0, 0, w, h);
+            const data = ctx.getImageData(0, 0, w, h).data;
 
-        // 以原圖解析度裁切（保留畫質），四周加 6% 留白
-        const inv = 1 / sc;
-        const pad = Math.round(Math.max(bw, bh) * inv * 0.06);
-        const sx = Math.max(0, Math.round(minX * inv) - pad);
-        const sy = Math.max(0, Math.round(minY * inv) - pad);
-        const sw = Math.min(img.width - sx, Math.round(bw * inv) + pad * 2);
-        const sh = Math.min(img.height - sy, Math.round(bh * inv) + pad * 2);
+            let minX = w, minY = h, maxX = -1, maxY = -1;
+            for (let y = 0; y < h; y++) {
+              for (let x = 0; x < w; x++) {
+                if (data[(y * w + x) * 4 + 3] > 16) {
+                  if (x < minX) minX = x; if (x > maxX) maxX = x;
+                  if (y < minY) minY = y; if (y > maxY) maxY = y;
+                }
+              }
+            }
+            if (maxX < minX || maxY < minY) throw new Error('Fully transparent');
+            const bw = maxX - minX + 1, bh = maxY - minY + 1;
+            if (bw > w * 0.93 && bh > h * 0.93) throw new Error('Already filled');
 
-        const o = document.createElement('canvas');
-        o.width = sw; o.height = sh;
-        const octx = o.getContext('2d');
-        if (!octx) return;
-        octx.drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
-        const result = o.toDataURL('image/png');
-        trimCache.set(clean, result);
-        if (!cancelled) setOut(result);
-      } catch {
-        // CORS 污染畫布或其他錯誤 → 維持原圖
+            const inv = 1 / sc;
+            const pad = Math.round(Math.max(bw, bh) * inv * 0.06);
+            const sx = Math.max(0, Math.round(minX * inv) - pad);
+            const sy = Math.max(0, Math.round(minY * inv) - pad);
+            const sw = Math.min(img.width - sx, Math.round(bw * inv) + pad * 2);
+            const sh = Math.min(img.height - sy, Math.round(bh * inv) + pad * 2);
+
+            const o = document.createElement('canvas');
+            o.width = sw; o.height = sh;
+            const octx = o.getContext('2d');
+            if (!octx) throw new Error('Canvas 2 context failed');
+            octx.drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
+            const result = o.toDataURL('image/png');
+            trimCache.set(clean, result);
+            if (!cancelled) setOut(result);
+          } catch (err) {
+            // 解析失敗或不需要裁切，保持原圖
+          } finally {
+            URL.revokeObjectURL(objectUrl);
+          }
+        };
+        img.onerror = () => {
+          URL.revokeObjectURL(objectUrl);
+        };
+        img.src = objectUrl;
+      } catch (err) {
+        // Fetch 失敗（可能被 CORS 阻擋），維持原圖
       }
     };
-    img.onerror = () => {};
-    img.src = corsUrl;
-    return () => { cancelled = true; };
+
+    fetchAndTrim();
+
+    return () => { 
+      cancelled = true; 
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
   }, [clean]);
 
   return out;
