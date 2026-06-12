@@ -2364,9 +2364,13 @@ export default function Home() {
     if (displayReason === '完成任務' && log.submission_id) {
       const sub = submissions.find(s => s.id === log.submission_id);
       if (sub) {
-        const t = tasks.find(t => t.id === sub.task_id);
+        const t = tasks.find(t => t.id === sub.mission_id);
         if (t) {
-          const prefix = t.type === 'daily' ? '每日' : '特殊';
+          let prefix = '[特殊]';
+          if (t.type === 'daily') prefix = '[每日]';
+          else if (t.type === 'weekly') prefix = '[每週]';
+          else if (t.type === 'limited' || t.name.includes('限時') || t.name.includes('最後一週')) prefix = '[限時]';
+          
           displayReason = `完成任務：${prefix} ${t.name}`;
         }
       }
