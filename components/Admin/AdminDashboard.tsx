@@ -145,6 +145,7 @@ interface AdminDashboardProps {
   onAddProfile?: (profileData: { name: string; phone: string; role: UserRole; batchId: string; teamId: string; divisionName?: string | null; directorId?: string | null }) => Promise<void>;
   onUpdateProfile?: (profileId: string, updates: Partial<Profile>) => Promise<void>;
   onDeleteProfile?: (profileId: string) => Promise<void>;
+  onHardDeleteProfile?: (profileId: string) => Promise<void>;
   onQuickAssignCaptain?: (batchId: string, captainProfileId: string, teamId: string, directorId: string | null) => Promise<void>;
   isSyncing: boolean;
   notes?: StudentNote[];
@@ -208,6 +209,7 @@ export function AdminDashboard({
   onAddProfile,
   onUpdateProfile,
   onDeleteProfile,
+  onHardDeleteProfile,
   onQuickAssignCaptain,
   isSyncing,
   notes = [],
@@ -4671,15 +4673,29 @@ export function AdminDashboard({
                                   </button>
                                   <button
                                     onClick={async () => {
-                                      if (confirm(`確定要停用/刪除學員 ${p.name} 嗎？\n此操作會將該學員狀態設為「停用」。`)) {
+                                      if (confirm(`確定要將學員 ${p.name} 設為「停用」嗎？\n資料會保留但不顯示。`)) {
                                         if (onDeleteProfile) {
                                           await onDeleteProfile(p.id);
                                         }
                                       }
                                     }}
                                     disabled={isSyncing}
+                                    className="p-1.5 text-slate-400 hover:text-orange-500 hover:bg-orange-500/10 rounded transition-colors"
+                                    title="停用"
+                                  >
+                                    <X size={14} />
+                                  </button>
+                                  <button
+                                    onClick={async () => {
+                                      if (confirm(`【警告】確定要徹底刪除學員 ${p.name} 的所有資料嗎？\n這個操作無法復原，會導致連帶的小隊分數異常，強烈建議使用「停用」功能就好！\n如果堅持刪除，請按確定。`)) {
+                                        if (onHardDeleteProfile) {
+                                          await onHardDeleteProfile(p.id);
+                                        }
+                                      }
+                                    }}
+                                    disabled={isSyncing}
                                     className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-500/10 rounded transition-colors"
-                                    title="刪除/停用"
+                                    title="強制徹底刪除"
                                   >
                                     <Trash2 size={14} />
                                   </button>

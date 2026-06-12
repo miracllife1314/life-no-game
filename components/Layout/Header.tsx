@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Sun, Moon, LogOut, ShieldAlert, Award, TrendingUp, RotateCcw, Bookmark } from 'lucide-react';
+import { Sun, Moon, LogOut, ShieldAlert, Award, TrendingUp, Bookmark } from 'lucide-react';
 import { Profile, Team, Batch } from '@/types';
 
 interface HeaderProps {
@@ -129,19 +129,6 @@ export function Header({
 
         {/* Global actions (Right) */}
         <div className="flex items-center gap-3">
-          <button
-            onClick={() => {
-              if (confirm('確定要清除所有本地打卡紀錄與修改分數，並還原至 Google 試算表初始資料嗎？')) {
-                localStorage.clear();
-                window.location.reload();
-              }
-            }}
-            title="重置系統資料 (還原試算表初始狀態)"
-            className="btn-action w-10 h-10 rounded-xl bg-slate-900 border border-white/5 flex items-center justify-center text-amber-500/70 hover:text-amber-500 hover:border-amber-500/20 cursor-pointer"
-          >
-            <RotateCcw size={18} />
-          </button>
-
           <button
             onClick={toggleTheme}
             title={theme === 'dark' ? '切換為亮色模式' : '切換為深色模式'}

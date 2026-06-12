@@ -1394,7 +1394,22 @@ export default function Home() {
       if (error) throw new Error(error.message);
       await fetchData();
     } catch (err) {
-      console.error('Error deleting profile:', err);
+      console.error('Error deactivating profile:', err);
+      throw err;
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const handleHardDeleteProfile = async (profileId: string) => {
+    // Hard delete: actually remove the record from database
+    setIsSyncing(true);
+    try {
+      const { error } = await supabase.from('profiles').delete().eq('id', profileId);
+      if (error) throw new Error(error.message);
+      await fetchData();
+    } catch (err) {
+      console.error('Error hard deleting profile:', err);
       throw err;
     } finally {
       setIsSyncing(false);
@@ -2491,6 +2506,7 @@ export default function Home() {
             onAddProfile={handleAddProfile}
             onUpdateProfile={handleUpdateProfile}
             onDeleteProfile={handleDeleteProfile}
+            onHardDeleteProfile={handleHardDeleteProfile}
             captainCandidates={captainCandidates}
             onAddCaptainCandidate={handleAddCaptainCandidate}
             onUpdateCaptainCandidate={handleUpdateCaptainCandidate}
