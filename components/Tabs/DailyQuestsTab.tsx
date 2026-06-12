@@ -1224,6 +1224,14 @@ export function DailyQuestsTab({
                               </span>
                             );
                           })()}
+                          {(() => {
+                            const d = parseLocalTime(mission.publish_at);
+                            return (
+                              <span className="text-[10px] font-black tracking-widest px-2 py-0.5 rounded-md flex items-center gap-0.5 border text-sky-400 bg-sky-500/10 border-sky-500/20">
+                                📅 {d.getMonth() + 1}/{d.getDate()}
+                              </span>
+                            );
+                          })()}
                         </div>
                         <div className="shrink-0 -mt-2 -mr-2">
                           {status === 'approved' ? (
