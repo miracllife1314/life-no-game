@@ -13,6 +13,7 @@ import {
   Sparkles, Layers, BookOpen, Upload, Image as ImageIcon, AlertCircle, Shield
 } from 'lucide-react';
 import { supabase, isRealSupabase } from '@/lib/supabase';
+import { parsePetOffset } from '@/lib/petImage';
 
 export const MISSION_CATEGORIES = ['初階', '進階', 'VIP', '期數任務'];
 
@@ -3069,7 +3070,9 @@ export function AdminDashboard({
                                     }
                                     return Math.min(0.85 + (30 % 5) * 0.05, 1.1) * zoom;
                                   })(),
-                                  '--glow-color': editGlowColor || '#A855F7' 
+                                  '--pet-x': `${parsePetOffset(editImageUrl).x}px`,
+                                  '--pet-y': `${parsePetOffset(editImageUrl).y}px`,
+                                  '--glow-color': editGlowColor || '#A855F7'
                                 } as React.CSSProperties}
                               />
                             ) : (

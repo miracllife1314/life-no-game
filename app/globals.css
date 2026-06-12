@@ -418,7 +418,7 @@ input, textarea, [contenteditable] {
   position: absolute;
   top: 50%;
   left: 50%;
-  transform: translate(-50%, -50%) scale(var(--pet-scale));
+  transform: translate(calc(-50% + var(--pet-x, 0px)), calc(-50% + var(--pet-y, 0px))) scale(var(--pet-scale));
   transform-origin: center center;
   transition: transform 0.2s ease-out;
 }

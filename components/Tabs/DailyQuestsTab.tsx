@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Task, Submission, Announcement, Profile, Mission, UserPet, PetStage, Batch, PetLine, MissionTemplate } from '@/types';
 import { nowTaipei, parseTaipei } from '@/lib/time';
+import { parsePetOffset } from '@/lib/petImage';
 import { 
   CheckCircle2, Circle, Clock, MessageSquare, 
   AlertCircle, FileText, Send, Flame, Sparkles, 
@@ -757,7 +758,9 @@ export function DailyQuestsTab({
                     }
                     return Math.min(0.85 + (userLevel % 5) * 0.05, 1.1) * zoom;
                   })(),
-                  '--glow-color': glowColor 
+                  '--pet-x': `${parsePetOffset(stageImage).x}px`,
+                  '--pet-y': `${parsePetOffset(stageImage).y}px`,
+                  '--glow-color': glowColor
                 } as React.CSSProperties}
               />
               <div className="pet-shadow"></div>
