@@ -113,6 +113,17 @@ body {
   transform: scale(0.95);
 }
 
+/* ── 數字輸入框：隱藏上下箭頭，改為直接填數字 ── */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
 /* ── 全域滾動條樣式 ── */
 ::-webkit-scrollbar {
   width: 6px;
