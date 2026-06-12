@@ -10,7 +10,7 @@ import {
   ShieldCheck, FileCheck, Calendar, Trophy, 
   UserPlus, Sliders, Check, X, Plus, Trash2, Edit2,
   TrendingUp, Megaphone, HelpCircle, Save,
-  Sparkles, Layers, BookOpen, Upload, Image as ImageIcon, AlertCircle, Shield, Settings
+  Sparkles, Layers, BookOpen, Upload, Image as ImageIcon, AlertCircle, Shield, Settings, Users
 } from 'lucide-react';
 import { supabase, isRealSupabase } from '@/lib/supabase';
 import { parsePetOffset, trimCenterSquare } from '@/lib/petImage';
@@ -143,6 +143,8 @@ interface AdminDashboardProps {
     reviewType: 'auto' | 'leader' | 'admin';
   }>) => Promise<{ successCount: number; skipCount: number }>;
   onAddProfile?: (profileData: { name: string; phone: string; role: UserRole; batchId: string; teamId: string; divisionName?: string | null; directorId?: string | null }) => Promise<void>;
+  onUpdateProfile?: (profileId: string, updates: Partial<Profile>) => Promise<void>;
+  onDeleteProfile?: (profileId: string) => Promise<void>;
   onQuickAssignCaptain?: (batchId: string, captainProfileId: string, teamId: string, directorId: string | null) => Promise<void>;
   isSyncing: boolean;
   notes?: StudentNote[];
@@ -204,13 +206,21 @@ export function AdminDashboard({
   onSaveBatchMissionTemplates,
   onGenerateMissions,
   onAddProfile,
+  onUpdateProfile,
+  onDeleteProfile,
   onQuickAssignCaptain,
   isSyncing,
   notes = [],
   onSaveNote,
   currentUserId
 }: AdminDashboardProps) {
-  const [adminTab, setAdminTab] = useState<'reviews' | 'tasks' | 'teams' | 'adjust' | 'others' | 'pets' | 'decks' | 'batches' | 'mission_templates' | 'batch_rules' | 'schedule_preview' | 'captain_candidates'>('reviews');
+  const [adminTab, setAdminTab] = useState<'reviews' | 'tasks' | 'teams' | 'adjust' | 'others' | 'pets' | 'decks' | 'batches' | 'mission_templates' | 'batch_rules' | 'schedule_preview' | 'captain_candidates' | 'roster'>('reviews');
+
+  // Roster Tab State
+  const [rosterSearch, setRosterSearch] = useState('');
+  const [rosterBatchFilter, setRosterBatchFilter] = useState('all');
+  const [editingProfileId, setEditingProfileId] = useState<string | null>(null);
+  const [editingProfileData, setEditingProfileData] = useState<Partial<Profile>>({});
 
   // --- Captain Candidates Form State ---
   const [newCandProfileId, setNewCandProfileId] = useState('');
@@ -1573,6 +1583,7 @@ export function AdminDashboard({
           {[
             { key: 'reviews', label: '審核證明', icon: FileCheck },
             { key: 'batches', label: '期數管理', icon: ShieldCheck },
+            { key: 'roster', label: '學員名單', icon: Users },
             { key: 'mission_templates', label: '任務模板庫', icon: BookOpen },
             { key: 'batch_rules', label: '期數任務設定', icon: Sliders },
             { key: 'schedule_preview', label: '任務排程預覽', icon: Calendar },
@@ -4469,6 +4480,222 @@ export function AdminDashboard({
         </div>
       )}
 
+      {/* ==================== 學員名單管理分頁 ==================== */}
+      {adminTab === 'roster' && (
+        <div className="space-y-6 animate-in fade-in duration-300 text-left">
+          
+          <div className="glass-panel p-6 rounded-3xl border border-white/5 space-y-4 light:bg-white light:border-slate-200">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <h3 className="font-black text-white text-lg flex items-center gap-2 light:text-slate-900">
+                <Users size={20} className="text-amber-500" />
+                學員名單管理 ({profiles.length} 人)
+              </h3>
+              <div className="flex items-center gap-3 w-full sm:w-auto">
+                <select
+                  value={rosterBatchFilter}
+                  onChange={(e) => setRosterBatchFilter(e.target.value)}
+                  className="bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs text-white outline-none focus:border-amber-500 light:bg-slate-50 light:border-slate-300 light:text-slate-800"
+                >
+                  <option value="all">所有期數</option>
+                  {batches.map(b => (
+                    <option key={b.id} value={b.id}>{b.name}</option>
+                  ))}
+                </select>
+                <input
+                  type="text"
+                  placeholder="搜尋姓名或手機..."
+                  value={rosterSearch}
+                  onChange={(e) => setRosterSearch(e.target.value)}
+                  className="bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs text-white outline-none focus:border-amber-500 light:bg-slate-50 light:border-slate-300 light:text-slate-800 w-full sm:w-48"
+                />
+              </div>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs text-left border-collapse min-w-[800px]">
+                <thead>
+                  <tr className="bg-slate-950/60 text-slate-450 font-bold border-b border-white/5 light:bg-slate-100 light:border-slate-300 light:text-slate-600">
+                    <th className="p-3">姓名</th>
+                    <th className="p-3">手機</th>
+                    <th className="p-3">期數</th>
+                    <th className="p-3">角色/小隊</th>
+                    <th className="p-3">狀態</th>
+                    <th className="p-3">經驗值</th>
+                    <th className="p-3 text-right">操作</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {profiles
+                    .filter(p => rosterBatchFilter === 'all' || p.batch_id === rosterBatchFilter)
+                    .filter(p => p.name.includes(rosterSearch) || (p.phone && p.phone.includes(rosterSearch)))
+                    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+                    .map(p => {
+                      const isEditing = editingProfileId === p.id;
+                      const batchName = batches.find(b => b.id === p.batch_id)?.name || '未指定';
+                      const teamName = teams.find(t => t.id === p.team_id)?.name || '未分配';
+                      return (
+                        <tr key={p.id} className="border-b border-white/5 hover:bg-white/5 transition-colors light:border-slate-200 light:hover:bg-slate-50">
+                          {isEditing ? (
+                            <>
+                              <td className="p-3">
+                                <input
+                                  type="text"
+                                  value={editingProfileData.name || ''}
+                                  onChange={e => setEditingProfileData({ ...editingProfileData, name: e.target.value })}
+                                  className="w-full bg-slate-950 border border-slate-800 rounded px-2 py-1 text-white outline-none focus:border-amber-500"
+                                />
+                              </td>
+                              <td className="p-3">
+                                <input
+                                  type="text"
+                                  value={editingProfileData.phone || ''}
+                                  onChange={e => setEditingProfileData({ ...editingProfileData, phone: e.target.value })}
+                                  className="w-full bg-slate-950 border border-slate-800 rounded px-2 py-1 text-white outline-none focus:border-amber-500"
+                                />
+                              </td>
+                              <td className="p-3">
+                                <select
+                                  value={editingProfileData.batch_id || ''}
+                                  onChange={e => setEditingProfileData({ ...editingProfileData, batch_id: e.target.value })}
+                                  className="w-full bg-slate-950 border border-slate-800 rounded px-2 py-1 text-white outline-none focus:border-amber-500"
+                                >
+                                  <option value="">未指定</option>
+                                  {batches.map(b => (
+                                    <option key={b.id} value={b.id}>{b.name}</option>
+                                  ))}
+                                </select>
+                              </td>
+                              <td className="p-3">
+                                <div className="space-y-1">
+                                  <select
+                                    value={editingProfileData.role || 'student'}
+                                    onChange={e => setEditingProfileData({ ...editingProfileData, role: e.target.value as UserRole })}
+                                    className="w-full bg-slate-950 border border-slate-800 rounded px-2 py-1 text-white outline-none focus:border-amber-500"
+                                  >
+                                    <option value="student">學員</option>
+                                    <option value="captain">小隊長</option>
+                                    <option value="admin">大隊長</option>
+                                  </select>
+                                  <select
+                                    value={editingProfileData.team_id || ''}
+                                    onChange={e => setEditingProfileData({ ...editingProfileData, team_id: e.target.value })}
+                                    className="w-full bg-slate-950 border border-slate-800 rounded px-2 py-1 text-white outline-none focus:border-amber-500"
+                                  >
+                                    <option value="">未分配小隊</option>
+                                    {teams.filter(t => !editingProfileData.batch_id || t.batch_id === editingProfileData.batch_id).map(t => (
+                                      <option key={t.id} value={t.id}>{t.name}</option>
+                                    ))}
+                                  </select>
+                                </div>
+                              </td>
+                              <td className="p-3">
+                                <select
+                                  value={editingProfileData.status || 'active'}
+                                  onChange={e => setEditingProfileData({ ...editingProfileData, status: e.target.value as any })}
+                                  className="w-full bg-slate-950 border border-slate-800 rounded px-2 py-1 text-white outline-none focus:border-amber-500"
+                                >
+                                  <option value="active">使用中</option>
+                                  <option value="ended">已結業</option>
+                                  <option value="inactive">已停用</option>
+                                </select>
+                              </td>
+                              <td className="p-3 text-emerald-400 font-bold">{p.score}</td>
+                              <td className="p-3 text-right">
+                                <div className="flex items-center justify-end gap-2">
+                                  <button
+                                    onClick={async () => {
+                                      if (onUpdateProfile) {
+                                        await onUpdateProfile(p.id, editingProfileData);
+                                        setEditingProfileId(null);
+                                      }
+                                    }}
+                                    disabled={isSyncing}
+                                    className="p-1.5 bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500 hover:text-white rounded transition-colors"
+                                  >
+                                    <Check size={14} />
+                                  </button>
+                                  <button
+                                    onClick={() => setEditingProfileId(null)}
+                                    className="p-1.5 bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white rounded transition-colors"
+                                  >
+                                    <X size={14} />
+                                  </button>
+                                </div>
+                              </td>
+                            </>
+                          ) : (
+                            <>
+                              <td className="p-3 font-bold text-white light:text-slate-900">{p.name}</td>
+                              <td className="p-3 text-slate-400 font-mono">{p.phone || '-'}</td>
+                              <td className="p-3 text-purple-400 font-bold">{batchName}</td>
+                              <td className="p-3">
+                                <div className="flex flex-col gap-1">
+                                  <span className={`text-[10px] px-2 py-0.5 rounded w-max font-bold ${
+                                    p.role === 'admin' ? 'bg-amber-500/20 text-amber-500 border border-amber-500/30' :
+                                    p.role === 'captain' ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30' :
+                                    'bg-slate-800 text-slate-300 light:bg-slate-200'
+                                  }`}>
+                                    {p.role === 'admin' ? '大隊長' : p.role === 'captain' ? '小隊長' : '學員'}
+                                  </span>
+                                  <span className="text-slate-500">{teamName}</span>
+                                </div>
+                              </td>
+                              <td className="p-3">
+                                <span className={`text-[10px] px-2 py-0.5 rounded border font-bold ${
+                                  p.status === 'inactive' ? 'border-red-500 text-red-500' :
+                                  p.status === 'ended' ? 'border-slate-500 text-slate-500' :
+                                  'border-emerald-500 text-emerald-500'
+                                }`}>
+                                  {p.status === 'inactive' ? '停用' : p.status === 'ended' ? '結業' : '使用中'}
+                                </span>
+                              </td>
+                              <td className="p-3 text-emerald-400 font-bold">{p.score}</td>
+                              <td className="p-3 text-right">
+                                <div className="flex items-center justify-end gap-2">
+                                  <button
+                                    onClick={() => {
+                                      setEditingProfileId(p.id);
+                                      setEditingProfileData({
+                                        name: p.name,
+                                        phone: p.phone,
+                                        batch_id: p.batch_id,
+                                        role: p.role,
+                                        team_id: p.team_id,
+                                        status: p.status
+                                      });
+                                    }}
+                                    className="p-1.5 text-slate-400 hover:text-amber-500 hover:bg-amber-500/10 rounded transition-colors"
+                                    title="編輯"
+                                  >
+                                    <Edit2 size={14} />
+                                  </button>
+                                  <button
+                                    onClick={async () => {
+                                      if (confirm(`確定要停用/刪除學員 ${p.name} 嗎？\n此操作會將該學員狀態設為「停用」。`)) {
+                                        if (onDeleteProfile) {
+                                          await onDeleteProfile(p.id);
+                                        }
+                                      }
+                                    }}
+                                    disabled={isSyncing}
+                                    className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-500/10 rounded transition-colors"
+                                    title="刪除/停用"
+                                  >
+                                    <Trash2 size={14} />
+                                  </button>
+                                </div>
+                              </td>
+                            </>
+                          )}
+                        </tr>
+                      );
+                    })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
       {/* ==================== 期數管理分頁 ==================== */}
       {adminTab === 'batches' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-in fade-in duration-300 text-left">

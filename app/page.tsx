@@ -1372,6 +1372,35 @@ export default function Home() {
     await fetchData();
   };
 
+  const handleUpdateProfile = async (profileId: string, updates: Partial<Profile>) => {
+    setIsSyncing(true);
+    try {
+      const { error } = await supabase.from('profiles').update(updates).eq('id', profileId);
+      if (error) throw new Error(error.message);
+      await fetchData();
+    } catch (err) {
+      console.error('Error updating profile:', err);
+      throw err;
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const handleDeleteProfile = async (profileId: string) => {
+    // Soft delete: set status to 'inactive' to preserve past records
+    setIsSyncing(true);
+    try {
+      const { error } = await supabase.from('profiles').update({ status: 'inactive' }).eq('id', profileId);
+      if (error) throw new Error(error.message);
+      await fetchData();
+    } catch (err) {
+      console.error('Error deleting profile:', err);
+      throw err;
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   const handleUpdateTeamSettings = async (teamId: string, settings: Partial<Team>) => {
     setIsSyncing(true);
     if (gmMode) {
@@ -2460,6 +2489,8 @@ export default function Home() {
             onSaveBatchMissionTemplates={handleSaveBatchMissionTemplates}
             onGenerateMissions={handleGenerateMissions}
             onAddProfile={handleAddProfile}
+            onUpdateProfile={handleUpdateProfile}
+            onDeleteProfile={handleDeleteProfile}
             captainCandidates={captainCandidates}
             onAddCaptainCandidate={handleAddCaptainCandidate}
             onUpdateCaptainCandidate={handleUpdateCaptainCandidate}
