@@ -982,11 +982,8 @@ export function CaptainDashboard({
                                    if (hasRejected) {
                                      return (
                                        <button 
-                                         onClick={() => {
-                                           if (currentUserRole === 'admin') triggerManualCheckin(member.id, task);
-                                         }}
                                          title="已被駁回"
-                                         className={`p-1 rounded transition-colors shrink-0 ${currentUserRole === 'admin' ? 'hover:bg-slate-800 cursor-pointer' : 'cursor-default'}`}
+                                         className="p-1 rounded shrink-0 cursor-default"
                                        >
                                          <AlertCircle size={16} className="text-red-400" />
                                        </button>
@@ -995,11 +992,8 @@ export function CaptainDashboard({
 
                                    return (
                                      <button 
-                                       onClick={() => {
-                                         if (currentUserRole === 'admin') triggerManualCheckin(member.id, task);
-                                       }}
-                                       title={`尚未打卡${currentUserRole === 'admin' ? ' (點擊可手動簽到)' : ''}`}
-                                       className={`p-1 rounded transition-colors shrink-0 text-slate-700 ${currentUserRole === 'admin' ? 'hover:bg-slate-800/40 hover:text-amber-500 cursor-pointer' : 'cursor-default'}`}
+                                       title="尚未打卡"
+                                       className="p-1 rounded shrink-0 text-slate-700 cursor-default"
                                      >
                                        <Circle size={16} />
                                      </button>
@@ -1024,7 +1018,7 @@ export function CaptainDashboard({
                 <span className="flex items-center gap-1"><AlertCircle size={12} className="text-red-400" /> 被退回</span>
                 <span className="flex items-center gap-1"><Circle size={12} className="text-slate-700" /> 未打卡</span>
               </div>
-              <p className="text-amber-500/80">※ 小提示：點擊矩陣即可直接為該隊員進行審核{currentUserRole === 'admin' ? '或【手動補簽】' : ''}</p>
+              <p className="text-amber-500/80">※ 小提示：點擊矩陣即可直接為該隊員進行審核與撤銷</p>
             </div>
           </div>
         )}
@@ -1399,7 +1393,8 @@ export function CaptainDashboard({
                                         </span>
                                       </div>
 
-                                      {/* Action button - Hidden for non-admins */}
+                                      {/* Action button - Hidden for everyone right now as requested */}
+                                      {/*
                                       {currentUserRole === 'admin' && (
                                       <div className="flex justify-end pt-1 select-none">
                                         <button
@@ -1410,6 +1405,7 @@ export function CaptainDashboard({
                                         </button>
                                       </div>
                                       )}
+                                      */}
                                     </div>
                                   );
                                 })}
