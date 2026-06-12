@@ -94,11 +94,11 @@ export function useTrimmedPetImage(url?: string | null): string {
     let cancelled = false;
     const img = new window.Image();
     img.crossOrigin = 'anonymous';
-    // 用乾淨網址(去掉 #fragment) + 固定 CORS 參數，避免拿到「非跨域」的快取造成畫布污染
+    // 用乾淨網址(去掉 #fragment) + 強制防快取參數，避免拿到「非跨域」的快取造成畫布污染
     const base = clean.split('#')[0];
     const corsUrl = clean.startsWith('data:')
       ? clean
-      : base + (base.includes('?') ? '&' : '?') + 'corscb=1';
+      : base + (base.includes('?') ? '&' : '?') + 'corscb=' + Math.random().toString(36).substring(2, 8) + Date.now().toString(36);
     img.onload = () => {
       if (cancelled) return;
       try {
