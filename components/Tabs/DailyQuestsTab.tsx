@@ -660,7 +660,7 @@ export function DailyQuestsTab({
       return displayMissions.some(m => m.mission_type === mType[catKey] && !getTaskProgress(m.id).isDone);
     }
     const tType: Record<string, string> = { daily: 'daily', weekly: 'weekly', special: 'temporary', temporary: 'limited' };
-    return filteredTasksAllCategories.some(t => t.type === tType[catKey] && !getTaskProgress(t.id).isDone);
+    return tasks.some((t: Task) => !isEvolutionTask(t) && t.type === tType[catKey] && !getTaskProgress(t.id).isDone);
   };
 
   const handleCardClick = (task: Task) => {
@@ -1137,12 +1137,15 @@ export function DailyQuestsTab({
               <button
                 key={key}
                 onClick={() => setActiveCategory(key as typeof activeCategory)}
-                className={`flex flex-row items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-[11px] font-black transition-all duration-200 select-none ${
+                className={`relative flex flex-row items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-[11px] font-black transition-all duration-200 select-none ${
                   activeCategory === key
                     ? 'bg-amber-500 text-slate-950 shadow-[0_0_14px_rgba(245,158,11,0.4)]'
                     : 'text-slate-400 hover:text-white hover:bg-slate-800 light:hover:bg-slate-200'
                 }`}
               >
+                {categoryHasUndone(key) && (
+                  <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-red-500 border border-slate-900 animate-pulse" />
+                )}
                 <Icon size={12} className="shrink-0" />
                 <span className="text-center leading-[1.2]">
                   {label.substring(0, 2)}<br />{label.substring(2)}
