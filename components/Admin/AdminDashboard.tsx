@@ -252,14 +252,14 @@ export function AdminDashboard({
     }
   };
 
-  const handleRoleChange = async (memberId: string, selectedRoleId: string) => {
+  const handleSystemRoleChange = async (memberId: string, newRole: string) => {
     setSavingMemberId(memberId);
     try {
       if (onUpdateProfile) {
-        await onUpdateProfile(memberId, { squad_role: selectedRoleId || null });
+        await onUpdateProfile(memberId, { role: newRole as any });
       }
     } catch (err) {
-      console.error('Error saving role:', err);
+      console.error('Error saving system role:', err);
     } finally {
       setSavingMemberId(null);
     }
@@ -2629,11 +2629,11 @@ export function AdminDashboard({
             </form>
           </section>
 
-          {/* ⚙️ 學員備註與職責設定 */}
+          {/* ⚙️ 學員備註與職稱設定 */}
           <section className="glass-panel p-6 rounded-3xl border border-white/10 space-y-4 text-left light:bg-white light:border-slate-200">
             <h3 className="text-sm font-black text-white border-b border-white/5 pb-3 flex items-center gap-2 select-none light:border-slate-200 light:text-slate-900">
               <Settings size={16} className="text-amber-500" />
-              學員備註與職責指派
+              學員備註與系統職稱設定
             </h3>
 
             <div className="space-y-4">
@@ -2647,11 +2647,11 @@ export function AdminDashboard({
                   className="w-full text-xs bg-slate-900 border border-white/5 rounded-xl px-3 py-2.5 text-slate-300 font-bold outline-none focus:border-amber-500 focus:bg-slate-950 transition-all light:bg-white light:border-slate-350 light:text-slate-800"
                 >
                   <option value="">-- 請選擇學員 --</option>
-                  {profiles.filter(p => p.role === 'student' || p.role === 'captain').map(member => {
+                  {profiles.map(member => {
                     const t = teams.find(t => t.id === member.team_id);
                     return (
                       <option key={member.id} value={member.id}>
-                        {member.name} {member.role === 'captain' ? '(小隊長)' : ''} {t ? `[${t.name}]` : ''}
+                        {member.name} ({member.role === 'admin' ? '大隊長' : member.role === 'captain' ? '小隊長' : '一般學員'}) {t ? `[${t.name}]` : ''}
                       </option>
                     );
                   })}
@@ -2661,9 +2661,8 @@ export function AdminDashboard({
               {selectedSettingMemberId && (() => {
                 const member = profiles.find(m => m.id === selectedSettingMemberId);
                 if (!member) return null;
-                const isCaptain = member.role === 'captain';
                 const noteText = notesMap[member.id] || '';
-                const currentRole = member.squad_role || '';
+                const currentSystemRole = member.role || 'student';
 
                 return (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-white/5 light:border-slate-200 animate-in fade-in duration-200 max-w-2xl">
@@ -2683,22 +2682,19 @@ export function AdminDashboard({
                       <p className="text-[9px] text-slate-500 italic">備註輸入後移開焦點（Blur）將自動同步與儲存</p>
                     </div>
 
-                    {/* 2. Duty Selection */}
+                    {/* 2. System Role Selection */}
                     <div className="space-y-1.5">
                       <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block">
-                        指派小組職責
+                        設定修行定位 (系統職稱)
                       </label>
                       <select
-                        value={currentRole}
-                        onChange={(e) => handleRoleChange(member.id, e.target.value)}
-                        className="w-full text-xs bg-slate-900 border border-white/5 rounded-xl px-3 py-2.5 text-slate-300 font-bold outline-none focus:border-teal-500 focus:bg-slate-950 transition-all light:bg-white light:border-slate-300 light:text-slate-800"
+                        value={currentSystemRole}
+                        onChange={(e) => handleSystemRoleChange(member.id, e.target.value)}
+                        className="w-full text-xs bg-slate-900 border border-white/5 rounded-xl px-3 py-2.5 text-amber-400 font-bold outline-none focus:border-amber-500 focus:bg-slate-950 transition-all light:bg-white light:border-amber-300 light:text-amber-700"
                       >
-                        <option value="">未分配職責</option>
-                        {QUEST_ROLES_DEFS.map(role => (
-                          <option key={role.id} value={role.id}>
-                            🛡️ {role.name} ({role.duties.join(' · ')})
-                          </option>
-                        ))}
+                        <option value="student">一般學員</option>
+                        <option value="captain">小隊長</option>
+                        <option value="admin">大隊長</option>
                       </select>
                     </div>
                   </div>
