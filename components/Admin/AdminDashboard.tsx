@@ -66,6 +66,7 @@ interface AdminDashboardProps {
   submissions: Submission[];
   courses: Course[];
   achievements: Achievement[];
+  announcements?: Announcement[];
   pets: Pet[];
   userPets: UserPet[];
   cards: Card[];
@@ -90,7 +91,10 @@ interface AdminDashboardProps {
   onAssignTeam: (studentId: string, teamId: string | null, role: UserRole, batchId?: string | null, divisionName?: string | null, directorId?: string | null, status?: 'active' | 'ended' | 'inactive') => Promise<void>;
   onManualAdjustScore: (studentId: string, amount: number, reason: string) => Promise<void>;
   onCreateAnnouncement: (title: string, content: string, batchId?: string | null, publishAt?: string | null) => Promise<void>;
+  onUpdateAnnouncement?: (id: string, updates: Partial<Announcement>) => Promise<void>;
+  onDeleteAnnouncement?: (id: string) => Promise<void>;
   onCreateCourse: (name: string, description: string, classDate: string, batchId?: string | null, registerUrl?: string | null) => Promise<void>;
+  onUpdateCourse?: (id: string, updates: Partial<Course>) => Promise<void>;
   onDeleteCourse?: (courseId: string) => Promise<void>;
   onCreateAchievement: (title: string, description: string, value: number, iconUrl?: string | null) => Promise<void>;
   onUpdateAchievement?: (id: string, updates: Partial<Achievement>) => Promise<void>;
@@ -129,6 +133,7 @@ export function AdminDashboard({
   submissions,
   courses,
   achievements,
+  announcements = [],
   pets,
   userPets,
   petLines,
@@ -138,6 +143,10 @@ export function AdminDashboard({
   onDeleteAchievement,
   onAddCaptainCandidate,
   onUpdateCaptainCandidate,
+  onDeleteCaptainCandidate,
+  onUpdateAnnouncement,
+  onDeleteAnnouncement,
+  onUpdateCourse,
   onDeleteCaptainCandidate,
   onUpdateTeamSettings,
   onUpdatePetStage,
@@ -239,6 +248,11 @@ export function AdminDashboard({
   const [assignDivisionName, setAssignDivisionName] = useState('');
   const [assignDirectorId, setAssignDirectorId] = useState('');
   const [assignStatus, setAssignStatus] = useState<'active' | 'ended' | 'inactive'>('active');
+
+  const [editingAnnouncement, setEditingAnnouncement] = useState<Announcement | null>(null);
+  const [editingCourse, setEditingCourse] = useState<Course | null>(null);
+  const [announcementFilterBatch, setAnnouncementFilterBatch] = useState<string>('all');
+  const [courseFilterBatch, setCourseFilterBatch] = useState<string>('all');
 
   // --- Add Profile Form State ---
   const [newProfileName, setNewProfileName] = useState('');
@@ -640,6 +654,61 @@ export function AdminDashboard({
       });
     }
     setEditingAchId(null);
+  };
+
+  // 編輯既有公告
+  const [editingAnnId, setEditingAnnId] = useState<string | null>(null);
+  const [editAnnTitle, setEditAnnTitle] = useState('');
+  const [editAnnContent, setEditAnnContent] = useState('');
+  const [editAnnBatchId, setEditAnnBatchId] = useState('');
+  const [editAnnPublishTime, setEditAnnPublishTime] = useState('');
+  const handleStartEditAnn = (ann: Announcement) => {
+    setEditingAnnId(ann.id);
+    setEditAnnTitle(ann.title);
+    setEditAnnContent(ann.content);
+    setEditAnnBatchId(ann.batch_id || '');
+    setEditAnnPublishTime(ann.created_at ? new Date(ann.created_at).toISOString().slice(0, 16) : '');
+  };
+  const handleCancelEditAnn = () => setEditingAnnId(null);
+  const handleSaveEditAnn = async (id: string) => {
+    if (onUpdateAnnouncement) {
+      await onUpdateAnnouncement(id, {
+        title: editAnnTitle,
+        content: editAnnContent,
+        batch_id: editAnnBatchId || null,
+        created_at: editAnnPublishTime ? new Date(editAnnPublishTime).toISOString() : new Date().toISOString()
+      });
+    }
+    setEditingAnnId(null);
+  };
+
+  // 編輯既有課程
+  const [editingCourseId, setEditingCourseId] = useState<string | null>(null);
+  const [editCourseName, setEditCourseName] = useState('');
+  const [editCourseDesc, setEditCourseDesc] = useState('');
+  const [editCourseDate, setEditCourseDate] = useState('');
+  const [editCourseBatchId, setEditCourseBatchId] = useState('');
+  const [editCourseRegisterUrl, setEditCourseRegisterUrl] = useState('');
+  const handleStartEditCourse = (course: Course) => {
+    setEditingCourseId(course.id);
+    setEditCourseName(course.name);
+    setEditCourseDesc(course.description || '');
+    setEditCourseDate(course.class_date || '');
+    setEditCourseBatchId(course.batch_id || '');
+    setCourseRegisterUrl(course.register_url || '');
+  };
+  const handleCancelEditCourse = () => setEditingCourseId(null);
+  const handleSaveEditCourse = async (id: string) => {
+    if (onUpdateCourse) {
+      await onUpdateCourse(id, {
+        name: editCourseName,
+        description: editCourseDesc || null,
+        class_date: editCourseDate,
+        batch_id: editCourseBatchId || null,
+        register_url: editCourseRegisterUrl || null
+      });
+    }
+    setEditingCourseId(null);
   };
 
   // --- Handlers ---
@@ -2533,6 +2602,68 @@ export function AdminDashboard({
                 發布公告
               </button>
             </form>
+
+            {/* Existing Announcements List */}
+            {announcements && announcements.length > 0 && (
+              <div className="pt-4 border-t border-white/5 light:border-slate-200">
+                <div className="flex justify-between items-center mb-2">
+                  <h4 className="text-[10px] text-slate-400 font-bold">現有公告列表 ({announcements.filter(a => announcementFilterBatch === 'all' || (announcementFilterBatch === 'null' && !a.batch_id) || a.batch_id === announcementFilterBatch).length})</h4>
+                  <select
+                    value={announcementFilterBatch}
+                    onChange={e => setAnnouncementFilterBatch(e.target.value)}
+                    className="bg-slate-900 border border-slate-800 text-slate-300 text-[9px] rounded px-1.5 py-0.5 outline-none light:bg-slate-100 light:border-slate-300 light:text-slate-800"
+                  >
+                    <option value="all">顯示全部</option>
+                    <option value="null">全體公告</option>
+                    {batches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                  </select>
+                </div>
+                <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                  {announcements
+                    .filter(a => announcementFilterBatch === 'all' || (announcementFilterBatch === 'null' && !a.batch_id) || a.batch_id === announcementFilterBatch)
+                    .map(ann => {
+                    const batch = batches.find(b => b.id === ann.batch_id);
+                    if (editingAnnId === ann.id) {
+                      return (
+                        <div key={ann.id} className="p-3 rounded bg-slate-950 border border-amber-500/50 space-y-2">
+                          <input type="text" value={editAnnTitle} onChange={e => setEditAnnTitle(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded p-1.5 text-[11px] text-white" placeholder="公告標題" />
+                          <textarea value={editAnnContent} onChange={e => setEditAnnContent(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded p-1.5 text-[11px] text-white" rows={2} placeholder="公告內容" />
+                          <div className="flex gap-2">
+                            <select value={editAnnBatchId} onChange={e => setEditAnnBatchId(e.target.value)} className="flex-1 bg-slate-900 border border-slate-700 rounded p-1.5 text-[11px] text-white">
+                              <option value="">全體公告</option>
+                              {batches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                            </select>
+                            <input type="datetime-local" value={editAnnPublishTime} onChange={e => setEditAnnPublishTime(e.target.value)} className="flex-1 bg-slate-900 border border-slate-700 rounded p-1.5 text-[11px] text-white" />
+                          </div>
+                          <div className="flex justify-end gap-2 mt-2">
+                            <button onClick={handleCancelEditAnn} className="px-3 py-1 bg-slate-800 text-slate-300 rounded text-[10px]">取消</button>
+                            <button onClick={() => handleSaveEditAnn(ann.id)} disabled={isSyncing} className="px-3 py-1 bg-amber-500 text-white rounded text-[10px] font-bold">儲存</button>
+                          </div>
+                        </div>
+                      );
+                    }
+                    return (
+                      <div key={ann.id} className="flex justify-between items-center text-[11px] p-2 rounded bg-slate-950/40 border border-white/5 light:bg-slate-50 light:border-slate-200">
+                        <div className="min-w-0 flex-1 pr-2">
+                          <p className="font-bold text-white truncate light:text-slate-800" title={ann.title}>{ann.title}</p>
+                          <p className="text-[9px] text-slate-500 mt-0.5 truncate">
+                            {batch ? batch.name : '全體公告'} | {new Date(ann.created_at).toLocaleString()}
+                          </p>
+                        </div>
+                        <div className="flex gap-1 shrink-0">
+                          {onUpdateAnnouncement && (
+                            <button type="button" onClick={() => handleStartEditAnn(ann)} className="text-amber-400 hover:text-amber-300 hover:bg-amber-400/10 p-1.5 rounded-lg transition-colors cursor-pointer"><Edit2 size={12} /></button>
+                          )}
+                          {onDeleteAnnouncement && (
+                            <button type="button" onClick={() => { if(confirm('確定刪除此公告？')) onDeleteAnnouncement(ann.id); }} disabled={isSyncing} className="text-red-400 hover:text-red-500 hover:bg-red-500/10 p-1.5 rounded-lg transition-colors cursor-pointer"><Trash2 size={12} /></button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </section>
 
           {/* Courses */}
@@ -2619,10 +2750,43 @@ export function AdminDashboard({
             {/* Existing Courses List for deletion/management */}
             {courses && courses.length > 0 && (
               <div className="pt-4 border-t border-white/5 light:border-slate-200">
-                <h4 className="text-[10px] text-slate-400 font-bold mb-2">已發布課程列表 ({courses.length})</h4>
+                <div className="flex justify-between items-center mb-2">
+                  <h4 className="text-[10px] text-slate-400 font-bold">已發布課程列表 ({courses.filter(c => courseFilterBatch === 'all' || (courseFilterBatch === 'null' && !c.batch_id) || c.batch_id === courseFilterBatch).length})</h4>
+                  <select
+                    value={courseFilterBatch}
+                    onChange={e => setCourseFilterBatch(e.target.value)}
+                    className="bg-slate-900 border border-slate-800 text-slate-300 text-[9px] rounded px-1.5 py-0.5 outline-none light:bg-slate-100 light:border-slate-300 light:text-slate-800"
+                  >
+                    <option value="all">顯示全部</option>
+                    <option value="null">全體課程</option>
+                    {batches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                  </select>
+                </div>
                 <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-                  {courses.map(course => {
+                  {courses
+                    .filter(c => courseFilterBatch === 'all' || (courseFilterBatch === 'null' && !c.batch_id) || c.batch_id === courseFilterBatch)
+                    .map(course => {
                     const batch = batches.find(b => b.id === course.batch_id);
+                    if (editingCourseId === course.id) {
+                      return (
+                        <div key={course.id} className="p-3 rounded bg-slate-950 border border-amber-500/50 space-y-2">
+                          <input type="text" value={editCourseName} onChange={e => setEditCourseName(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded p-1.5 text-[11px] text-white" placeholder="課程名稱" />
+                          <input type="text" value={editCourseDesc} onChange={e => setEditCourseDesc(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded p-1.5 text-[11px] text-white" placeholder="課程描述" />
+                          <div className="flex gap-2">
+                            <select value={editCourseBatchId} onChange={e => setEditCourseBatchId(e.target.value)} className="flex-1 bg-slate-900 border border-slate-700 rounded p-1.5 text-[11px] text-white">
+                              <option value="">全體課程</option>
+                              {batches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                            </select>
+                            <input type="date" value={editCourseDate} onChange={e => setEditCourseDate(e.target.value)} className="flex-1 bg-slate-900 border border-slate-700 rounded p-1.5 text-[11px] text-white" />
+                          </div>
+                          <input type="url" value={editCourseRegisterUrl} onChange={e => setEditCourseRegisterUrl(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded p-1.5 text-[11px] text-white" placeholder="報名連結" />
+                          <div className="flex justify-end gap-2 mt-2">
+                            <button onClick={handleCancelEditCourse} className="px-3 py-1 bg-slate-800 text-slate-300 rounded text-[10px]">取消</button>
+                            <button onClick={() => handleSaveEditCourse(course.id)} disabled={isSyncing} className="px-3 py-1 bg-amber-500 text-white rounded text-[10px] font-bold">儲存</button>
+                          </div>
+                        </div>
+                      );
+                    }
                     return (
                       <div key={course.id} className="flex justify-between items-center text-[11px] p-2 rounded bg-slate-950/40 border border-white/5 light:bg-slate-50 light:border-slate-200">
                         <div className="min-w-0 flex-1 pr-2">
@@ -2636,16 +2800,14 @@ export function AdminDashboard({
                             </p>
                           )}
                         </div>
-                        {onDeleteCourse && (
-                          <button
-                            type="button"
-                            onClick={() => onDeleteCourse(course.id)}
-                            disabled={isSyncing}
-                            className="text-red-400 hover:text-red-500 hover:bg-red-500/10 p-1.5 rounded-lg transition-colors cursor-pointer"
-                          >
-                            <Trash2 size={12} />
-                          </button>
-                        )}
+                        <div className="flex gap-1 shrink-0">
+                          {onUpdateCourse && (
+                            <button type="button" onClick={() => handleStartEditCourse(course)} className="text-amber-400 hover:text-amber-300 hover:bg-amber-400/10 p-1.5 rounded-lg transition-colors cursor-pointer"><Edit2 size={12} /></button>
+                          )}
+                          {onDeleteCourse && (
+                            <button type="button" onClick={() => { if(confirm('確定刪除此課程？')) onDeleteCourse(course.id); }} disabled={isSyncing} className="text-red-400 hover:text-red-500 hover:bg-red-500/10 p-1.5 rounded-lg transition-colors cursor-pointer"><Trash2 size={12} /></button>
+                          )}
+                        </div>
                       </div>
                     );
                   })}

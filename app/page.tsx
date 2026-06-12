@@ -620,9 +620,13 @@ export default function Home() {
         
         // If they followed an invite link while logged in, check enrollment!
         if (queryInvite && queryBatch && queryTeam) {
+          // 先清掉網址的邀請參數，避免每次重整都重新觸發（彈出「您已是此小隊成員」等）
+          if (typeof window !== 'undefined') {
+            window.history.replaceState({}, document.title, window.location.pathname);
+          }
           const { data: teamsList } = await supabase.from('teams').select('*');
           const team = teamsList?.find((t: any) => t.invite_code === queryInvite);
-          
+
           if (!team || team.id !== queryTeam || team.batch_id !== queryBatch) {
             alert('邀請資訊不符，防竄改保護已啟動！');
           } else if (!team.invite_enabled) {
@@ -1860,6 +1864,34 @@ export default function Home() {
     await fetchData();
   };
 
+  const handleUpdateAnnouncement = async (id: string, updates: Partial<Announcement>) => {
+    try {
+      setIsSyncing(true);
+      const { error } = await supabase.from('announcements').update(updates).eq('id', id);
+      if (error) throw error;
+      await fetchData();
+    } catch (err: any) {
+      console.error(err);
+      alert(err.message || '更新公告失敗');
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const handleDeleteAnnouncement = async (id: string) => {
+    try {
+      setIsSyncing(true);
+      const { error } = await supabase.from('announcements').delete().eq('id', id);
+      if (error) throw error;
+      await fetchData();
+    } catch (err: any) {
+      console.error(err);
+      alert(err.message || '刪除公告失敗');
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   const handleCreateCourse = async (name: string, description: string, classDate: string, batchId?: string | null, registerUrl?: string | null) => {
     await supabase.from('courses').insert({
       name,
@@ -1871,9 +1903,32 @@ export default function Home() {
     await fetchData();
   };
 
+  const handleUpdateCourse = async (id: string, updates: Partial<Course>) => {
+    try {
+      setIsSyncing(true);
+      const { error } = await supabase.from('courses').update(updates).eq('id', id);
+      if (error) throw error;
+      await fetchData();
+    } catch (err: any) {
+      console.error(err);
+      alert(err.message || '更新課程失敗');
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   const handleDeleteCourse = async (courseId: string) => {
-    await supabase.from('courses').delete().eq('id', courseId);
-    await fetchData();
+    try {
+      setIsSyncing(true);
+      const { error } = await supabase.from('courses').delete().eq('id', courseId);
+      if (error) throw error;
+      await fetchData();
+    } catch (err: any) {
+      console.error(err);
+      alert(err.message || '刪除課程失敗');
+    } finally {
+      setIsSyncing(false);
+    }
   };
 
   const handleCreateAchievement = async (title: string, description: string, value: number, iconUrl?: string | null) => {
@@ -2333,6 +2388,7 @@ export default function Home() {
             submissions={submissions}
             courses={courses}
             achievements={achievements}
+            announcements={announcements}
             pets={pets}
             userPets={userPets}
             cards={cards}
@@ -2352,7 +2408,10 @@ export default function Home() {
             onAssignTeam={handleAssignTeam}
             onManualAdjustScore={handleManualAdjustScore}
             onCreateAnnouncement={handleCreateAnnouncement}
+            onUpdateAnnouncement={handleUpdateAnnouncement}
+            onDeleteAnnouncement={handleDeleteAnnouncement}
             onCreateCourse={handleCreateCourse}
+            onUpdateCourse={handleUpdateCourse}
             onDeleteCourse={handleDeleteCourse}
             onCreateAchievement={handleCreateAchievement}
             onUpdateAchievement={handleUpdateAchievement}
