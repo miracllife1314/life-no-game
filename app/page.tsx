@@ -210,31 +210,62 @@ export default function Home() {
         setCurrentTeam(null);
       }
 
-      // 2. Fetch standard tables
-      const { data: batchesList } = await supabase.from('batches').select('*');
-      const { data: templatesList } = await supabase.from('mission_templates').select('*');
-      const { data: rulesList } = await supabase.from('batch_mission_templates').select('*');
-      const { data: profilesList } = await supabase.from('profiles').select('*');
-      const { data: teamsList } = await supabase.from('teams').select('*');
-      const { data: tasksList } = await supabase.from('tasks').select('*');
-      const { data: subsList } = await supabase.from('submissions').select('*');
-      const { data: coursesList } = await supabase.from('courses').select('*');
-      const { data: attendanceList } = await supabase.from('course_attendance').select('*');
-      const { data: achsList } = await supabase.from('achievements').select('*');
-      const { data: userAchsList } = await supabase.from('user_achievements').select('*');
-      const { data: annsList } = await supabase.from('announcements').select('*');
-      const { data: notesList } = await supabase.from('student_notes').select('*');
-      const { data: scoreLogsList } = await supabase.from('score_logs').select('*');
-      const { data: petsList } = await supabase.from('pets').select('*');
-      const { data: userPetsList } = await supabase.from('user_pets').select('*');
-      const { data: cardsList } = await supabase.from('cards').select('*');
-      const { data: decksList } = await supabase.from('decks').select('*');
-      const { data: deckCardsList } = await supabase.from('deck_cards').select('*');
-      const { data: userDecksList } = await supabase.from('user_decks').select('*');
-      const { data: missionsList } = await supabase.from('missions').select('*');
-      const { data: petLinesList } = await supabase.from('pet_lines').select('*');
-      const { data: petStagesList } = await supabase.from('pet_stages').select('*');
-      const { data: candidatesList } = await supabase.from('captain_candidates').select('*');
+      // 2. Fetch standard tables —— 全部「平行」查詢，避免 24 次序列往返拖慢載入
+      const [
+        batchesRes, templatesRes, rulesRes, profilesRes, teamsRes, tasksRes,
+        subsRes, coursesRes, attendanceRes, achsRes, userAchsRes, annsRes,
+        notesRes, scoreLogsRes, petsRes, userPetsRes, cardsRes, decksRes,
+        deckCardsRes, userDecksRes, missionsRes, petLinesRes, petStagesRes, candidatesRes
+      ] = await Promise.all([
+        supabase.from('batches').select('*'),
+        supabase.from('mission_templates').select('*'),
+        supabase.from('batch_mission_templates').select('*'),
+        supabase.from('profiles').select('*'),
+        supabase.from('teams').select('*'),
+        supabase.from('tasks').select('*'),
+        supabase.from('submissions').select('*'),
+        supabase.from('courses').select('*'),
+        supabase.from('course_attendance').select('*'),
+        supabase.from('achievements').select('*'),
+        supabase.from('user_achievements').select('*'),
+        supabase.from('announcements').select('*'),
+        supabase.from('student_notes').select('*'),
+        supabase.from('score_logs').select('*'),
+        supabase.from('pets').select('*'),
+        supabase.from('user_pets').select('*'),
+        supabase.from('cards').select('*'),
+        supabase.from('decks').select('*'),
+        supabase.from('deck_cards').select('*'),
+        supabase.from('user_decks').select('*'),
+        supabase.from('missions').select('*'),
+        supabase.from('pet_lines').select('*'),
+        supabase.from('pet_stages').select('*'),
+        supabase.from('captain_candidates').select('*'),
+      ]);
+      const batchesList = batchesRes.data;
+      const templatesList = templatesRes.data;
+      const rulesList = rulesRes.data;
+      const profilesList = profilesRes.data;
+      const teamsList = teamsRes.data;
+      const tasksList = tasksRes.data;
+      const subsList = subsRes.data;
+      const coursesList = coursesRes.data;
+      const attendanceList = attendanceRes.data;
+      const achsList = achsRes.data;
+      const userAchsList = userAchsRes.data;
+      const annsList = annsRes.data;
+      const notesList = notesRes.data;
+      const scoreLogsList = scoreLogsRes.data;
+      const petsList = petsRes.data;
+      const userPetsList = userPetsRes.data;
+      const cardsList = cardsRes.data;
+      const decksList = decksRes.data;
+      const deckCardsList = deckCardsRes.data;
+      const userDecksList = userDecksRes.data;
+      const missionsList = missionsRes.data;
+      const petLinesList = petLinesRes.data;
+      const petStagesList = petStagesRes.data;
+      const candidatesList = candidatesRes.data;
 
       if (batchesList) setBatches(batchesList);
       if (templatesList) setMissionTemplates(templatesList);
@@ -552,9 +583,8 @@ export default function Home() {
   // Load session on startup & handle invite query params
   useEffect(() => {
     const initSession = async () => {
-      // Pre-fetch general tables so teams/profiles lists are available for validation
-      await fetchData();
-
+      // 不再無條件預抓全部資料：已登入會由 fetchData(activeUserId) 載入，
+      // 邀請/註冊流程則各自直接查詢所需資料，避免開機跑兩次 fetchData。
       let queryInvite = '';
       let queryBatch = '';
       let queryTeam = '';
