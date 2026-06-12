@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase, uploadProofImage, isRealSupabase } from '@/lib/supabase';
 import { CheckCircle2, Clock, AlertCircle } from 'lucide-react';
 import { 
@@ -37,6 +37,8 @@ export default function Home() {
   const [currentTeam, setCurrentTeam] = useState<Team | null>(null);
   const [viewState, setViewState] = useState<'login' | 'register' | 'app'>('login');
   const [loadError, setLoadError] = useState(false);
+  // 防連點 / 重複打卡：記錄「進行中」的任務 id，避免同一任務在送出尚未完成時被重複觸發而重複加分
+  const checkInLock = useRef<Set<string>>(new Set());
   // 開機時先確認 session，避免每次重整閃一下登入頁
   const [booting, setBooting] = useState(true);
 
@@ -679,6 +681,20 @@ export default function Home() {
     const points = task ? task.score : mission!.points;
     const title = task ? task.name : mission!.title;
 
+    // 防連點：同一任務正在送出時，忽略重複觸發
+    if (checkInLock.current.has(taskId)) return;
+    // 防重複打卡：已達可完成次數就擋下（避免重複加分）。max_completions 為 0/null 視為 1 次
+    const maxCompletions = (task ? task.max_completions : mission!.max_completions) ?? 1;
+    const completionLimit = maxCompletions === 0 ? 1 : maxCompletions;
+    const priorCount = submissions.filter(
+      s => s.mission_id === taskId && s.student_id === currentUser.id && s.status !== 'rejected'
+    ).length;
+    if (priorCount >= completionLimit) {
+      showToast('這個任務已經完成囉，不用重複打卡 😊', 'info');
+      return;
+    }
+    checkInLock.current.add(taskId);
+
     const submissionData = {
       id: crypto.randomUUID(),
       mission_id: taskId,
@@ -754,6 +770,7 @@ export default function Home() {
         triggerConfetti();
         triggerScoreFloat(`+${points} 經驗！`);
       }
+      checkInLock.current.delete(taskId);
       return;
     }
 
@@ -805,6 +822,9 @@ export default function Home() {
     } catch (err: any) {
       console.error('[CheckIn] unexpected error:', err);
       showToast(`❌ 打卡失敗：${err?.message || '未知錯誤'}`, 'error');
+    } finally {
+      // 無論成功或失敗都解除鎖，讓使用者之後仍可正常操作（例如多次可完成的任務）
+      checkInLock.current.delete(taskId);
     }
   };
 
@@ -2408,6 +2428,7 @@ export default function Home() {
             onReviewSubmission={handleReviewSubmission}
             squadRoles={squadRoles}
             onToggleCell={handleToggleCell}
+            onUpdateProfile={handleUpdateProfile}
           />
         )}
 
