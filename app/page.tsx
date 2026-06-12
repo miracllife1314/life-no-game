@@ -390,31 +390,10 @@ export default function Home() {
                   p => !existingKeys.has(`${p.templateId}_${String(p.publishAt).substring(0, 10)}`)
                 );
                 
-                if (missingPreviews.length > 0) {
-                  const newMissions = missingPreviews.map(p => ({
-                    batch_id: batch.id,
-                    template_id: p.templateId,
-                    title: p.title,
-                    description: p.description,
-                    mission_type: p.type,
-                    points: p.points,
-                    publish_at: p.publishAt,
-                    deadline_at: p.deadlineAt,
-                    status: 'scheduled',
-                    review_type: p.reviewType,
-                    category: p.category,
-                    max_completions: p.maxCompletions,
-                    created_at: new Date().toISOString(),
-                    updated_at: new Date().toISOString()
-                  }));
-                  
-                  await supabase.from('missions').insert(newMissions);
-                  
-                  const { data: refetchedMissions } = await supabase.from('missions').select('*');
-                  if (refetchedMissions) {
-                    finalMissions = refetchedMissions;
-                  }
-                }
+                // ⚠️ 不再於「載入頁面時」自動寫入任務 —— 那是任務不斷重複的根源
+                // （讀取時寫入 DB）。任務一律由後台「任務排程預覽 → 確認產生任務」按鈕
+                // （handleGenerateMissions）明確產生，該處已用日期去重，不會重複。
+                void missingPreviews;
               }
             }
           }
@@ -832,7 +811,8 @@ export default function Home() {
     const title = task ? task.name : mission!.title;
 
     const submissionData = {
-      mission_id: taskId,      // 全站讀寫一致使用 mission_id（適用 tasks 與 missions 的 id）
+      id: crypto.randomUUID(),
+      mission_id: taskId,
       student_id: currentUser.id,
       proof_text: proofText || '免證明直接簽到',
       proof_image_url: proofImg || null,
