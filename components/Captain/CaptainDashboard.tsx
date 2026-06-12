@@ -32,7 +32,7 @@ interface CaptainDashboardProps {
   onUpdateTeamSettings?: (teamId: string, settings: Partial<Team>) => Promise<void>;
   batches?: Batch[];
   gmMode?: boolean;
-  onReviewSubmission?: (subId: string, status: 'approved' | 'rejected') => Promise<void>;
+  onReviewSubmission?: (subId: string, status: 'approved' | 'rejected', shareToWitness?: boolean) => Promise<void>;
   onToggleCell?: (studentId: string, taskId: string) => Promise<void>;
   allTeams?: Team[];
   currentUserRole?: UserRole;
@@ -528,21 +528,22 @@ export function CaptainDashboard({
   const memberIds = sortedMembers.map(m => m.id);
   const squadPendingReviews = submissions.filter(s => s.status === 'pending' && memberIds.includes(s.student_id));
 
-  const handleReviewSubmissionLocal = async (subId: string, approve: boolean) => {
+  const handleReviewSubmissionLocal = async (subId: string, approve: boolean, shareToWitness?: boolean) => {
     setSavingMemberId(subId);
     try {
       const reviewStatus = approve ? 'approved' : 'rejected';
       if (onReviewSubmission) {
-        await onReviewSubmission(subId, reviewStatus);
+        await onReviewSubmission(subId, reviewStatus, shareToWitness);
       } else {
         const sub = submissions.find(s => s.id === subId);
         const scoreAwarded = approve ? (sub?.mission?.points ?? tasks.find(t => t.id === sub?.mission_id)?.score ?? 0) : 0;
-        
+
         await supabase
           .from('submissions')
           .update({
             status: reviewStatus,
             score_awarded: scoreAwarded,
+            share_to_witness: approve ? !!shareToWitness : false,
             reviewed_by: currentUserId,
             reviewed_at: new Date().toISOString()
           })
@@ -1690,17 +1691,24 @@ export function CaptainDashboard({
                 )}
                 
                 <div className="flex gap-2 pt-2 select-none">
-                  <button 
+                  <button
                     onClick={() => handleReviewSubmissionLocal(app.id, false)}
                     className="flex-1 py-2 bg-red-500/10 text-red-400 font-bold rounded-xl text-xs border border-red-500/20 active:scale-95 transition-all"
                   >
                     ❌ 駁回
                   </button>
-                  <button 
-                    onClick={() => handleReviewSubmissionLocal(app.id, true)}
+                  <button
+                    onClick={() => handleReviewSubmissionLocal(app.id, true, false)}
                     className="flex-1 py-2 bg-amber-500 text-slate-950 font-black rounded-xl text-xs active:scale-95 transition-all shadow-md shadow-amber-500/10"
                   >
                     ✅ 初審通過
+                  </button>
+                  <button
+                    onClick={() => handleReviewSubmissionLocal(app.id, true, true)}
+                    title="通過並分享到見證牆"
+                    className="flex-1 py-2 bg-purple-500 text-white font-black rounded-xl text-xs active:scale-95 transition-all shadow-md shadow-purple-500/10"
+                  >
+                    ✅ 上見證牆
                   </button>
                 </div>
               </div>

@@ -1016,7 +1016,7 @@ export default function Home() {
   };
 
   // --- Admin Actions ---
-  const handleReviewSubmission = async (submissionId: string, status: 'approved' | 'rejected') => {
+  const handleReviewSubmission = async (submissionId: string, status: 'approved' | 'rejected', shareToWitness?: boolean) => {
     if (!currentUser) return;
 
     if (gmMode) {
@@ -1079,13 +1079,20 @@ export default function Home() {
       return;
     }
 
+    // 審核者通過時可決定是否上見證牆；退回則一律不上牆
+    const updatePayload: any = {
+      status,
+      reviewed_by: currentUser.id,
+      reviewed_at: new Date().toISOString(),
+    };
+    if (status === 'approved') {
+      updatePayload.share_to_witness = !!shareToWitness;
+    } else {
+      updatePayload.share_to_witness = false;
+    }
     await supabase
       .from('submissions')
-      .update({
-        status,
-        reviewed_by: currentUser.id,
-        reviewed_at: new Date().toISOString()
-      })
+      .update(updatePayload)
       .eq('id', submissionId);
     await fetchData();
   };

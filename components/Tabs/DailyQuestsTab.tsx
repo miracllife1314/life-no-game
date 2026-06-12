@@ -153,7 +153,6 @@ export function DailyQuestsTab({
   const [proofText, setProofText] = useState('');
   const [proofLink, setProofLink] = useState('');
   const [showProofModal, setShowProofModal] = useState(false);
-  const [shareToWitness, setShareToWitness] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [confirmTask, setConfirmTask] = useState<any | null>(null);
@@ -623,18 +622,17 @@ export function DailyQuestsTab({
     const txt = proofText;
     const img = proofImg;
     const lnk = proofLink;
-    const share = shareToWitness;
 
     setShowProofModal(false);
     setSelectedTask(null);
     setProofImg('');
     setProofText('');
     setProofLink('');
-    setShareToWitness(false);
 
     setSubmitting(true);
     try {
-      await onCheckIn(task.id, txt, img || undefined, lnk, share);
+      // 是否上見證牆由審核者決定，學員提交時一律不分享
+      await onCheckIn(task.id, txt, img || undefined, lnk);
     } catch (err) {
       console.error(err);
       // 若失敗，則還原對話框狀態
@@ -642,7 +640,6 @@ export function DailyQuestsTab({
       setProofText(txt);
       setProofImg(img);
       setProofLink(lnk);
-      setShareToWitness(share);
       setShowProofModal(true);
     } finally {
       setSubmitting(false);
@@ -1502,20 +1499,13 @@ export function DailyQuestsTab({
                 </p>
               </div>
 
-              {/* 分享到見證牆（預設不勾；勾選後審核通過會出現在見證牆，照片選填）*/}
-              <button
-                type="button"
-                onClick={() => setShareToWitness(v => !v)}
-                className={`w-full flex items-center gap-3 p-3 rounded-xl border transition-colors text-left ${shareToWitness ? 'bg-purple-500/15 border-purple-500/50' : 'bg-slate-900/50 border-white/5 light:bg-slate-100 light:border-slate-300'}`}
-              >
-                <span className={`w-5 h-5 rounded-md border flex items-center justify-center shrink-0 ${shareToWitness ? 'bg-purple-500 border-purple-500 text-white' : 'border-slate-500'}`}>
-                  {shareToWitness && <CheckCircle2 size={14} />}
-                </span>
-                <span className="flex-1">
-                  <span className="block text-xs font-black text-white light:text-slate-800">分享到見證牆</span>
-                  <span className="block text-[10px] text-slate-400 font-bold light:text-slate-600">審核通過後，與大家分享你的修行見證（照片選填）</span>
-                </span>
-              </button>
+              {/* 告知：是否上見證牆由審核者決定，學員端僅提示 */}
+              <div className="bg-purple-500/10 border border-purple-500/30 p-3 rounded-xl flex items-start gap-2">
+                <Sparkles size={16} className="text-purple-400 shrink-0 mt-0.5" />
+                <p className="text-[10px] text-purple-200 leading-normal font-bold light:text-purple-700">
+                  審核通過後，你的成果有機會被分享到見證牆，讓大家一起見證！建議附上清楚的修行照片 📸
+                </p>
+              </div>
 
               <div className="flex gap-3 pt-2">
                 <button
