@@ -65,7 +65,6 @@ interface AdminDashboardProps {
   tasks: Task[];
   submissions: Submission[];
   courses: Course[];
-  announcements: Announcement[];
   achievements: Achievement[];
   pets: Pet[];
   userPets: UserPet[];
@@ -87,16 +86,11 @@ interface AdminDashboardProps {
   onUpdatePetLine?: (lineId: string, updatedFields: Partial<PetLine>) => Promise<void>;
   onReviewSubmission: (submissionId: string, status: 'approved' | 'rejected', shareToWitness?: boolean) => Promise<void>;
   onCreateTask: (taskData: Omit<Task, 'id' | 'created_at' | 'created_by'>) => Promise<void>;
-  onUpdateTask?: (taskId: string, taskData: Partial<Task>) => Promise<void>;
   onDeleteTask: (taskId: string) => Promise<void>;
   onAssignTeam: (studentId: string, teamId: string | null, role: UserRole, batchId?: string | null, divisionName?: string | null, directorId?: string | null, status?: 'active' | 'ended' | 'inactive') => Promise<void>;
-  onDeleteTeam?: (teamId: string) => Promise<void>;
   onManualAdjustScore: (studentId: string, amount: number, reason: string) => Promise<void>;
   onCreateAnnouncement: (title: string, content: string, batchId?: string | null, publishAt?: string | null) => Promise<void>;
-  onUpdateAnnouncement?: (id: string, updates: Partial<Announcement>) => Promise<void>;
-  onDeleteAnnouncement?: (id: string) => Promise<void>;
   onCreateCourse: (name: string, description: string, classDate: string, batchId?: string | null, registerUrl?: string | null) => Promise<void>;
-  onUpdateCourse?: (courseId: string, courseData: Partial<Course>) => Promise<void>;
   onDeleteCourse?: (courseId: string) => Promise<void>;
   onCreateAchievement: (title: string, description: string, value: number, iconUrl?: string | null) => Promise<void>;
   onUpdateAchievement?: (id: string, updates: Partial<Achievement>) => Promise<void>;
@@ -133,7 +127,6 @@ export function AdminDashboard({
   teams,
   tasks,
   submissions,
-  announcements,
   courses,
   achievements,
   pets,
@@ -158,11 +151,6 @@ export function AdminDashboard({
   batchMissionTemplates,
   onReviewSubmission,
   onCreateTask,
-  onUpdateTask,
-  onUpdateCourse,
-  onUpdateAnnouncement,
-  onDeleteTeam,
-  onDeleteAnnouncement,
   onDeleteTask,
   onAssignTeam,
   onManualAdjustScore,
@@ -215,37 +203,6 @@ export function AdminDashboard({
   const [taskEndTime, setTaskEndTime] = useState(formatDateToLocal(new Date(Date.now() + 604800000)));
   const [taskBatchId, setTaskBatchId] = useState('');
 
-  // 任務編輯狀態
-  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
-  const [editTaskName, setEditTaskName] = useState('');
-  const [editTaskDesc, setEditTaskDesc] = useState('');
-  const [editTaskScore, setEditTaskScore] = useState(0);
-  
-  const handleStartEditTask = (task: Task) => {
-    setEditingTaskId(task.id);
-    setEditTaskName(task.name);
-    setEditTaskDesc(task.description || '');
-    setEditTaskScore(task.score);
-  };
-  
-  const handleSaveEditTask = async (id: string) => {
-    if (!onUpdateTask) return;
-    if (!window.confirm('確定要儲存對此任務的修改嗎？')) return;
-    try {
-      setIsSyncing(true);
-      await onUpdateTask(id, {
-        name: editTaskName,
-        description: editTaskDesc,
-        score: editTaskScore
-      });
-      setEditingTaskId(null);
-    } catch (err: any) {
-      alert(err.message || '儲存任務失敗');
-    } finally {
-      setIsSyncing(false);
-    }
-  };
-
   const handleBatchChange = (batchId: string) => {
     setTaskBatchId(batchId);
     if (!batchId) return;
@@ -296,7 +253,6 @@ export function AdminDashboard({
 
   const handleAddProfileSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!window.confirm('確定要新增這位學員嗎？')) return;
     if (!newProfileName.trim() || !newProfilePhone.trim()) return;
     setNewProfileError(null);
     setNewProfileSuccess(null);
@@ -327,7 +283,6 @@ export function AdminDashboard({
 
   const handleAddCandidateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!window.confirm('確定要新增這位小隊長候選人嗎？')) return;
     if (!newCandProfileId || !onAddCaptainCandidate) return;
     try {
       await onAddCaptainCandidate(newCandProfileId, newCandStatus);
@@ -342,7 +297,6 @@ export function AdminDashboard({
 
   const handleQuickAssignSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!window.confirm('確定要執行快速指派嗎？這將會變更該學員的角色與所屬小隊。')) return;
     if (!quickBatchId || !quickCaptainId || !quickTeamId || !onQuickAssignCaptain) return;
     try {
       await onQuickAssignCaptain(quickBatchId, quickCaptainId, quickTeamId, quickDirectorId || null);
@@ -658,77 +612,6 @@ export function AdminDashboard({
   const [courseBatchId, setCourseBatchId] = useState('');
   const [courseRegisterUrl, setCourseRegisterUrl] = useState('');
   const [courseTemplate, setCourseTemplate] = useState('');
-
-  // 課程編輯狀態
-  const [editingCourseId, setEditingCourseId] = useState<string | null>(null);
-  const [editCourseName, setEditCourseName] = useState('');
-  const [editCourseDesc, setEditCourseDesc] = useState('');
-  const [editCourseDate, setEditCourseDate] = useState('');
-  const [editCourseBatchId, setEditCourseBatchId] = useState('');
-  const [editCourseRegisterUrl, setEditCourseRegisterUrl] = useState('');
-
-  const handleStartEditCourse = (course: Course) => {
-    setEditingCourseId(course.id);
-    setEditCourseName(course.name);
-    setEditCourseDesc(course.description || '');
-    setEditCourseDate(course.class_date || '');
-    setEditCourseBatchId(course.batch_id || '');
-    setEditCourseRegisterUrl(course.register_url || '');
-  };
-
-  const handleSaveEditCourse = async (id: string) => {
-    if (!onUpdateCourse) return;
-    if (!window.confirm('確定要儲存這堂課程的修改嗎？')) return;
-    try {
-      setIsSyncing(true);
-      await onUpdateCourse(id, {
-        name: editCourseName,
-        description: editCourseDesc,
-        class_date: editCourseDate,
-        batch_id: editCourseBatchId || null,
-        register_url: editCourseRegisterUrl || null
-      });
-      setEditingCourseId(null);
-    } catch (err: any) {
-      alert(err.message || '儲存課程失敗');
-    } finally {
-      setIsSyncing(false);
-    }
-  };
-
-  // 公告編輯狀態
-  const [editingAnnId, setEditingAnnId] = useState<string | null>(null);
-  const [editAnnTitle, setEditAnnTitle] = useState('');
-  const [editAnnContent, setEditAnnContent] = useState('');
-  const [editAnnBatchId, setEditAnnBatchId] = useState('');
-  
-  const handleStartEditAnn = (ann: Announcement) => {
-    setEditingAnnId(ann.id);
-    setEditAnnTitle(ann.title);
-    setEditAnnContent(ann.content);
-    setEditAnnBatchId(ann.batch_id || '');
-  };
-
-  const handleSaveEditAnn = async (id: string) => {
-    if (!onUpdateAnnouncement) return;
-    if (!window.confirm('確定要儲存這則公告的修改嗎？')) return;
-    try {
-      setIsSyncing(true);
-      await onUpdateAnnouncement(id, {
-        title: editAnnTitle,
-        content: editAnnContent,
-        batch_id: editAnnBatchId || null
-      });
-      setEditingAnnId(null);
-    } catch (err: any) {
-      alert(err.message || '儲存公告失敗');
-    } finally {
-      setIsSyncing(false);
-    }
-  };
-
-  // 本地 loading setter（isSyncing 由父層 prop 控制；這裡僅讓編輯類 handler 的呼叫有效）
-  const [, setIsSyncing] = useState(false);
   const [achTitle, setAchTitle] = useState('');
   const [achDesc, setAchDesc] = useState('');
   const [achValue, setAchValue] = useState(5000);
@@ -748,26 +631,20 @@ export function AdminDashboard({
   };
   const handleCancelEditAch = () => setEditingAchId(null);
   const handleSaveEditAch = async (id: string) => {
-    if (!onUpdateAchievement) return;
-    if (!window.confirm('確定要儲存對此成就的修改嗎？')) return;
-    try {
+    if (onUpdateAchievement) {
       await onUpdateAchievement(id, {
         title: editAchTitle,
         description: editAchDesc || null,
         condition_value: Number(editAchValue),
         icon_url: editAchIconUrl || 'Flame',
       });
-      setEditingAchId(null);
-    } catch (err) {
-      console.error(err);
-      alert('更新成就失敗');
     }
+    setEditingAchId(null);
   };
 
   // --- Handlers ---
   const handleCreateTask = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!window.confirm('確定要新增這個任務嗎？')) return;
     if (!taskName) return;
 
     // 立即關閉對話框並清空輸入，避免非同步載入重渲染時閃爍
@@ -811,7 +688,6 @@ export function AdminDashboard({
 
   const handleAssignTeamSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!window.confirm('確定要儲存此學員的分配變更嗎？')) return;
     if (!assignStudentId) return;
     await onAssignTeam(
       assignStudentId, 
@@ -841,7 +717,6 @@ export function AdminDashboard({
 
   const handleAdjustScoreSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!window.confirm(`確定要為該學員 ${adjustAmount > 0 ? '增加' : '扣除'} ${Math.abs(adjustAmount)} 分嗎？`)) return;
     if (!adjustStudentId || !adjustReason) return;
     await onManualAdjustScore(adjustStudentId, Number(adjustAmount), adjustReason);
     
@@ -896,7 +771,6 @@ export function AdminDashboard({
 
   const handleCreateAnnouncement = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!window.confirm('確定要發布此公告嗎？')) return;
     if (!annTitle || !annContent || !annBatchId) return;
     await onCreateAnnouncement(
       annTitle, 
@@ -914,7 +788,6 @@ export function AdminDashboard({
 
   const handleCreateCourse = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!window.confirm('確定要新增此課程嗎？')) return;
     if (!courseName || !courseDate || !courseBatchId) return;
     await onCreateCourse(courseName, courseDesc, courseDate, courseBatchId === 'all' ? null : courseBatchId, courseRegisterUrl);
     setCourseName('');
@@ -928,7 +801,6 @@ export function AdminDashboard({
 
   const handleCreateAchievement = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!window.confirm('確定要新增此成就嗎？')) return;
     if (!achTitle || !achValue) return;
     await onCreateAchievement(achTitle, achDesc, Number(achValue), achIconUrl);
     setAchTitle('');
@@ -937,6 +809,26 @@ export function AdminDashboard({
     setAchIconUrl(null);
     alert('成就建立成功！');
   };
+
+  // --- Cohort State (Hidden in favor of Batches Management) ---
+  // const [cohortName, setCohortName] = useState('');
+  // const [cohortStartTime, setCohortStartTime] = useState(formatDateToLocal(new Date()));
+  // const [cohortEndTime, setCohortEndTime] = useState(formatDateToLocal(new Date(Date.now() + 30 * 86400000)));
+  // 
+  // const handleCreateCohort = async (e: React.FormEvent) => {
+  //   e.preventDefault();
+  //   if (!cohortName || !cohortStartTime || !cohortEndTime) return;
+  //   if (onCreateBatch) {
+  //     await onCreateBatch({
+  //       name: cohortName,
+  //       start_date: new Date(cohortStartTime).toISOString(),
+  //       end_date: new Date(cohortEndTime).toISOString(),
+  //       status: 'active',
+  //     });
+  //     setCohortName('');
+  //     alert('期數建立成功！');
+  //   }
+  // };
 
   // --- Batch Management States ---
   const [newBatchName, setNewBatchName] = useState('');
@@ -967,36 +859,36 @@ export function AdminDashboard({
   };
 
   const handleSaveBatchEdit = async (batchId: string) => {
-    if (!onUpdateBatch) return;
-    if (!window.confirm('確定要儲存期數的修改嗎？')) return;
     if (!editBatchName || !editBatchStartDate || !editBatchEndDate) return;
-    await onUpdateBatch(batchId, {
-      name: editBatchName,
-      start_date: new Date(editBatchStartDate).toISOString(),
-      end_date: new Date(editBatchEndDate).toISOString(),
-      status: editBatchStatus
-    }, editBatchTeamCount);
-    setEditingBatchId(null);
-    alert('期數與小隊更新成功！');
+    if (onUpdateBatch) {
+      await onUpdateBatch(batchId, {
+        name: editBatchName,
+        start_date: new Date(editBatchStartDate).toISOString(),
+        end_date: new Date(editBatchEndDate).toISOString(),
+        status: editBatchStatus
+      }, editBatchTeamCount);
+      setEditingBatchId(null);
+      alert('期數與小隊更新成功！');
+    }
   };
 
   const handleCreateBatchSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!window.confirm('確定要建立這個新期數嗎？')) return;
-    if (!onCreateBatch) return;
     if (!newBatchName || !newBatchStartDate || !newBatchEndDate) return;
-    await onCreateBatch({
-      name: newBatchName,
-      start_date: new Date(newBatchStartDate).toISOString(),
-      end_date: new Date(newBatchEndDate).toISOString(),
-      status: newBatchStatus
-    }, newBatchTeamCount);
-    setNewBatchName('');
-    setNewBatchStartDate('');
-    setNewBatchEndDate('');
-    setNewBatchStatus('draft');
-    setNewBatchTeamCount(4);
-    alert('期數與小隊建立成功！');
+    if (onCreateBatch) {
+      await onCreateBatch({
+        name: newBatchName,
+        start_date: new Date(newBatchStartDate).toISOString(),
+        end_date: new Date(newBatchEndDate).toISOString(),
+        status: newBatchStatus
+      }, newBatchTeamCount);
+      setNewBatchName('');
+      setNewBatchStartDate('');
+      setNewBatchEndDate('');
+      setNewBatchStatus('draft');
+      setNewBatchTeamCount(4);
+      alert('期數與小隊建立成功！');
+    }
   };
 
   const [missionCategories, setMissionCategories] = useState<string[]>(() => {
@@ -1069,9 +961,8 @@ export function AdminDashboard({
   };
 
   const handleSaveTemplateEdit = async (templateId: string) => {
-    if (!onUpdateMissionTemplate) return;
-    if (!window.confirm('確定要儲存對此任務範本的修改嗎？')) return;
-    try {
+    if (!editTemplateTitle || !editTemplateDesc) return;
+    if (onUpdateMissionTemplate) {
       await onUpdateMissionTemplate(templateId, {
         title: editTemplateTitle,
         description: editTemplateDesc,
@@ -1083,36 +974,33 @@ export function AdminDashboard({
         max_completions: editTemplateMaxCompletions
       });
       setEditingTemplateId(null);
-    } catch (err) {
-      console.error(err);
-      alert('更新範本失敗');
     }
   };
 
   const handleCreateTemplateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!window.confirm('確定要新增這個任務範本嗎？')) return;
-    if (!onCreateMissionTemplate) return;
     if (!newTemplateTitle || !newTemplateDesc) return;
-    await onCreateMissionTemplate({
-      title: newTemplateTitle,
-      description: newTemplateDesc,
-      mission_type: newTemplateType,
-      points: Number(newTemplatePoints) || 0,
-      review_type: newTemplateReviewType,
-      is_active: newTemplateActive,
-      category: newTemplateCategory,
-      max_completions: newTemplateMaxCompletions
-    });
-    setNewTemplateTitle('');
-    setNewTemplateDesc('');
-    setNewTemplateType('daily');
-    setNewTemplatePoints(50);
-    setNewTemplateReviewType('leader');
-    setNewTemplateActive(true);
-    setNewTemplateCategory('初階');
-    setNewTemplateMaxCompletions(1);
-    alert('任務模板建立成功！');
+    if (onCreateMissionTemplate) {
+      await onCreateMissionTemplate({
+        title: newTemplateTitle,
+        description: newTemplateDesc,
+        mission_type: newTemplateType,
+        points: Number(newTemplatePoints) || 0,
+        review_type: newTemplateReviewType,
+        is_active: newTemplateActive,
+        category: newTemplateCategory,
+        max_completions: newTemplateMaxCompletions
+      });
+      setNewTemplateTitle('');
+      setNewTemplateDesc('');
+      setNewTemplateType('daily');
+      setNewTemplatePoints(50);
+      setNewTemplateReviewType('leader');
+      setNewTemplateActive(true);
+      setNewTemplateCategory('初階');
+      setNewTemplateMaxCompletions(1);
+      alert('任務模板建立成功！');
+    }
   };
 
   // --- Batch Mission Rules Configuration States ---
@@ -1664,84 +1552,41 @@ export function AdminDashboard({
 
           <div className="divide-y divide-white/5 max-h-96 overflow-y-auto light:divide-slate-200">
             {[...tasks].sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()).map(task => (
-              <div key={task.id} className="py-4 flex flex-col sm:flex-row sm:items-center gap-4 first:pt-0 last:pb-0">
-                {editingTaskId === task.id ? (
-                  <div className="flex-1 space-y-2 bg-slate-800/30 p-3 rounded-xl border border-slate-700/50">
-                    <input 
-                      className="w-full bg-slate-900 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500/50" 
-                      value={editTaskName} 
-                      onChange={e => setEditTaskName(e.target.value)} 
-                      placeholder="任務名稱"
-                    />
-                    <textarea 
-                      className="w-full bg-slate-900 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500/50 min-h-[60px]" 
-                      value={editTaskDesc} 
-                      onChange={e => setEditTaskDesc(e.target.value)} 
-                      placeholder="任務描述"
-                    />
-                    <div className="flex items-center gap-2">
-                      <input 
-                        type="number"
-                        className="w-24 bg-slate-900 border border-white/10 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-amber-500/50" 
-                        value={editTaskScore} 
-                        onChange={e => setEditTaskScore(Number(e.target.value))} 
-                        placeholder="分數"
-                      />
-                      <button onClick={() => handleSaveEditTask(task.id)} className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold px-3 py-1.5 rounded-lg text-xs">儲存</button>
-                      <button onClick={() => setEditingTaskId(null)} className="bg-slate-700 hover:bg-slate-600 text-white font-bold px-3 py-1.5 rounded-lg text-xs">取消</button>
-                    </div>
+              <div key={task.id} className="py-4 flex justify-between items-center gap-4 first:pt-0 last:pb-0">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 select-none">
+                    <span className={`text-[9px] font-black px-2 py-0.5 rounded ${
+                      task.type === 'daily' 
+                        ? 'bg-amber-500/10 text-amber-500' 
+                        : task.type === 'weekly' 
+                        ? 'bg-purple-500/10 text-purple-400' 
+                        : task.type === 'limited'
+                        ? 'bg-rose-500/10 text-rose-400'
+                        : 'bg-indigo-500/10 text-indigo-400'
+                    }`}>
+                      {task.type === 'daily' 
+                        ? '每日定課' 
+                        : task.type === 'weekly' 
+                        ? '每週任務' 
+                        : task.type === 'limited'
+                        ? '限時任務'
+                        : '特殊任務'}
+                    </span>
+                    <span className="text-[10px] text-slate-500 font-bold">
+                      +{task.score} 分
+                    </span>
                   </div>
-                ) : (
-                  <>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 select-none">
-                        <span className={`text-[9px] font-black px-2 py-0.5 rounded ${
-                          task.type === 'daily' 
-                            ? 'bg-amber-500/10 text-amber-500' 
-                            : task.type === 'weekly' 
-                            ? 'bg-purple-500/10 text-purple-400' 
-                            : task.type === 'limited'
-                            ? 'bg-rose-500/10 text-rose-400'
-                            : 'bg-indigo-500/10 text-indigo-400'
-                        }`}>
-                          {task.type === 'daily' 
-                            ? '每日定課' 
-                            : task.type === 'weekly' 
-                            ? '每週任務' 
-                            : task.type === 'limited'
-                            ? '限時任務'
-                            : '特殊任務'}
-                        </span>
-                        <span className="text-[10px] text-slate-500 font-bold">
-                          +{task.score} 分
-                        </span>
-                      </div>
-                      <h4 className="font-bold text-white text-sm mt-1">{task.name}</h4>
-                      <p className="text-xs text-slate-400 mt-1 line-clamp-1 light:text-slate-500">{task.description}</p>
-                    </div>
+                  <h4 className="font-bold text-white text-sm mt-1">{task.name}</h4>
+                  <p className="text-xs text-slate-400 mt-1 line-clamp-1 light:text-slate-500">{task.description}</p>
+                </div>
 
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => handleStartEditTask(task)}
-                        disabled={isSyncing}
-                        className="btn-action bg-slate-900 border border-white/5 hover:border-amber-500/30 text-amber-400 p-2 rounded-xl text-xs"
-                      >
-                        <Edit2 size={14} />
-                      </button>
-                      <button
-                        onClick={() => {
-                          if (window.confirm('確定要刪除這個任務嗎？')) {
-                            onDeleteTask(task.id);
-                          }
-                        }}
-                        disabled={isSyncing}
-                        className="btn-action bg-slate-900 border border-white/5 hover:border-red-500/30 text-red-400 p-2 rounded-xl text-xs"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  </>
-                )}
+                <button
+                  onClick={() => onDeleteTask(task.id)}
+                  disabled={isSyncing}
+                  className="btn-action bg-slate-900 border border-white/5 hover:border-red-500/30 text-red-400 p-2 rounded-xl text-xs"
+                >
+                  <Trash2 size={14} />
+                </button>
               </div>
             ))}
           </div>
@@ -2213,21 +2058,6 @@ export function AdminDashboard({
                               </span>
                             </div>
                           </div>
-                          {onDeleteTeam && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                if (window.confirm(`確定要刪除「${t.name}」這個小隊嗎？這將會影響已綁定此小隊的學員。`)) {
-                                  onDeleteTeam(t.id);
-                                }
-                              }}
-                              disabled={isSyncing}
-                              className="text-slate-500 hover:text-red-500 hover:bg-red-500/10 p-1.5 rounded-lg transition-colors cursor-pointer"
-                              title="刪除小隊"
-                            >
-                              <Trash2 size={14} />
-                            </button>
-                          )}
                         </div>
 
                         <div className="flex flex-col gap-2 pt-2 border-t border-white/5 light:border-slate-200">
@@ -2599,11 +2429,7 @@ export function AdminDashboard({
                       </td>
                       <td className="p-3 text-right">
                         <button
-                          onClick={() => {
-                            if (window.confirm('確定要移除這位候選人嗎？')) {
-                              onDeleteCaptainCandidate?.(cand.id);
-                            }
-                          }}
+                          onClick={() => onDeleteCaptainCandidate?.(cand.id)}
                           disabled={isSyncing}
                           className="px-2.5 py-1.5 bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500 hover:text-white rounded text-[10px] font-bold cursor-pointer transition-all"
                         >
@@ -2707,86 +2533,6 @@ export function AdminDashboard({
                 發布公告
               </button>
             </form>
-
-            {/* Existing Announcements List for deletion/management */}
-            {announcements && announcements.length > 0 && (
-              <div className="pt-4 border-t border-white/5 light:border-slate-200">
-                <h4 className="text-[10px] text-slate-400 font-bold mb-2">已發布公告列表 ({announcements.length})</h4>
-                <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-                  {announcements.map(ann => {
-                    const batch = batches.find(b => b.id === ann.batch_id);
-                    return (
-                      <div key={ann.id} className="flex flex-col gap-2 text-[11px] p-2 rounded bg-slate-950/40 border border-white/5 light:bg-slate-50 light:border-slate-200">
-                        {editingAnnId === ann.id ? (
-                          <div className="space-y-2 w-full">
-                            <input 
-                              className="w-full bg-slate-900 border border-white/10 rounded px-2 py-1 focus:outline-none" 
-                              value={editAnnTitle} 
-                              onChange={e => setEditAnnTitle(e.target.value)} 
-                              placeholder="公告標題"
-                            />
-                            <textarea 
-                              className="w-full bg-slate-900 border border-white/10 rounded px-2 py-1 focus:outline-none min-h-[60px]" 
-                              value={editAnnContent} 
-                              onChange={e => setEditAnnContent(e.target.value)} 
-                              placeholder="公告內容正文"
-                            />
-                            <div className="flex gap-2">
-                              <select
-                                value={editAnnBatchId}
-                                onChange={e => setEditAnnBatchId(e.target.value)}
-                                className="bg-slate-900 border border-white/10 rounded px-2 py-1 outline-none flex-1"
-                              >
-                                <option value="">全體期數 (系統公告)</option>
-                                {batches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-                              </select>
-                            </div>
-                            <div className="flex justify-end gap-2 mt-1">
-                              <button onClick={() => setEditingAnnId(null)} className="px-2 py-1 bg-slate-800 text-slate-300 rounded hover:bg-slate-700">取消</button>
-                              <button onClick={() => handleSaveEditAnn(ann.id)} className="px-2 py-1 bg-red-500 text-white font-bold rounded hover:bg-red-600">儲存</button>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="flex justify-between items-start w-full gap-2">
-                            <div className="min-w-0 flex-1 pr-2">
-                              <p className="font-bold text-white line-clamp-1 light:text-slate-800" title={ann.title}>{ann.title}</p>
-                              <p className="text-[9px] text-slate-500 mt-0.5">
-                                {new Date(ann.created_at).toLocaleString()} | {batch ? batch.name : '全體期數'}
-                              </p>
-                              <p className="text-[10px] text-slate-400 mt-1 line-clamp-2" title={ann.content}>{ann.content}</p>
-                            </div>
-                            <div className="flex items-center gap-1 shrink-0 pt-1">
-                              <button
-                                type="button"
-                                onClick={() => handleStartEditAnn(ann)}
-                                disabled={isSyncing}
-                                className="text-slate-400 hover:text-slate-300 hover:bg-white/5 p-1.5 rounded-lg transition-colors cursor-pointer"
-                              >
-                                <Edit2 size={12} />
-                              </button>
-                              {onDeleteAnnouncement && (
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    if (window.confirm('確定要刪除這則公告嗎？')) {
-                                      onDeleteAnnouncement(ann.id);
-                                    }
-                                  }}
-                                  disabled={isSyncing}
-                                  className="text-red-400 hover:text-red-500 hover:bg-red-500/10 p-1.5 rounded-lg transition-colors cursor-pointer"
-                                >
-                                  <Trash2 size={12} />
-                                </button>
-                              )}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
           </section>
 
           {/* Courses */}
@@ -2878,86 +2624,27 @@ export function AdminDashboard({
                   {courses.map(course => {
                     const batch = batches.find(b => b.id === course.batch_id);
                     return (
-                      <div key={course.id} className="flex flex-col gap-2 text-[11px] p-2 rounded bg-slate-950/40 border border-white/5 light:bg-slate-50 light:border-slate-200">
-                        {editingCourseId === course.id ? (
-                          <div className="space-y-2 w-full">
-                            <input 
-                              className="w-full bg-slate-900 border border-white/10 rounded px-2 py-1 focus:outline-none" 
-                              value={editCourseName} 
-                              onChange={e => setEditCourseName(e.target.value)} 
-                              placeholder="課程名稱"
-                            />
-                            <input 
-                              className="w-full bg-slate-900 border border-white/10 rounded px-2 py-1 focus:outline-none" 
-                              value={editCourseDesc} 
-                              onChange={e => setEditCourseDesc(e.target.value)} 
-                              placeholder="課程敘述"
-                            />
-                            <div className="flex gap-2">
-                              <input 
-                                type="date"
-                                className="bg-slate-900 border border-white/10 rounded px-2 py-1 focus:outline-none" 
-                                value={editCourseDate} 
-                                onChange={e => setEditCourseDate(e.target.value)} 
-                              />
-                              <select
-                                value={editCourseBatchId}
-                                onChange={e => setEditCourseBatchId(e.target.value)}
-                                className="bg-slate-900 border border-white/10 rounded px-2 py-1 outline-none"
-                              >
-                                <option value="">全體期數</option>
-                                {batches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-                              </select>
-                            </div>
-                            <input 
-                              className="w-full bg-slate-900 border border-white/10 rounded px-2 py-1 focus:outline-none" 
-                              value={editCourseRegisterUrl} 
-                              onChange={e => setEditCourseRegisterUrl(e.target.value)} 
-                              placeholder="報名連結"
-                            />
-                            <div className="flex justify-end gap-2 mt-1">
-                              <button onClick={() => setEditingCourseId(null)} className="px-2 py-1 bg-slate-800 text-slate-300 rounded hover:bg-slate-700">取消</button>
-                              <button onClick={() => handleSaveEditCourse(course.id)} className="px-2 py-1 bg-red-500 text-white font-bold rounded hover:bg-red-600">儲存</button>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="flex justify-between items-center w-full">
-                            <div className="min-w-0 flex-1 pr-2">
-                              <p className="font-bold text-white truncate light:text-slate-800" title={course.name}>{course.name}</p>
-                              <p className="text-[9px] text-slate-500 mt-0.5">
-                                {course.class_date} | {batch ? batch.name : '全體期數'}
-                              </p>
-                              {course.register_url && (
-                                <p className="text-[9px] text-purple-400 truncate mt-0.5" title={course.register_url}>
-                                  連結: {course.register_url}
-                                </p>
-                              )}
-                            </div>
-                            <div className="flex items-center gap-1 shrink-0">
-                              <button
-                                type="button"
-                                onClick={() => handleStartEditCourse(course)}
-                                disabled={isSyncing}
-                                className="text-slate-400 hover:text-slate-300 hover:bg-white/5 p-1.5 rounded-lg transition-colors cursor-pointer"
-                              >
-                                <Edit2 size={12} />
-                              </button>
-                              {onDeleteCourse && (
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    if (window.confirm('確定要刪除這堂課程嗎？')) {
-                                      onDeleteCourse(course.id);
-                                    }
-                                  }}
-                                  disabled={isSyncing}
-                                  className="text-red-400 hover:text-red-500 hover:bg-red-500/10 p-1.5 rounded-lg transition-colors cursor-pointer"
-                                >
-                                  <Trash2 size={12} />
-                                </button>
-                              )}
-                            </div>
-                          </div>
+                      <div key={course.id} className="flex justify-between items-center text-[11px] p-2 rounded bg-slate-950/40 border border-white/5 light:bg-slate-50 light:border-slate-200">
+                        <div className="min-w-0 flex-1 pr-2">
+                          <p className="font-bold text-white truncate light:text-slate-800" title={course.name}>{course.name}</p>
+                          <p className="text-[9px] text-slate-500 mt-0.5">
+                            {course.class_date} | {batch ? batch.name : '全體期數'}
+                          </p>
+                          {course.register_url && (
+                            <p className="text-[9px] text-purple-400 truncate mt-0.5" title={course.register_url}>
+                              連結: {course.register_url}
+                            </p>
+                          )}
+                        </div>
+                        {onDeleteCourse && (
+                          <button
+                            type="button"
+                            onClick={() => onDeleteCourse(course.id)}
+                            disabled={isSyncing}
+                            className="text-red-400 hover:text-red-500 hover:bg-red-500/10 p-1.5 rounded-lg transition-colors cursor-pointer"
+                          >
+                            <Trash2 size={12} />
+                          </button>
                         )}
                       </div>
                     );
@@ -3152,11 +2839,7 @@ export function AdminDashboard({
                             <button onClick={() => handleStartEditAch(ach)} className="p-1.5 rounded-lg bg-slate-800/50 hover:bg-slate-700 text-slate-300 transition-colors">
                               <Edit2 size={12} />
                             </button>
-                            <button onClick={() => {
-                              if (window.confirm('確定要刪除這個成就徽章嗎？')) {
-                                onDeleteAchievement && onDeleteAchievement(ach.id);
-                              }
-                            }} className="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 transition-colors">
+                            <button onClick={() => onDeleteAchievement && onDeleteAchievement(ach.id)} className="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 transition-colors">
                               <Trash2 size={12} />
                             </button>
                           </div>

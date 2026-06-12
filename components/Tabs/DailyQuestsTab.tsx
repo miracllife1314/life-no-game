@@ -1127,14 +1127,16 @@ export function DailyQuestsTab({
               <button
                 key={key}
                 onClick={() => setActiveCategory(key as typeof activeCategory)}
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-[11px] font-black transition-all duration-200 select-none ${
+                className={`flex flex-row items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-[11px] font-black transition-all duration-200 select-none ${
                   activeCategory === key
                     ? 'bg-amber-500 text-slate-950 shadow-[0_0_14px_rgba(245,158,11,0.4)]'
                     : 'text-slate-400 hover:text-white hover:bg-slate-800 light:hover:bg-slate-200'
                 }`}
               >
-                <Icon size={12} />
-                {label}
+                <Icon size={12} className="shrink-0" />
+                <span className="text-center leading-[1.2]">
+                  {label.substring(0, 2)}<br />{label.substring(2)}
+                </span>
               </button>
             ))}
           </div>
@@ -1175,43 +1177,9 @@ export function DailyQuestsTab({
                         <div className="absolute inset-0 pointer-events-none" style={{ background: 'repeating-linear-gradient(135deg, transparent, transparent 18px, rgba(255,255,255,0.012) 18px, rgba(255,255,255,0.012) 20px)' }} />
                       )}
 
-                      {/* Status Indicator Badge */}
-                      <div className="absolute top-4 right-4">
-                        {status === 'approved' ? (
-                          <span className="flex items-center gap-1.5 text-xs font-black text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-full">
-                            <CheckCircle2 size={13} className="text-emerald-400" />
-                            已完成
-                          </span>
-                        ) : status === 'pending' ? (
-                          <span className="flex items-center gap-1.5 text-xs font-black text-blue-400 bg-blue-500/10 border border-blue-500/20 px-3 py-1 rounded-full">
-                            <Clock size={13} className="text-blue-400" />
-                            待審核
-                          </span>
-                        ) : status === 'rejected' ? (
-                          <span className="flex items-center gap-1.5 text-xs font-black text-red-400 bg-red-500/10 border border-red-500/20 px-3 py-1 rounded-full">
-                            <AlertCircle size={13} className="text-red-400" />
-                            已退回
-                          </span>
-                        ) : isExpired ? (
-                          <span className="flex items-center gap-1.5 text-xs font-black text-rose-400 bg-rose-500/10 border border-rose-500/20 px-3 py-1 rounded-full animate-pulse">
-                            <AlertCircle size={13} className="text-rose-400" />
-                            逾期未交
-                          </span>
-                        ) : isFuture ? (
-                          <span className="flex items-center gap-1.5 text-xs font-black text-slate-500 bg-slate-800/80 border border-slate-700 px-3 py-1 rounded-full">
-                            <Clock size={13} className="text-slate-500" />
-                            尚未開始
-                          </span>
-                        ) : (
-                          <span className="flex items-center gap-1.5 text-xs font-black text-slate-950 bg-amber-400 border border-amber-500 px-3 py-1 rounded-full shadow-[0_0_12px_rgba(245,158,11,0.3)] animate-pulse">
-                            <Circle size={13} className="text-slate-950" />
-                            待完成
-                          </span>
-                        )}
-                      </div>
-
                       <div>
-                        <div className="flex gap-1.5 items-center flex-wrap pr-24">
+                        <div className="flex justify-between items-start gap-2">
+                          <div className="flex gap-1.5 items-center flex-wrap flex-1">
                           <span className="text-[10px] font-black tracking-widest text-amber-500 bg-amber-500/10 px-2.5 py-1 rounded-md">
                             {mission.mission_type === 'daily'
                               ? '每日任務'
@@ -1257,8 +1225,42 @@ export function DailyQuestsTab({
                             );
                           })()}
                         </div>
+                        <div className="shrink-0 -mt-2 -mr-2">
+                          {status === 'approved' ? (
+                            <span className="flex items-center gap-1.5 text-xs font-black text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-full">
+                              <CheckCircle2 size={13} className="text-emerald-400" />
+                              已完成
+                            </span>
+                          ) : status === 'pending' ? (
+                            <span className="flex items-center gap-1.5 text-xs font-black text-blue-400 bg-blue-500/10 border border-blue-500/20 px-3 py-1 rounded-full">
+                              <Clock size={13} className="text-blue-400" />
+                              待審核
+                            </span>
+                          ) : status === 'rejected' ? (
+                            <span className="flex items-center gap-1.5 text-xs font-black text-red-400 bg-red-500/10 border border-red-500/20 px-3 py-1 rounded-full">
+                              <AlertCircle size={13} className="text-red-400" />
+                              已退回
+                            </span>
+                          ) : isExpired ? (
+                            <span className="flex items-center gap-1.5 text-xs font-black text-rose-400 bg-rose-500/10 border border-rose-500/20 px-3 py-1 rounded-full animate-pulse">
+                              <AlertCircle size={13} className="text-rose-400" />
+                              逾期未交
+                            </span>
+                          ) : isFuture ? (
+                            <span className="flex items-center gap-1.5 text-xs font-black text-slate-500 bg-slate-800/80 border border-slate-700 px-3 py-1 rounded-full">
+                              <Clock size={13} className="text-slate-500" />
+                              尚未開始
+                            </span>
+                          ) : (
+                            <span className="flex items-center gap-1.5 text-xs font-black text-slate-950 bg-amber-400 border border-amber-500 px-3 py-1 rounded-full shadow-[0_0_12px_rgba(245,158,11,0.3)] animate-pulse">
+                              <Circle size={13} className="text-slate-950" />
+                              待完成
+                            </span>
+                          )}
+                        </div>
+                      </div>
 
-                        <h3 className="text-base font-black text-white mt-3 light:text-slate-900 leading-snug">
+                      <h3 className="text-base font-black text-white mt-3 light:text-slate-900 leading-snug">
                           {mission.title}
                         </h3>
                         <p className="text-xs text-slate-400 mt-2 font-bold leading-relaxed light:text-slate-600">
