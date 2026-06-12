@@ -683,9 +683,10 @@ export default function Home() {
 
     // 防連點：同一任務正在送出時，忽略重複觸發
     if (checkInLock.current.has(taskId)) return;
-    // 防重複打卡：已達可完成次數就擋下（避免重複加分）。max_completions 為 0/null 視為 1 次
+    // 防重複打卡：已達可完成次數就擋下（避免重複加分）。
+    // max_completions：null/未設 → 1 次；0（或負數）→ 無限次（與畫面、隊長端一致）
     const maxCompletions = (task ? task.max_completions : mission!.max_completions) ?? 1;
-    const completionLimit = maxCompletions === 0 ? 1 : maxCompletions;
+    const completionLimit = maxCompletions <= 0 ? Infinity : maxCompletions;
     const priorCount = submissions.filter(
       s => s.mission_id === taskId && s.student_id === currentUser.id && s.status !== 'rejected'
     ).length;
@@ -1478,17 +1479,22 @@ export default function Home() {
   };
 
   // 從 Storage 公開 URL 解析出 bucket/path 並刪除檔案（釋放空間；失敗不影響流程）
+  // 自訂貼文可能含多張圖（以 '|' 串接），逐一刪除
   const removeStorageImageByUrl = async (url?: string | null) => {
     if (!url) return;
     const marker = '/storage/v1/object/public/';
-    const idx = url.indexOf(marker);
-    if (idx < 0) return;
-    const rest = url.substring(idx + marker.length); // bucket/path...
-    const slash = rest.indexOf('/');
-    if (slash <= 0) return;
-    const bucket = rest.substring(0, slash);
-    const filePath = decodeURIComponent(rest.substring(slash + 1));
-    try { await supabase.storage.from(bucket).remove([filePath]); } catch { /* 忽略 */ }
+    for (const one of url.split('|')) {
+      const u = one.trim();
+      if (!u) continue;
+      const idx = u.indexOf(marker);
+      if (idx < 0) continue;
+      const rest = u.substring(idx + marker.length); // bucket/path...
+      const slash = rest.indexOf('/');
+      if (slash <= 0) continue;
+      const bucket = rest.substring(0, slash);
+      const filePath = decodeURIComponent(rest.substring(slash + 1));
+      try { await supabase.storage.from(bucket).remove([filePath]); } catch { /* 忽略 */ }
+    }
   };
 
   const handleDeleteWitness = async (submissionId: string) => {
@@ -2089,10 +2095,16 @@ export default function Home() {
 
   const handleEvolvePet = async (studentId: string, lineKey: string) => {
     const userPetRecord = userPets.find(up => up.student_id === studentId);
+    // 該神獸線可用的最高階段（避免進化超出已定義的型態）；無資料時保底為 2
+    const lineStageIdxs = petStages.filter(s => s.line_key === lineKey).map(s => s.stage_index);
+    const maxStage = lineStageIdxs.length > 0 ? Math.max(...lineStageIdxs) : 2;
     if (userPetRecord) {
+      // 推進到「下一階」，而非寫死第 2 階（修正第 3 階以上會被打回第 2 階的 bug）
+      const current = userPetRecord.current_stage_index || 1;
+      const nextStage = Math.min(current + 1, maxStage);
       await supabase.from('user_pets').update({
         pet_line: lineKey,
-        current_stage_index: 2,
+        current_stage_index: nextStage,
         has_pending_evolution: false,
         evolved_at: new Date().toISOString(),
         selected_evolution_line: null // reset selection after evolution
@@ -2105,7 +2117,7 @@ export default function Home() {
         total_exp: exp,
         level: Math.floor(exp / 500),
         pet_line: lineKey,
-        current_stage_index: 2,
+        current_stage_index: Math.min(2, maxStage), // 第一次進化：蛋(1) → 第 2 階
         has_pending_evolution: false,
         evolved_at: new Date().toISOString()
       });
