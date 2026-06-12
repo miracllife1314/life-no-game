@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { User, LogIn, ChevronRight, Info } from 'lucide-react';
+import { User, LogIn, ChevronRight } from 'lucide-react';
 
 interface LoginFormProps {
   onLogin: (name: string) => Promise<void>;
@@ -22,16 +22,6 @@ export function LoginForm({ onLogin, onGoToRegister, isSyncing }: LoginFormProps
       await onLogin(name.trim());
     } catch (err: any) {
       setErrorMsg(err.message || '登入失敗，請確認名稱。');
-    }
-  };
-
-  const handleQuickLogin = async (quickName: string) => {
-    setName(quickName);
-    setErrorMsg(null);
-    try {
-      await onLogin(quickName);
-    } catch (err: any) {
-      setErrorMsg(err.message || '登入失敗');
     }
   };
 
@@ -93,60 +83,15 @@ export function LoginForm({ onLogin, onGoToRegister, isSyncing }: LoginFormProps
             </button>
           </form>
 
-          {/* Quick tester helper */}
-          <div className="mt-8 pt-6 border-t border-slate-900 space-y-4">
-            <div>
-              <h3 className="text-xs font-black text-slate-500 uppercase tracking-widest mb-3 flex items-center gap-1.5 justify-center">
-                <Info size={14} className="text-slate-500" />
-                快速身分測試通道 (點選直接登入)
-              </h3>
-              <div className="grid grid-cols-3 gap-2">
-                <button
-                  onClick={() => handleQuickLogin('林大統')}
-                  type="button"
-                  className="btn-action bg-slate-900 border border-white/5 hover:border-amber-500/30 text-white font-bold text-xs py-2 px-1 rounded-xl text-center cursor-pointer"
-                >
-                  大隊長 (Admin)
-                </button>
-                <button
-                  onClick={() => handleQuickLogin('沈又希')}
-                  type="button"
-                  className="btn-action bg-slate-900 border border-white/5 hover:border-amber-500/30 text-white font-bold text-xs py-2 px-1 rounded-xl text-center cursor-pointer"
-                >
-                  沈又希 (小隊長)
-                </button>
-                <button
-                  onClick={() => handleQuickLogin('林玉庭')}
-                  type="button"
-                  className="btn-action bg-slate-900 border border-white/5 hover:border-amber-500/30 text-white font-bold text-xs py-2 px-1 rounded-xl text-center cursor-pointer"
-                >
-                  林玉庭 (學員)
-                </button>
-              </div>
-            </div>
-
-            <div className="flex gap-2 justify-center pt-2">
-              <button
-                onClick={onGoToRegister}
-                type="button"
-                className="text-slate-500 text-xs font-bold hover:text-amber-500 transition-colors cursor-pointer"
-              >
-                註冊新修行者
-              </button>
-              <span className="text-slate-700 text-xs">•</span>
-              <button
-                onClick={() => {
-                  if (confirm('確定要清除所有本地打卡紀錄與修改分數，並還原至 Google 試算表初始資料嗎？')) {
-                    localStorage.clear();
-                    window.location.reload();
-                  }
-                }}
-                type="button"
-                className="text-red-500/70 text-xs font-bold hover:text-red-500 transition-colors cursor-pointer"
-              >
-                重置系統資料
-              </button>
-            </div>
+          {/* 註冊入口 */}
+          <div className="mt-8 pt-6 border-t border-slate-900 flex justify-center">
+            <button
+              onClick={onGoToRegister}
+              type="button"
+              className="text-slate-500 text-xs font-bold hover:text-amber-500 transition-colors cursor-pointer"
+            >
+              註冊新修行者
+            </button>
           </div>
         </div>
       </div>
