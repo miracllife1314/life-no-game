@@ -1284,7 +1284,8 @@ export function CaptainDashboard({
                                         if (displayReason === '完成任務' && log.submission_id) {
                                           const sub = submissions.find(s => s.id === log.submission_id);
                                           if (sub) {
-                                            const t = tasks.find(t => t.id === sub.mission_id);
+                                          const targetId = sub.mission_id || (sub as any).task_id;
+                                            const t = tasks.find(t => t.id === targetId);
                                             if (t) {
                                               let prefix = '[特殊]';
                                               if (t.type === 'daily') prefix = '[每日]';
@@ -1292,6 +1293,8 @@ export function CaptainDashboard({
                                               else if (t.type === 'limited' || t.name.includes('限時') || t.name.includes('最後一週')) prefix = '[限時]';
                                               
                                               displayReason = `完成任務：${prefix} ${t.name}`;
+                                            } else {
+                                              displayReason = `完成任務 (紀錄已移除)`;
                                             }
                                           }
                                         }

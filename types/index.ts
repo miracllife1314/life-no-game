@@ -66,7 +66,8 @@ export type SubmissionStatus = 'pending' | 'approved' | 'rejected';
 
 export interface Submission {
   id: string;
-  mission_id: string;
+  mission_id?: string | null;
+  task_id?: string | null;
   student_id: string;
   proof_text: string | null;
   proof_image_url: string | null;

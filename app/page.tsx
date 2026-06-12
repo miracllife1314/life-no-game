@@ -2232,13 +2232,14 @@ export default function Home() {
       if (sub) {
         let taskName = '';
         let taskType = '';
+        const targetId = sub.mission_id || sub.task_id;
         
-        const t = tasks.find(t => t.id === sub.mission_id);
+        const t = tasks.find(t => t.id === targetId);
         if (t) {
           taskName = t.name;
           taskType = t.type;
         } else {
-          const m = missions.find(m => m.id === sub.mission_id);
+          const m = missions.find(m => m.id === targetId);
           if (m) {
             taskName = m.title;
             taskType = m.mission_type;
@@ -2252,6 +2253,8 @@ export default function Home() {
           else if (taskType === 'limited' || taskName.includes('限時') || taskName.includes('最後一週')) prefix = '[限時]';
           
           displayReason = `完成任務：${prefix} ${taskName}`;
+        } else {
+          displayReason = `完成任務 (紀錄已移除)`;
         }
       }
     }
