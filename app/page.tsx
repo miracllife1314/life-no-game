@@ -569,7 +569,20 @@ export default function Home() {
       if (decksList) setDecks(decksList);
       if (petLinesList) setPetLines(petLinesList);
       if (petStagesList) setPetStages(petStagesList);
-      if (candidatesList) setCaptainCandidates(candidatesList);
+      // 小隊長候選：依 profile_id 帶出姓名/手機/曾參與期數/曾擔任角色
+      const roleLabel = (r: string) => r === 'captain' ? '小隊長' : r === 'admin' ? '大隊長' : '學員';
+      const joinedCandidates = (candidatesList || []).map((c: any) => {
+        const personRows = profArr.filter((p: any) => p.profile_id === c.profile_id);
+        const base = personRows[0] || profArr.find((p: any) => p.id === c.profile_id) || null;
+        const cohorts = Array.from(new Set(
+          personRows.map((p: any) => batchesList?.find((b: any) => b.id === p.batch_id)?.name).filter(Boolean)
+        ));
+        const roles = Array.from(new Set(
+          personRows.filter((p: any) => p.role && p.role !== 'student').map((p: any) => roleLabel(p.role))
+        ));
+        return { ...c, name: base?.name, phone: base?.phone, past_cohorts: cohorts, past_roles: roles };
+      });
+      setCaptainCandidates(joinedCandidates);
       
       return loadedProfile;
     } catch (err) {
@@ -1981,16 +1994,48 @@ export default function Home() {
         evolved_at: new Date().toISOString(),
         selected_evolution_line: null // reset selection after evolution
       }).eq('id', userPetRecord.id);
-      await fetchData();
+    } else {
+      const profile = profiles.find(p => p.id === studentId);
+      const exp = profile?.score || 0;
+      await supabase.from('user_pets').insert({
+        student_id: studentId,
+        total_exp: exp,
+        level: Math.floor(exp / 500),
+        pet_line: lineKey,
+        current_stage_index: 2,
+        has_pending_evolution: false,
+        evolved_at: new Date().toISOString()
+      });
     }
+    await fetchData();
   };
 
   const handleSelectEvolutionLine = async (studentId: string, lineKey: string) => {
-    const userPetRecord = userPets.find(up => up.student_id === studentId);
+    let userPetRecord = userPets.find(up => up.student_id === studentId);
+    
+    // 如果沒有神獸紀錄，先建立一筆
+    if (!userPetRecord) {
+      const profile = profiles.find(p => p.id === studentId);
+      const exp = profile?.score || 0;
+      const { data, error } = await supabase.from('user_pets').insert({
+        student_id: studentId,
+        total_exp: exp,
+        level: Math.floor(exp / 500),
+        pet_line: null,
+        current_stage_index: 1,
+        has_pending_evolution: false,
+        evolved_at: new Date().toISOString()
+      }).select().single();
+      
+      if (!error && data) {
+        userPetRecord = data;
+      }
+    }
+
     if (userPetRecord) {
       const selectedLine = petLines.find(l => l.line_key === lineKey);
       if (selectedLine && selectedLine.task_template_id) {
-        const studentBatchId = userPetRecord.profile?.batch_id || 'batch-50';
+        const studentBatchId = userPetRecord.profile?.batch_id || profiles.find(p => p.id === studentId)?.batch_id || 'batch-50';
         const matchedMission = missions.find(
           m => m.template_id === selectedLine.task_template_id && m.batch_id === studentBatchId
         );
