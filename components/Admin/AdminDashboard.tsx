@@ -270,6 +270,9 @@ export function AdminDashboard({
   const [quickCaptainId, setQuickCaptainId] = useState('');
   const [quickTeamId, setQuickTeamId] = useState('');
   const [quickDirectorId, setQuickDirectorId] = useState('');
+  const [assignRole, setAssignRole] = useState<UserRole>('student');
+  const [assignDivisionName, setAssignDivisionName] = useState('');
+  const [assignDirectorId, setAssignDirectorId] = useState('');
   const [assignStatus, setAssignStatus] = useState<'active' | 'ended' | 'inactive'>('active');
 
   // --- Role Assignment & Notes State ---
