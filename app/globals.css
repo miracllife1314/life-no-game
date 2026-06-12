@@ -420,8 +420,8 @@ input, textarea, [contenteditable] {
 
 .pet-image {
   --pet-scale: 1;
-  max-width: 95%;
-  max-height: 95%;
+  width: 95%;
+  height: 95%;
   object-fit: contain;
   background: transparent;
   border: none;
@@ -429,8 +429,10 @@ input, textarea, [contenteditable] {
   z-index: 2;
   filter: drop-shadow(0 0 24px var(--glow-color, #A855F7));
   
-  position: relative;
-  transform: translate(var(--pet-x, 0px), var(--pet-y, 0px)) scale(var(--pet-scale));
+  position: absolute;
+  top: calc(50% + var(--pet-y, 0px));
+  left: calc(50% + var(--pet-x, 0px));
+  transform: translate(-50%, -50%) scale(var(--pet-scale));
   transform-origin: center center;
   transition: transform 0.2s ease-out;
 }
