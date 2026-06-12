@@ -143,13 +143,11 @@ export function WitnessTab({ profiles, tasks, submissions, currentUserId, onRefr
     let sourceItems = baseItems;
 
     if (category === 'hidden') {
-      // 只顯示「真正的見證貼文」被隱藏的項目：
-      //  - 學員分享貼文(task-custom-post)被下牆，或
-      //  - 管理員手動隱藏的項目(hiddenIds)
-      // 一般任務打卡的證明照（從沒上過牆）不算見證貼文，不列入，避免塞滿無法刪除的項目。
+      // 管理/清理區：顯示「未在牆上、且還有照片可清理」的項目，
+      // 或學員分享貼文。刪除照片後該項目會自動從這裡消失（任務與經驗保留）。
       sourceItems = sourceItems.filter(s =>
-        (s.mission_id === 'task-custom-post' && s.share_to_witness === false) ||
-        hiddenIds.includes(s.id)
+        (s.share_to_witness === false || hiddenIds.includes(s.id)) &&
+        (!!s.proof_image_url || s.mission_id === 'task-custom-post')
       );
     } else {
       // Normal witness wall logic
@@ -640,7 +638,7 @@ export function WitnessTab({ profiles, tasks, submissions, currentUserId, onRefr
                                 const isPost = s.mission_id === 'task-custom-post';
                                 const msg = isPost
                                   ? '確定要永久刪除這則分享貼文嗎？\n（不影響任何任務分數，刪除後無法恢復）'
-                                  : '這是任務打卡，將只從見證牆移除。\n任務完成與分數都會保留，確定嗎？';
+                                  : '確定要刪除這張照片以釋放空間嗎？\n（任務完成與經驗都會保留，只移除照片，無法恢復）';
                                 if (window.confirm(msg)) {
                                   onDeleteWitness(s.id);
                                 }

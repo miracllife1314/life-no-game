@@ -1477,37 +1477,43 @@ export default function Home() {
     }
   };
 
+  // 從 Storage 公開 URL 解析出 bucket/path 並刪除檔案（釋放空間；失敗不影響流程）
+  const removeStorageImageByUrl = async (url?: string | null) => {
+    if (!url) return;
+    const marker = '/storage/v1/object/public/';
+    const idx = url.indexOf(marker);
+    if (idx < 0) return;
+    const rest = url.substring(idx + marker.length); // bucket/path...
+    const slash = rest.indexOf('/');
+    if (slash <= 0) return;
+    const bucket = rest.substring(0, slash);
+    const filePath = decodeURIComponent(rest.substring(slash + 1));
+    try { await supabase.storage.from(bucket).remove([filePath]); } catch { /* 忽略 */ }
+  };
+
   const handleDeleteWitness = async (submissionId: string) => {
     setIsSyncing(true);
     try {
       const sub = submissions.find(s => s.id === submissionId);
-      const isSocialPost = sub?.mission_id === 'task-custom-post';
+      if (!sub) return;
+      const isSocialPost = sub.mission_id === 'task-custom-post';
 
       if (isSocialPost) {
-        // 純分享貼文：與任務無關 → 真正刪除。
+        // 純分享貼文：與任務無關 → 整筆刪除。
         // 先把 score_awarded 歸零，避免刪除 trigger 連帶扣分（見證牆與分數解耦）。
-        if (sub?.status === 'approved' && (sub?.score_awarded ?? 0) !== 0) {
+        if (sub.status === 'approved' && (sub.score_awarded ?? 0) !== 0) {
           await supabase.from('submissions').update({ score_awarded: 0 }).eq('id', submissionId);
         }
+        await removeStorageImageByUrl(sub.proof_image_url);
         const { error } = await supabase.from('submissions').delete().eq('id', submissionId);
         if (error) throw new Error(error.message);
-
-        // 順手移除 Storage 內的圖片以釋放空間（失敗不影響刪除結果）
-        const imgUrl = sub?.proof_image_url || '';
-        const marker = '/storage/v1/object/public/';
-        const idx = imgUrl.indexOf(marker);
-        if (idx >= 0) {
-          const rest = imgUrl.substring(idx + marker.length); // bucket/path...
-          const slash = rest.indexOf('/');
-          if (slash > 0) {
-            const bucket = rest.substring(0, slash);
-            const filePath = decodeURIComponent(rest.substring(slash + 1));
-            try { await supabase.storage.from(bucket).remove([filePath]); } catch { /* 忽略 */ }
-          }
-        }
       } else {
-        // 任務打卡：見證牆與任務完成解耦 → 只從牆上移除，保留任務完成與分數。
-        const { error } = await supabase.from('submissions').update({ share_to_witness: false }).eq('id', submissionId);
+        // 任務打卡：只刪「照片」釋放空間，保留任務完成與經驗（不刪資料列、不碰分數）。
+        await removeStorageImageByUrl(sub.proof_image_url);
+        const { error } = await supabase
+          .from('submissions')
+          .update({ proof_image_url: null, share_to_witness: false })
+          .eq('id', submissionId);
         if (error) throw new Error(error.message);
       }
 
