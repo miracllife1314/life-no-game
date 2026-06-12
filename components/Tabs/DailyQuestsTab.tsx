@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { Task, Submission, Announcement, Profile, Mission, UserPet, PetStage, Batch, PetLine, MissionTemplate } from '@/types';
 import { nowTaipei, parseTaipei } from '@/lib/time';
-import { parsePetOffset } from '@/lib/petImage';
+import { parsePetOffset, useTrimmedPetImage } from '@/lib/petImage';
 import { 
   CheckCircle2, Circle, Clock, MessageSquare, 
   AlertCircle, FileText, Send, Flame, Sparkles, 
@@ -533,6 +533,7 @@ export function DailyQuestsTab({
   const stageName = activeStage?.stage_name || '混沌之卵';
   const stageDesc = activeStage?.description || '蘊含著無限可能的混沌之卵，靜靜等待能量積累以尋找其未來的進化方向。';
   const stageImage = activeStage?.image_url || 'https://images.unsplash.com/photo-1516233758813-a38d024919c5?auto=format&fit=crop&q=80&w=300';
+  const trimmedStageImage = useTrimmedPetImage(stageImage);
   const animationClass = getAnimationClass(activeStage?.animation_type);
   const glowColor = activeStage?.glow_color || '#A855F7';
 
@@ -802,12 +803,12 @@ export function DailyQuestsTab({
               <div className="pet-aura"></div>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img 
-                src={stageImage ? (stageImage.startsWith('data:') ? stageImage : `${stageImage}${stageImage.includes('?') ? '&' : '?'}u=${encodeURIComponent(activeStage?.updated_at || '')}`) : ''}
+                src={trimmedStageImage ? (trimmedStageImage.startsWith('data:') ? trimmedStageImage : `${trimmedStageImage}${trimmedStageImage.includes('?') ? '&' : '?'}u=${encodeURIComponent(activeStage?.updated_at || '')}`) : ''}
                 alt={stageName}
                 className={`pet-image ${animationClass}`}
                 style={{ 
                   '--pet-scale': (() => {
-                    let zoom = 1.5; // 預設放大的倍率
+                    let zoom = 1.0; // 預設倍率改為 1.0
                     if (stageImage) {
                       const match = stageImage.match(/[#&?]zoom=([0-9.]+)/i) || stageImage.match(/[#&?]scale=([0-9.]+)/i);
                       if (match && match[1]) {
@@ -819,7 +820,11 @@ export function DailyQuestsTab({
                   })(),
                   '--pet-x': `${parsePetOffset(stageImage).x}px`,
                   '--pet-y': `${parsePetOffset(stageImage).y}px`,
-                  '--glow-color': glowColor
+                  '--glow-color': glowColor,
+                  // 行內保險：固定像素上限，即使 .pet-image 的 CSS 尚未套用也不會撐爆容器（避免初次載入破版）
+                  maxWidth: '285px',
+                  maxHeight: '285px',
+                  objectFit: 'contain',
                 } as React.CSSProperties}
               />
               <div className="pet-shadow"></div>
