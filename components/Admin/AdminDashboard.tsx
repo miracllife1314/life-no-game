@@ -247,6 +247,10 @@ export function AdminDashboard({
     setNotesMap(map);
   }, [notes, profiles]);
 
+  // Squad Role Editing state
+  const [editingSquadRoleId, setEditingSquadRoleId] = useState<string | null>(null);
+  const [editingSquadRoleName, setEditingSquadRoleName] = useState("");
+  const [editingSquadRoleDuties, setEditingSquadRoleDuties] = useState("");
   const handleNoteChangeLocal = (memberId: string, value: string) => {
     setNotesMap(prev => ({ ...prev, [memberId]: value }));
   };
@@ -2707,29 +2711,83 @@ export function AdminDashboard({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {squadRoles.map(role => (
                   <div key={role.id} className="bg-slate-950/40 p-4 rounded-xl border border-white/5 flex flex-col justify-between light:bg-slate-50 light:border-slate-200">
-                    <div>
-                      <h4 className="font-bold text-teal-400 text-sm mb-1">{role.name}</h4>
-                      {role.duties.length > 0 && (
-                        <ul className="list-disc list-inside text-xs text-slate-400 space-y-0.5">
-                          {role.duties.map((duty, idx) => (
-                            <li key={idx}>{duty}</li>
-                          ))}
-                        </ul>
-                      )}
-                    </div>
-                    <div className="mt-3 flex justify-end">
-                      <button 
-                        onClick={() => {
-                          if (window.confirm(`確定要刪除職責「${role.name}」嗎？這會移除所有已指派此職責的學員設定。`)) {
-                            if (onDeleteSquadRole) onDeleteSquadRole(role.id);
-                          }
-                        }}
-                        disabled={isSyncing}
-                        className="text-[10px] text-red-500 hover:text-red-400 flex items-center gap-1 bg-red-500/10 px-2 py-1 rounded"
-                      >
-                        <Trash2 size={12} /> 刪除
-                      </button>
-                    </div>
+                    {editingSquadRoleId === role.id ? (
+                      <div className="space-y-3">
+                        <input
+                          type="text"
+                          value={editingSquadRoleName}
+                          onChange={e => setEditingSquadRoleName(e.target.value)}
+                          className="w-full text-xs bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-white outline-none focus:border-teal-500"
+                          placeholder="角色名稱"
+                        />
+                        <input
+                          type="text"
+                          value={editingSquadRoleDuties}
+                          onChange={e => setEditingSquadRoleDuties(e.target.value)}
+                          className="w-full text-xs bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-white outline-none focus:border-teal-500"
+                          placeholder="職責說明 (用逗號分隔)"
+                        />
+                        <div className="flex justify-end gap-2 mt-2">
+                          <button
+                            onClick={() => setEditingSquadRoleId(null)}
+                            className="text-[10px] text-slate-400 hover:text-white px-2 py-1"
+                          >
+                            取消
+                          </button>
+                          <button
+                            onClick={() => {
+                              if (onUpdateSquadRole && editingSquadRoleName.trim()) {
+                                onUpdateSquadRole(role.id, {
+                                  name: editingSquadRoleName.trim(),
+                                  duties: editingSquadRoleDuties.split(',').map(d => d.trim()).filter(d => d)
+                                });
+                                setEditingSquadRoleId(null);
+                              }
+                            }}
+                            className="text-[10px] bg-teal-600 text-white hover:bg-teal-500 px-3 py-1 rounded"
+                          >
+                            儲存
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <div>
+                          <h4 className="font-bold text-teal-400 text-sm mb-1">{role.name}</h4>
+                          {role.duties.length > 0 && (
+                            <ul className="list-disc list-inside text-xs text-slate-400 space-y-0.5">
+                              {role.duties.map((duty, idx) => (
+                                <li key={idx}>{duty}</li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
+                        <div className="mt-3 flex justify-end gap-2">
+                          <button 
+                            onClick={() => {
+                              setEditingSquadRoleId(role.id);
+                              setEditingSquadRoleName(role.name);
+                              setEditingSquadRoleDuties(role.duties.join(', '));
+                            }}
+                            disabled={isSyncing}
+                            className="text-[10px] text-teal-500 hover:text-teal-400 flex items-center gap-1 bg-teal-500/10 px-2 py-1 rounded"
+                          >
+                            <Edit2 size={12} /> 編輯
+                          </button>
+                          <button 
+                            onClick={() => {
+                              if (window.confirm(`確定要刪除職責「${role.name}」嗎？這會移除所有已指派此職責的學員設定。`)) {
+                                if (onDeleteSquadRole) onDeleteSquadRole(role.id);
+                              }
+                            }}
+                            disabled={isSyncing}
+                            className="text-[10px] text-red-500 hover:text-red-400 flex items-center gap-1 bg-red-500/10 px-2 py-1 rounded"
+                          >
+                            <Trash2 size={12} /> 刪除
+                          </button>
+                        </div>
+                      </>
+                    )}
                   </div>
                 ))}
               </div>
