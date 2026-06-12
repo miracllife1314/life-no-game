@@ -2359,7 +2359,20 @@ export default function Home() {
 
   // Filter submissions / logs for the active tab context
   const filteredSubmissions = submissions.filter(s => s.student_id === currentUser.id);
-  const filteredScoreLogs = scoreLogs.filter((l: ScoreLog) => l.student_id === currentUser.id);
+  const filteredScoreLogs = scoreLogs.filter((l: ScoreLog) => l.student_id === currentUser.id).map(log => {
+    let displayReason = log.reason;
+    if (displayReason === '完成任務' && log.submission_id) {
+      const sub = submissions.find(s => s.id === log.submission_id);
+      if (sub) {
+        const t = tasks.find(t => t.id === sub.task_id);
+        if (t) {
+          const prefix = t.type === 'daily' ? '每日' : '特殊';
+          displayReason = `完成任務：${prefix} ${t.name}`;
+        }
+      }
+    }
+    return { ...log, reason: displayReason };
+  });
 
   return (
     <div className="min-h-screen flex flex-col transition-colors duration-300 bg-slate-950 text-white light:bg-slate-925">
