@@ -1565,26 +1565,20 @@ export function CaptainDashboard({
                 {/* 2. Duty Selection */}
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block">
-                    指派小組職責 {isCaptain && <span className="text-amber-500">(小隊長為系統預設角色)</span>}
+                    指派小組職責
                   </label>
-                  {isCaptain ? (
-                    <div className="w-full text-xs bg-slate-950/40 border border-white/5 rounded-xl px-3 py-2.5 text-slate-500 font-bold select-none light:bg-slate-100 light:border-slate-250">
-                      👑 系統預設：小隊長
-                    </div>
-                  ) : (
-                    <select
-                      value={currentRole}
-                      onChange={(e) => handleRoleChange(member.id, e.target.value)}
-                      className="w-full text-xs bg-slate-900 border border-white/5 rounded-xl px-3 py-2.5 text-slate-300 font-bold outline-none focus:border-teal-500 focus:bg-slate-950 transition-all light:bg-white light:border-slate-300 light:text-slate-800"
-                    >
-                      <option value="">未分配職責</option>
-                      {QUEST_ROLES_DEFS.map(role => (
-                        <option key={role.id} value={role.id}>
-                          🛡️ {role.name} ({role.duties.join(' · ')})
-                        </option>
-                      ))}
-                    </select>
-                  )}
+                  <select
+                    value={currentRole}
+                    onChange={(e) => handleRoleChange(member.id, e.target.value)}
+                    className="w-full text-xs bg-slate-900 border border-white/5 rounded-xl px-3 py-2.5 text-slate-300 font-bold outline-none focus:border-teal-500 focus:bg-slate-950 transition-all light:bg-white light:border-slate-300 light:text-slate-800"
+                  >
+                    <option value="">未分配職責</option>
+                    {QUEST_ROLES_DEFS.map(role => (
+                      <option key={role.id} value={role.id}>
+                        🛡️ {role.name} ({role.duties.join(' · ')})
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
             );
