@@ -83,18 +83,7 @@ export function LoginForm({ onLogin, onGoToRegister, isSyncing }: LoginFormProps
             </button>
           </form>
 
-          {/* 註冊入口 */}
-          <div className="mt-8 pt-6 border-t border-slate-900 text-center space-y-3">
-            <p className="text-xs text-slate-400 font-bold">還沒有帳號嗎？第一次來請先註冊</p>
-            <button
-              onClick={onGoToRegister}
-              type="button"
-              className="btn-action w-full py-3 rounded-xl bg-amber-500/10 border border-amber-500/40 text-amber-400 font-black text-sm hover:bg-amber-500/20 hover:border-amber-500/70 transition-all cursor-pointer flex items-center justify-center gap-2"
-            >
-              <UserPlus size={18} />
-              註冊新修行者
-            </button>
-          </div>
+
         </div>
       </div>
     </div>

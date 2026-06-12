@@ -127,54 +127,6 @@ export function RegisterForm({
               />
             </div>
 
-            {/* Hide role selector if invite code is present */}
-            {!inviteCode && (
-              <div>
-                <label className="block text-xs text-slate-400 font-bold uppercase tracking-wider mb-3 text-left">
-                  選擇您的修行定位
-                </label>
-                <div className="grid grid-cols-3 gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setRole('student')}
-                    className={`btn-action py-3 px-2 rounded-xl text-center font-bold text-xs border ${
-                      role === 'student'
-                        ? 'bg-purple-500/10 border-purple-500 text-purple-300'
-                        : 'bg-slate-950/80 border-slate-800 text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    一般學員
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setRole('captain')}
-                    className={`btn-action py-3 px-2 rounded-xl text-center font-bold text-xs border ${
-                      role === 'captain'
-                        ? 'bg-purple-500/10 border-purple-500 text-purple-300'
-                        : 'bg-slate-950/80 border-slate-800 text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    小隊長
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setRole('admin')}
-                    className={`btn-action py-3 px-2 rounded-xl text-center font-bold text-xs border ${
-                      role === 'admin'
-                        ? 'bg-purple-500/10 border-purple-500 text-purple-300'
-                        : 'bg-slate-950/80 border-slate-800 text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    大隊長
-                  </button>
-                </div>
-                <p className="text-[10px] text-slate-500 font-bold mt-2.5 text-center leading-relaxed">
-                  {role === 'student' && '※ 一般學員可進行每日定課簽到、每週主線打卡並報名課堂。'}
-                  {role === 'captain' && '※ 小隊長可額外查看指揮所，追蹤組員打卡進度與撰寫輔導筆記。'}
-                  {role === 'admin' && '※ 大隊長擁有最高權限，可審核提交、發布任務、調整分數與小隊。'}
-                </p>
-              </div>
-            )}
 
             {/* Error messaging */}
             {errorMsg && (
