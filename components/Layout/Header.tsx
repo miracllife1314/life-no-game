@@ -60,11 +60,9 @@ export function Header({
         {/* User Card info (Left) */}
         <div className="flex items-center gap-4">
           <div className="relative shrink-0">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-white font-black text-xl shadow-lg border border-white/10 select-none">
-              {profile.name.substring(0, 2)}
-            </div>
-            <div className="absolute -bottom-1.5 -right-1.5 bg-amber-500 text-slate-950 text-[10px] font-black px-1.5 py-0.5 rounded-md border border-slate-950 select-none">
-              LV.{userLevel}
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 flex flex-col items-center justify-center text-white font-black shadow-lg border border-white/10 select-none">
+              <span className="text-[10px] opacity-90 leading-tight">LEVEL</span>
+              <span className="text-xl leading-none tracking-tighter">{userLevel}</span>
             </div>
           </div>
 
