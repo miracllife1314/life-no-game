@@ -36,6 +36,8 @@ export default function Home() {
   const [userEnrollments, setUserEnrollments] = useState<Profile[]>([]);
   const [currentTeam, setCurrentTeam] = useState<Team | null>(null);
   const [viewState, setViewState] = useState<'login' | 'register' | 'app'>('login');
+  // 開機時先確認 session，避免每次重整閃一下登入頁
+  const [booting, setBooting] = useState(true);
 
   // --- Invitation States ---
   const [inviteCode, setInviteCode] = useState<string>('');
@@ -670,7 +672,7 @@ export default function Home() {
         setViewState('login');
       }
     };
-    initSession();
+    initSession().finally(() => setBooting(false));
   }, []);
 
   // --- Auth Actions ---
@@ -1978,6 +1980,16 @@ export default function Home() {
   };
 
   // --- Render logic ---
+  // 開機確認 session 期間顯示載入畫面，避免閃登入頁
+  if (booting) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-950 text-amber-500 gap-4">
+        <div className="w-10 h-10 border-4 border-amber-500/30 border-t-amber-500 rounded-full animate-spin" />
+        <p className="text-sm text-slate-400 font-bold">載入中…</p>
+      </div>
+    );
+  }
+
   if (viewState === 'login') {
     return (
       <LoginForm
