@@ -143,8 +143,14 @@ export function WitnessTab({ profiles, tasks, submissions, currentUserId, onRefr
     let sourceItems = baseItems;
 
     if (category === 'hidden') {
-      // Only show hidden items
-      sourceItems = sourceItems.filter(s => s.share_to_witness === false || hiddenIds.includes(s.id));
+      // 只顯示「真正的見證貼文」被隱藏的項目：
+      //  - 學員分享貼文(task-custom-post)被下牆，或
+      //  - 管理員手動隱藏的項目(hiddenIds)
+      // 一般任務打卡的證明照（從沒上過牆）不算見證貼文，不列入，避免塞滿無法刪除的項目。
+      sourceItems = sourceItems.filter(s =>
+        (s.mission_id === 'task-custom-post' && s.share_to_witness === false) ||
+        hiddenIds.includes(s.id)
+      );
     } else {
       // Normal witness wall logic
       sourceItems = sourceItems.filter(s =>
@@ -587,6 +593,15 @@ export function WitnessTab({ profiles, tasks, submissions, currentUserId, onRefr
                             <button
                               onClick={() => {
                                 if (window.confirm('確定要從見證牆隱藏這筆資料嗎？')) {
+                                  // 同步記錄到本機隱藏清單，讓它仍會出現在「已隱藏」分頁可供復原
+                                  try {
+                                    const hIds = JSON.parse(localStorage.getItem('nlp_witness_hidden') || '[]');
+                                    if (!hIds.includes(s.id)) {
+                                      const next = [...hIds, s.id];
+                                      localStorage.setItem('nlp_witness_hidden', JSON.stringify(next));
+                                      setHiddenIds(next);
+                                    }
+                                  } catch { /* 忽略 */ }
                                   onHideWitness(s.id);
                                 }
                               }}
