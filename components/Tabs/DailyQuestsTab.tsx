@@ -1189,7 +1189,7 @@ export function DailyQuestsTab({
                               ? '限時挑戰'
                               : '特殊加碼'}
                           </span>
-                          <span className="text-[10px] font-black tracking-widest px-2 py-0.5 rounded-md border text-amber-500 bg-amber-500/10 border-amber-500/20">
+                          <span className="text-sm font-black tracking-wide px-3 py-1 rounded-lg border text-amber-400 bg-amber-500/15 border-amber-500/30">
                             +{mission.points} 經驗
                           </span>
                           {(() => {
@@ -1207,30 +1207,6 @@ export function DailyQuestsTab({
                               );
                             }
                             return null;
-                          })()}
-                          {!isExpired && !isFuture && (() => {
-                            const countdown = getCountdownText(mission.deadline_at);
-                            if (!countdown) return null;
-                            return (
-                              <span className={`text-[10px] font-black tracking-widest px-2 py-0.5 rounded-md flex items-center gap-0.5 border ${
-                                countdown.isExpired
-                                  ? 'text-slate-500 bg-slate-900/50 border-white/5'
-                                  : countdown.isUrgent
-                                  ? 'text-red-400 bg-red-500/10 border-red-500/20 animate-pulse'
-                                  : 'text-amber-500 bg-amber-500/10 border-amber-500/20'
-                              }`}>
-                                <Timer size={10} />
-                                {countdown.text}
-                              </span>
-                            );
-                          })()}
-                          {(() => {
-                            const d = parseLocalTime(mission.publish_at);
-                            return (
-                              <span className="text-[10px] font-black tracking-widest px-2 py-0.5 rounded-md flex items-center gap-0.5 border text-sky-400 bg-sky-500/10 border-sky-500/20">
-                                📅 {d.getMonth() + 1}/{d.getDate()}
-                              </span>
-                            );
                           })()}
                         </div>
                         <div className="shrink-0">
@@ -1266,6 +1242,34 @@ export function DailyQuestsTab({
                             </span>
                           )}
                         </div>
+                      </div>
+
+                      {/* 倒數時間 + 日期：獨立一行，避免與狀態徽章重疊 */}
+                      <div className="flex gap-1.5 items-center flex-wrap mt-2">
+                        {!isExpired && !isFuture && (() => {
+                          const countdown = getCountdownText(mission.deadline_at);
+                          if (!countdown) return null;
+                          return (
+                            <span className={`text-[11px] font-black tracking-wide px-2.5 py-1 rounded-md flex items-center gap-1 border ${
+                              countdown.isExpired
+                                ? 'text-slate-500 bg-slate-900/50 border-white/5'
+                                : countdown.isUrgent
+                                ? 'text-red-400 bg-red-500/10 border-red-500/20 animate-pulse'
+                                : 'text-amber-500 bg-amber-500/10 border-amber-500/20'
+                            }`}>
+                              <Timer size={11} />
+                              {countdown.text}
+                            </span>
+                          );
+                        })()}
+                        {(() => {
+                          const d = parseLocalTime(mission.publish_at);
+                          return (
+                            <span className="text-[11px] font-black tracking-wide px-2.5 py-1 rounded-md flex items-center gap-1 border text-sky-400 bg-sky-500/10 border-sky-500/20">
+                              📅 {d.getMonth() + 1}/{d.getDate()}
+                            </span>
+                          );
+                        })()}
                       </div>
 
                       <h3 className="text-base font-black text-white mt-3 light:text-slate-900 leading-snug">
