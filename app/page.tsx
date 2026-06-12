@@ -741,6 +741,9 @@ export default function Home() {
 
       if (typeof window !== 'undefined') {
         localStorage.setItem('nlp_mock_user_id', profile.id);
+        // User requested a hard refresh exactly upon login
+        window.location.reload();
+        return;
       }
       
       setViewState('app');
