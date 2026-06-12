@@ -951,9 +951,29 @@ export default function Home() {
         showToast(`❌ 打卡失敗：${insertError.message}`, 'error');
         return;
       }
-      await fetchData();
+      // 樂觀更新 UI (Optimistic Update)
+      if (!requiresApproval) {
+        const nextScore = currentUser.score + points;
+        const nextUser = { ...currentUser, score: nextScore };
+        setCurrentUser(nextUser);
+        setProfiles(prev => prev.map(p => p.id === currentUser.id ? nextUser : p));
 
-      // Trigger success animations and toasts
+        setUserPets(prev => prev.map(up => {
+          if (up.student_id === currentUser.id) {
+            const nextExp = up.total_exp + points;
+            const nextLv = Math.floor(nextExp / 500);
+            return {
+              ...up,
+              total_exp: nextExp,
+              level: nextLv,
+              updated_at: new Date().toISOString()
+            };
+          }
+          return up;
+        }));
+      }
+
+      // Trigger success animations and toasts IMMEDIATELY
       if (requiresApproval) {
         showToast('✓ 證明已成功送出！等待小隊長審核中...', 'info');
       } else {
@@ -961,6 +981,10 @@ export default function Home() {
         triggerConfetti();
         triggerScoreFloat(`+${points} 經驗！`);
       }
+
+      // 讓畫面先反應，背後慢慢重抓資料 (不阻擋 async return)
+      fetchData().catch(console.error);
+
     } catch (err: any) {
       console.error('[CheckIn] unexpected error:', err);
       showToast(`❌ 打卡失敗：${err?.message || '未知錯誤'}`, 'error');
