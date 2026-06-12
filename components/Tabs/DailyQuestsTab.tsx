@@ -653,6 +653,16 @@ export function DailyQuestsTab({
     return matchesTab;
   });
 
+  // 該分頁是否有「目前可做但尚未完成」的任務（用來顯示小紅點提醒）
+  const categoryHasUndone = (catKey: string): boolean => {
+    if (isUsingMissions) {
+      const mType: Record<string, string> = { daily: 'daily', weekly: 'weekly', special: 'special', temporary: 'limited' };
+      return displayMissions.some(m => m.mission_type === mType[catKey] && !getTaskProgress(m.id).isDone);
+    }
+    const tType: Record<string, string> = { daily: 'daily', weekly: 'weekly', special: 'temporary', temporary: 'limited' };
+    return filteredTasksAllCategories.some(t => t.type === tType[catKey] && !getTaskProgress(t.id).isDone);
+  };
+
   const handleCardClick = (task: Task) => {
     const { isDone } = getTaskProgress(task.id);
     if (isDone) return; // already done

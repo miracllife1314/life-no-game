@@ -30,6 +30,7 @@ interface CaptainDashboardProps {
   isSyncing: boolean;
   onRefresh?: () => Promise<void>;
   onUpdateTeamSettings?: (teamId: string, settings: Partial<Team>) => Promise<void>;
+  onUpdateProfile?: (profileId: string, updates: Partial<Profile>) => Promise<void>;
   batches?: Batch[];
   gmMode?: boolean;
   onReviewSubmission?: (subId: string, status: 'approved' | 'rejected', shareToWitness?: boolean) => Promise<void>;
@@ -114,7 +115,8 @@ export function CaptainDashboard({
   onToggleCell,
   allTeams = [],
   currentUserRole,
-  onAdminSelectTeam
+  onAdminSelectTeam,
+  onUpdateProfile
 }: CaptainDashboardProps) {
   // Get active members of this team (both students and captain)
   const squadMembers = profiles.filter(p => p.team_id === team?.id && p.status !== 'inactive');
@@ -318,6 +320,9 @@ export function CaptainDashboard({
   const [nameInput, setNameInput] = useState('');
   const [sloganInput, setSloganInput] = useState('');
   
+  // Quest Roles assignment simulation
+  const [savingMemberId, setSavingMemberId] = useState<string | null>(null);
+  
   // AI briefing simulation
   const [isLoadingBriefing, setIsLoadingBriefing] = useState(false);
   const [aiBriefing, setAiBriefing] = useState<{
@@ -334,8 +339,6 @@ export function CaptainDashboard({
   const [drawHistory, setDrawHistory] = useState<string[]>([]);
 
   // Quest Roles assignment simulation
-  const [squadRoles, setSquadRoles] = useState<Record<string, string[]>>({});
-  const [savingMemberId, setSavingMemberId] = useState<string | null>(null);
   const [notesMap, setNotesMap] = useState<Record<string, string>>({});
 
   // Manual Check-in Confirm Modal States
@@ -370,7 +373,6 @@ export function CaptainDashboard({
         if (parsed.slogan) setTeamSlogan(parsed.slogan);
         if (parsed.drawnQuest) setDrawnQuest(parsed.drawnQuest);
         if (parsed.drawHistory) setDrawHistory(parsed.drawHistory);
-        if (parsed.squadRoles) setSquadRoles(parsed.squadRoles);
       }
     }
   }, [team]);
@@ -510,18 +512,18 @@ export function CaptainDashboard({
   };
 
   // Quest Roles assignment
-  const handleRoleChange = (memberId: string, selectedRoleId: string) => {
+  const handleRoleChange = async (memberId: string, selectedRoleId: string) => {
     setSavingMemberId(memberId);
     
-    setTimeout(() => {
-      const nextSquadRoles = { 
-        ...squadRoles, 
-        [memberId]: selectedRoleId ? [selectedRoleId] : [] 
-      };
-      setSquadRoles(nextSquadRoles);
-      saveLocalSettings({ squadRoles: nextSquadRoles });
+    try {
+      if (onUpdateProfile) {
+        await onUpdateProfile(memberId, { squad_role: selectedRoleId || null });
+      }
+    } catch (err) {
+      console.error('Error saving role:', err);
+    } finally {
       setSavingMemberId(null);
-    }, 300);
+    }
   };
 
   // Squad submission review (Captain preliminary review)
@@ -1093,8 +1095,8 @@ export function CaptainDashboard({
                           </span>
                         )}
                         {/* Assigned role badge — shown next to name like the captain badge */}
-                        {!isCaptain && squadRoles[member.id]?.[0] && (() => {
-                          const roleDef = QUEST_ROLES_DEFS.find(r => r.id === squadRoles[member.id][0]);
+                        {!isCaptain && member.squad_role && (() => {
+                          const roleDef = QUEST_ROLES_DEFS.find(r => r.id === member.squad_role);
                           return roleDef ? (
                             <span className="text-[9px] font-black bg-teal-500/15 text-teal-400 px-2 py-0.5 rounded-md border border-teal-500/20">
                               {roleDef.name}
@@ -1540,7 +1542,7 @@ export function CaptainDashboard({
             if (!member) return null;
             const isCaptain = member.role === 'captain';
             const noteText = notesMap[member.id] || '';
-            const currentRole = squadRoles[member.id]?.[0] || '';
+            const currentRole = member.squad_role || '';
 
             return (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-white/5 light:border-slate-200 animate-in fade-in duration-200">

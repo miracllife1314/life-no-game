@@ -1375,7 +1375,15 @@ export default function Home() {
   const handleUpdateProfile = async (profileId: string, updates: Partial<Profile>) => {
     setIsSyncing(true);
     try {
-      const { error } = await supabase.from('profiles').update(updates).eq('id', profileId);
+      const allowedUpdates = [
+        'name', 'phone', 'role', 'team_id', 'batch_id', 'score', 
+        'division_name', 'director_id', 'status', 'squad_role'
+      ];
+      const cleanUpdates: any = {};
+      Object.keys(updates).forEach(key => {
+        if (allowedUpdates.includes(key)) cleanUpdates[key] = updates[key as keyof Profile];
+      });
+      const { error } = await supabase.from('profiles').update(cleanUpdates).eq('id', profileId);
       if (error) throw new Error(error.message);
       await fetchData();
     } catch (err) {

@@ -224,6 +224,47 @@ export function AdminDashboard({
   const [editingProfileId, setEditingProfileId] = useState<string | null>(null);
   const [editingProfileData, setEditingProfileData] = useState<Partial<Profile>>({});
 
+  // Duty Assignment State
+  const [selectedSettingMemberId, setSelectedSettingMemberId] = useState<string>('');
+  const [savingMemberId, setSavingMemberId] = useState<string | null>(null);
+  const [notesMap, setNotesMap] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    const map: Record<string, string> = {};
+    profiles.forEach(member => {
+      // the note should belong to this member. Admin can act as the captain, or we just get any note since it's global
+      const note = notes?.find(n => n.student_id === member.id)?.note || '';
+      map[member.id] = note;
+    });
+    setNotesMap(map);
+  }, [notes, profiles]);
+
+  const handleNoteChangeLocal = (memberId: string, value: string) => {
+    setNotesMap(prev => ({ ...prev, [memberId]: value }));
+  };
+
+  const handleNoteBlur = async (memberId: string) => {
+    const noteText = notesMap[memberId] || '';
+    try {
+      if (onSaveNote) await onSaveNote(memberId, noteText);
+    } catch (err) {
+      console.error('Error auto-saving note:', err);
+    }
+  };
+
+  const handleRoleChange = async (memberId: string, selectedRoleId: string) => {
+    setSavingMemberId(memberId);
+    try {
+      if (onUpdateProfile) {
+        await onUpdateProfile(memberId, { squad_role: selectedRoleId || null });
+      }
+    } catch (err) {
+      console.error('Error saving role:', err);
+    } finally {
+      setSavingMemberId(null);
+    }
+  };
+
   // --- Captain Candidates Form State ---
   const [newCandProfileId, setNewCandProfileId] = useState('');
   const [newCandStatus, setNewCandStatus] = useState<'eligible' | 'paused' | 'disabled'>('eligible');
@@ -2516,76 +2557,162 @@ export function AdminDashboard({
         </div>
       )}
 
-      {/* ==================== 4. 手動調分 ==================== */}
+      {/* ==================== 4. 手動調分與學員備註 ==================== */}
       {adminTab === 'adjust' && (
-        <section className="glass-panel p-6 rounded-3xl border border-white/5 space-y-6 light:bg-white light:border-slate-200">
-          <h3 className="font-black text-white text-base select-none">
-            手動增減個別學員經驗值
-          </h3>
+        <div className="space-y-6">
+          <section className="glass-panel p-6 rounded-3xl border border-white/5 space-y-6 light:bg-white light:border-slate-200">
+            <h3 className="font-black text-white text-base select-none">
+              手動增減個別學員經驗值
+            </h3>
 
-          <form onSubmit={handleAdjustScoreSubmit} className="space-y-4 max-w-md select-none">
-            <div>
-              <label className="block text-xs text-slate-400 font-bold mb-1.5">選擇學員</label>
-              <select
-                required
-                value={adjustStudentId}
-                onChange={e => setAdjustStudentId(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white outline-none"
-              >
-                <option value="">請選擇學員...</option>
-                {profiles.map(p => (
-                  <option key={p.id} value={p.id}>{p.name} (經驗：{p.score})</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
+            <form onSubmit={handleAdjustScoreSubmit} className="space-y-4 max-w-md select-none">
               <div>
-                <label className="block text-xs text-slate-400 font-bold mb-1.5">調整數值 (正負皆可)</label>
+                <label className="block text-xs text-slate-400 font-bold mb-1.5">選擇學員</label>
+                <select
+                  required
+                  value={adjustStudentId}
+                  onChange={e => setAdjustStudentId(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white outline-none"
+                >
+                  <option value="">請選擇學員...</option>
+                  {profiles.map(p => (
+                    <option key={p.id} value={p.id}>{p.name} (經驗：{p.score})</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs text-slate-400 font-bold mb-1.5">調整數值 (正負皆可)</label>
+                  <input
+                    required
+                    type="number"
+                    value={adjustAmount}
+                    onChange={e => setAdjustAmount(e.target.value)}
+                    placeholder="例如：500 或 -200"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm text-white outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] text-slate-500 font-bold mb-1.5 pt-6 leading-relaxed">
+                    ※ 扣減請輸入負數值，如 -200
+                  </label>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs text-slate-400 font-bold mb-1.5">調整原因</label>
                 <input
                   required
-                  type="number"
-                  value={adjustAmount}
-                  onChange={e => setAdjustAmount(e.target.value)}
-                  placeholder="例如：500 或 -200"
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm text-white outline-none"
+                  type="text"
+                  value={adjustReason}
+                  onChange={e => setAdjustReason(e.target.value)}
+                  placeholder="例如：實體研討會擔任志工表率、遲到扣分..."
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm text-white outline-none focus:border-red-500"
                 />
               </div>
 
-              <div>
-                <label className="block text-[10px] text-slate-500 font-bold mb-1.5 pt-6 leading-relaxed">
-                  ※ 扣減請輸入負數值，如 -200
+              {adjustMessage && (
+                <p className="text-xs font-black text-amber-500 bg-amber-500/10 border border-amber-500/20 p-3 rounded-xl text-center">
+                  {adjustMessage}
+                </p>
+              )}
+
+              <button
+                type="submit"
+                disabled={isSyncing || !adjustStudentId || !adjustReason}
+                className="btn-action bg-red-500 hover:bg-red-600 text-white py-3 px-6 rounded-xl text-xs font-black"
+              >
+                確認調整分數
+              </button>
+            </form>
+          </section>
+
+          {/* ⚙️ 學員備註與職責設定 */}
+          <section className="glass-panel p-6 rounded-3xl border border-white/10 space-y-4 text-left light:bg-white light:border-slate-200">
+            <h3 className="text-sm font-black text-white border-b border-white/5 pb-3 flex items-center gap-2 select-none light:border-slate-200 light:text-slate-900">
+              <Settings size={16} className="text-amber-500" />
+              學員備註與職責指派
+            </h3>
+
+            <div className="space-y-4">
+              <div className="space-y-1.5 max-w-md">
+                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block">
+                  選擇學員
                 </label>
+                <select
+                  value={selectedSettingMemberId}
+                  onChange={(e) => setSelectedSettingMemberId(e.target.value)}
+                  className="w-full text-xs bg-slate-900 border border-white/5 rounded-xl px-3 py-2.5 text-slate-300 font-bold outline-none focus:border-amber-500 focus:bg-slate-950 transition-all light:bg-white light:border-slate-350 light:text-slate-800"
+                >
+                  <option value="">-- 請選擇學員 --</option>
+                  {profiles.filter(p => p.role === 'student' || p.role === 'captain').map(member => {
+                    const t = teams.find(t => t.id === member.team_id);
+                    return (
+                      <option key={member.id} value={member.id}>
+                        {member.name} {member.role === 'captain' ? '(小隊長)' : ''} {t ? `[${t.name}]` : ''}
+                      </option>
+                    );
+                  })}
+                </select>
               </div>
+
+              {selectedSettingMemberId && (() => {
+                const member = profiles.find(m => m.id === selectedSettingMemberId);
+                if (!member) return null;
+                const isCaptain = member.role === 'captain';
+                const noteText = notesMap[member.id] || '';
+                const currentRole = member.squad_role || '';
+
+                return (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-white/5 light:border-slate-200 animate-in fade-in duration-200 max-w-2xl">
+                    {/* 1. Remarks Input */}
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block">
+                        編輯角色與備註（如：嫦娥(抱抱)）
+                      </label>
+                      <input
+                        type="text"
+                        value={noteText}
+                        placeholder={"例如：如來佛祖(大隊長)"}
+                        onBlur={() => handleNoteBlur(member.id)}
+                        onChange={(e) => handleNoteChangeLocal(member.id, e.target.value)}
+                        className="w-full text-xs bg-slate-900 border border-white/5 rounded-xl px-3 py-2.5 text-slate-300 outline-none focus:border-amber-500 focus:bg-slate-950 transition-all light:bg-white light:border-slate-300 light:text-slate-800"
+                      />
+                      <p className="text-[9px] text-slate-500 italic">備註輸入後移開焦點（Blur）將自動同步與儲存</p>
+                    </div>
+
+                    {/* 2. Duty Selection */}
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block">
+                        指派小組職責 {isCaptain && <span className="text-amber-500">(小隊長為系統預設角色)</span>}
+                      </label>
+                      {isCaptain ? (
+                        <div className="w-full text-xs bg-slate-950/40 border border-white/5 rounded-xl px-3 py-2.5 text-slate-500 font-bold select-none light:bg-slate-100 light:border-slate-250">
+                          👑 系統預設：小隊長
+                        </div>
+                      ) : (
+                        <select
+                          value={currentRole}
+                          onChange={(e) => handleRoleChange(member.id, e.target.value)}
+                          className="w-full text-xs bg-slate-900 border border-white/5 rounded-xl px-3 py-2.5 text-slate-300 font-bold outline-none focus:border-teal-500 focus:bg-slate-950 transition-all light:bg-white light:border-slate-300 light:text-slate-800"
+                        >
+                          <option value="">未分配職責</option>
+                          {QUEST_ROLES_DEFS.map(role => (
+                            <option key={role.id} value={role.id}>
+                              🛡️ {role.name} ({role.duties.join(' · ')})
+                            </option>
+                          ))}
+                        </select>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
-
-            <div>
-              <label className="block text-xs text-slate-400 font-bold mb-1.5">調整原因</label>
-              <input
-                required
-                type="text"
-                value={adjustReason}
-                onChange={e => setAdjustReason(e.target.value)}
-                placeholder="例如：實體研討會擔任志工表率、遲到扣分..."
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm text-white outline-none focus:border-red-500"
-              />
-            </div>
-
-            {adjustMessage && (
-              <p className="text-xs font-black text-amber-500 bg-amber-500/10 border border-amber-500/20 p-3 rounded-xl text-center">
-                {adjustMessage}
-              </p>
-            )}
-
-            <button
-              type="submit"
-              disabled={isSyncing || !adjustStudentId || !adjustReason}
-              className="btn-action bg-red-500 hover:bg-red-600 text-white py-3 px-6 rounded-xl text-xs font-black"
-            >
-              確認調整分數
-            </button>
-          </form>
-        </section>
+          </section>
+        </div>
       )}
 
       {/* ==================== 小隊長候選名單分頁 ==================== */}
