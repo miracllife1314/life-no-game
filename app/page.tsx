@@ -7,7 +7,7 @@ import {
   Profile, Team, Task, Submission, ScoreLog, SubmissionStatus,
   Course, CourseAttendance, Achievement, UserAchievement, 
   Announcement, StudentNote, UserRole,
-  Pet, UserPet, Card, Deck, DeckCard, UserDeck, Batch, MissionTemplate, BatchMissionTemplate, Mission, PetLine, PetStage, CaptainCandidate
+  Pet, UserPet, Card, Deck, DeckCard, UserDeck, Batch, MissionTemplate, BatchMissionTemplate, Mission, PetLine, PetStage, CaptainCandidate, SquadRoleDef
 } from '@/types';
 
 // Import layout components
@@ -1484,10 +1484,10 @@ export default function Home() {
       const { error } = await supabase.from("squad_roles").insert([data]);
       if (error) throw error;
       await fetchData();
-      addToast("成功新增小隊職責", "success");
+      showToast("成功新增小隊職責", "success");
     } catch (err: any) {
       console.error("Error creating squad role:", err);
-      addToast(err.message || "新增失敗", "error");
+      showToast(err.message || "新增失敗", "error");
     } finally {
       setIsSyncing(false);
     }
@@ -1499,10 +1499,10 @@ export default function Home() {
       const { error } = await supabase.from("squad_roles").update(updates).eq("id", id);
       if (error) throw error;
       await fetchData();
-      addToast("成功更新小隊職責", "success");
+      showToast("成功更新小隊職責", "success");
     } catch (err: any) {
       console.error("Error updating squad role:", err);
-      addToast(err.message || "更新失敗", "error");
+      showToast(err.message || "更新失敗", "error");
     } finally {
       setIsSyncing(false);
     }
@@ -1514,10 +1514,10 @@ export default function Home() {
       const { error } = await supabase.from("squad_roles").delete().eq("id", id);
       if (error) throw error;
       await fetchData();
-      addToast("成功刪除小隊職責", "success");
+      showToast("成功刪除小隊職責", "success");
     } catch (err: any) {
       console.error("Error deleting squad role:", err);
-      addToast(err.message || "刪除失敗", "error");
+      showToast(err.message || "刪除失敗", "error");
     } finally {
       setIsSyncing(false);
     }
@@ -2579,10 +2579,9 @@ export default function Home() {
             onQuickAssignCaptain={handleQuickAssignCaptain}
             isSyncing={isSyncing}
           />
-
-      {/* Footer copyright select-none */}
         )}
       </main>
+      {/* Footer copyright select-none */}
       <footer className="w-full text-center py-6 border-t border-white/5 text-[10px] text-slate-600 uppercase font-mono select-none light:border-slate-200">
         © {new Date().getFullYear()} NLP 人性溝通術評分系統 • 版權所有
       </footer>

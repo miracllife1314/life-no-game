@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Profile, Team, Task, Submission, StudentNote, ScoreLog, Batch, UserRole } from '@/types';
+import { Profile, Team, Task, Submission, StudentNote, ScoreLog, Batch, UserRole, SquadRoleDef } from '@/types';
 import { 
   Compass, Users, MessageSquare, Check, CheckCircle2,
   Clock, AlertCircle, Circle, Save, Edit3, Filter, 
@@ -38,6 +38,7 @@ interface CaptainDashboardProps {
   allTeams?: Team[];
   currentUserRole?: UserRole;
   onAdminSelectTeam?: (teamId: string) => void;
+  squadRoles?: SquadRoleDef[];
 }
 
 const QUEST_ROLES_DEFS = [
@@ -116,7 +117,8 @@ export function CaptainDashboard({
   allTeams = [],
   currentUserRole,
   onAdminSelectTeam,
-  onUpdateProfile
+  onUpdateProfile,
+  squadRoles = []
 }: CaptainDashboardProps) {
   // Get active members of this team (both students and captain)
   const squadMembers = profiles.filter(p => p.team_id === team?.id && p.status !== 'inactive');

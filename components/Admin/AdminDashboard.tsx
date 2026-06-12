@@ -100,6 +100,10 @@ interface AdminDashboardProps {
   petLines: PetLine[];
   petStages: PetStage[];
   captainCandidates: CaptainCandidate[];
+  squadRoles?: SquadRoleDef[];
+  onCreateSquadRole?: (data: Omit<SquadRoleDef, 'id' | 'created_at'>) => Promise<void>;
+  onUpdateSquadRole?: (id: string, updates: Partial<SquadRoleDef>) => Promise<void>;
+  onDeleteSquadRole?: (id: string) => Promise<void>;
   onAddCaptainCandidate?: (profileId: string, status: 'eligible' | 'paused' | 'disabled') => Promise<void>;
   onUpdateCaptainCandidate?: (candidateId: string, status: 'eligible' | 'paused' | 'disabled') => Promise<void>;
   onDeleteCaptainCandidate?: (candidateId: string) => Promise<void>;
@@ -2633,11 +2637,11 @@ export function AdminDashboard({
             </form>
           </section>
 
-          {/* ⚙️ 學員備註與職稱設定 */}
+          {/* ⚙️ 系統職稱設定 */}
           <section className="glass-panel p-6 rounded-3xl border border-white/10 space-y-4 text-left light:bg-white light:border-slate-200">
             <h3 className="text-sm font-black text-white border-b border-white/5 pb-3 flex items-center gap-2 select-none light:border-slate-200 light:text-slate-900">
               <Settings size={16} className="text-amber-500" />
-              學員備註與系統職稱設定
+              系統職稱設定
             </h3>
 
             <div className="space-y-4">
@@ -2670,24 +2674,8 @@ export function AdminDashboard({
                 const currentRole = member.squad_role || '';
 
                 return (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-white/5 light:border-slate-200 animate-in fade-in duration-200 max-w-2xl">
-                    {/* 1. Remarks Input */}
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block">
-                        編輯角色與備註（如：嫦娥(抱抱)）
-                      </label>
-                      <input
-                        type="text"
-                        value={noteText}
-                        placeholder={"例如：如來佛祖(大隊長)"}
-                        onBlur={() => handleNoteBlur(member.id)}
-                        onChange={(e) => handleNoteChangeLocal(member.id, e.target.value)}
-                        className="w-full text-xs bg-slate-900 border border-white/5 rounded-xl px-3 py-2.5 text-slate-300 outline-none focus:border-amber-500 focus:bg-slate-950 transition-all light:bg-white light:border-slate-300 light:text-slate-800"
-                      />
-                      <p className="text-[9px] text-slate-500 italic">備註輸入後移開焦點（Blur）將自動同步與儲存</p>
-                    </div>
-
-                    {/* 2. System Role Selection */}
+                  <div className="pt-4 border-t border-white/5 light:border-slate-200 animate-in fade-in duration-200 max-w-sm">
+                    {/* System Role Selection */}
                     <div className="space-y-1.5">
                       <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block">
                         設定修行定位 (系統職稱)
@@ -2700,29 +2688,6 @@ export function AdminDashboard({
                         <option value="student">一般學員</option>
                         <option value="captain">小隊長</option>
                         <option value="admin">大隊長</option>
-                      </select>
-                    </div>
-
-                    {/* 3. Duty Selection */}
-                    <div className="space-y-1.5 md:col-span-2">
-                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block">
-                        指派小組職責
-                      </label>
-                      <select
-                        value={currentRole}
-                        onChange={(e) => {
-                          if (onUpdateProfile) {
-                            onUpdateProfile(member.id, { squad_role: e.target.value || null });
-                          }
-                        }}
-                        className="w-full text-xs bg-slate-900 border border-white/5 rounded-xl px-3 py-2.5 text-slate-300 font-bold outline-none focus:border-teal-500 focus:bg-slate-950 transition-all light:bg-white light:border-slate-300 light:text-slate-800"
-                      >
-                        <option value="">未分配職責</option>
-                        {squadRoles.map(role => (
-                          <option key={role.id} value={role.id}>
-                            🛡️ {role.name} {role.duties.length > 0 ? `(${role.duties.join(' · ')})` : ''}
-                          </option>
-                        ))}
                       </select>
                     </div>
                   </div>
