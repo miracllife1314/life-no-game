@@ -13,7 +13,7 @@ import {
   Sparkles, Layers, BookOpen, Upload, Image as ImageIcon, AlertCircle, Shield
 } from 'lucide-react';
 import { supabase, isRealSupabase } from '@/lib/supabase';
-import { parsePetOffset, useTrimmedPetImage } from '@/lib/petImage';
+import { parsePetOffset, useTrimmedPetImage, trimCenterSquare } from '@/lib/petImage';
 
 export const MISSION_CATEGORIES = ['初階', '進階', 'VIP', '期數任務'];
 
@@ -498,17 +498,24 @@ export function AdminDashboard({
         setBgWarning('此圖片可能不是透明背景，建議先使用去背工具或重新上傳透明 PNG。');
       }
 
+      // 上傳前：裁切主體 + 置中到方形畫布（透明圖才有效，非透明圖則沿用原檔）
+      const objUrl = URL.createObjectURL(file);
+      const processed = await trimCenterSquare(objUrl);
+      URL.revokeObjectURL(objUrl);
+
       if (isRealSupabase) {
-        // Real Supabase Storage Upload (upload the original file)
-        const fileExt = file.name.split('.').pop();
+        // Real Supabase Storage Upload
+        const uploadBody: Blob = processed || file;
+        const fileExt = processed ? 'png' : (file.name.split('.').pop() || 'png');
+        const contentType = processed ? 'image/png' : file.type;
         const fileName = `stage-${editingStageId || 'new'}-${Date.now()}.${fileExt}`;
         const filePath = `${fileName}`;
 
         // Upload file to 'pet-images' bucket
         const { error: uploadError } = await supabase.storage
           .from('pet-images')
-          .upload(filePath, file, {
-            contentType: file.type,
+          .upload(filePath, uploadBody, {
+            contentType,
             cacheControl: '3600',
             upsert: true
           });
@@ -528,9 +535,18 @@ export function AdminDashboard({
           throw new Error('無法取得公開網址');
         }
       } else {
-        // Mock Mode: Resize and use lossless PNG base64 to prevent localStorage quota issues
-        const pngBase64 = await resizeAndKeepPNG(file);
-        setEditImageUrl(pngBase64);
+        // Mock Mode: 用裁切置中後的圖（若有），否則沿用原本壓縮
+        if (processed) {
+          const base64 = await new Promise<string>((res) => {
+            const r = new FileReader();
+            r.onload = () => res(r.result as string);
+            r.readAsDataURL(processed);
+          });
+          setEditImageUrl(base64);
+        } else {
+          const pngBase64 = await resizeAndKeepPNG(file);
+          setEditImageUrl(pngBase64);
+        }
       }
     } catch (err: any) {
       console.error('圖片上傳與壓縮失敗:', err);
