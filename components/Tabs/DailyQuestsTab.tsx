@@ -537,10 +537,11 @@ export function DailyQuestsTab({
   const glowColor = activeStage?.glow_color || '#A855F7';
 
   // Attributes calculation
-  const attrAcuity = Math.min(100, 30 + Math.floor(activeProfile.score / 150));
-  const attrStability = Math.min(100, 25 + Math.floor(activeProfile.score / 180));
-  const attrRapport = Math.min(100, 40 + Math.floor(activeProfile.score / 120));
-  const attrReshaping = Math.min(100, 20 + Math.floor(activeProfile.score / 200));
+  // 四維指標：從 0 開始、隨累積分數逐漸成長（除數越大成長越慢、越晚滿 100%）
+  const attrAcuity = Math.min(100, Math.floor(activeProfile.score / 300));      // 100% ≈ 30000 分
+  const attrStability = Math.min(100, Math.floor(activeProfile.score / 360));   // 100% ≈ 36000 分
+  const attrRapport = Math.min(100, Math.floor(activeProfile.score / 280));     // 100% ≈ 28000 分
+  const attrReshaping = Math.min(100, Math.floor(activeProfile.score / 420));   // 100% ≈ 42000 分
 
   const now = nowTaipei();
   const isUsingMissions = profile.role !== 'admin' && !!profile.batch_id;
