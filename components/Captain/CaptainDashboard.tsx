@@ -798,7 +798,7 @@ export function CaptainDashboard({
                 <img
                   src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(
                     typeof window !== 'undefined'
-                      ? `${window.location.origin}/?invite=${team.invite_code || ''}&batch=${team.batch_id || ''}&team=${team.id || ''}`
+                      ? `${process.env.NEXT_PUBLIC_APP_URL || window.location.origin}/?invite=${team.invite_code || ''}&batch=${team.batch_id || ''}&team=${team.id || ''}`
                       : ''
                   )}`}
                   alt="Invitation QR Code"
@@ -818,7 +818,7 @@ export function CaptainDashboard({
                     type="text"
                     value={
                       typeof window !== 'undefined'
-                        ? `${window.location.origin}/?invite=${team.invite_code || ''}&batch=${team.batch_id || ''}&team=${team.id || ''}`
+                        ? `${process.env.NEXT_PUBLIC_APP_URL || window.location.origin}/?invite=${team.invite_code || ''}&batch=${team.batch_id || ''}&team=${team.id || ''}`
                         : ''
                     }
                     className="flex-1 rounded-xl px-3 py-2 text-xs font-mono outline-none invite-link-input-black"
@@ -826,7 +826,7 @@ export function CaptainDashboard({
                   <button
                     onClick={() => {
                       if (typeof window !== 'undefined') {
-                        navigator.clipboard.writeText(`${window.location.origin}/?invite=${team.invite_code || ''}&batch=${team.batch_id || ''}&team=${team.id || ''}`);
+                        navigator.clipboard.writeText(`${process.env.NEXT_PUBLIC_APP_URL || window.location.origin}/?invite=${team.invite_code || ''}&batch=${team.batch_id || ''}&team=${team.id || ''}`);
                         alert('邀請連結已複製到剪貼簿！');
                       }
                     }}
