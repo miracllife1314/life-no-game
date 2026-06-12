@@ -1165,10 +1165,29 @@ export function CaptainDashboard({
                         if (item.task.category === '神獸進化' || String((item.task as any).template_id || '').startsWith('temp-evolve')) return false;
 
                         // 只顯示當時區（當前有效）的未完成任務
-                        const now = new Date().getTime();
-                        const st = item.task.start_time ? new Date(item.task.start_time).getTime() : (item.task.publish_time ? new Date(item.task.publish_time).getTime() : 0);
-                        const et = item.task.end_time ? new Date(item.task.end_time).getTime() : Infinity;
-                        return now >= st && now <= et;
+                        const now = new Date();
+                        const dNowDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+                        
+                        const pubStr = item.task.start_time || item.task.publish_time;
+                        let dPubDay = 0;
+                        if (pubStr) {
+                          const d = new Date(pubStr);
+                          dPubDay = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+                        }
+                        
+                        let dDeadDay = Infinity;
+                        if (item.task.end_time) {
+                          const d = new Date(item.task.end_time);
+                          dDeadDay = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+                        }
+
+                        if (item.task.type === 'daily') {
+                          // 每日定課只顯示當天
+                          return dPubDay === dNowDay;
+                        } else {
+                          // 其他任務只要時間在範圍內即可
+                          return dNowDay >= dPubDay && dNowDay <= dDeadDay;
+                        }
                       });
 
                       const totalCount = memberTasks.length;
