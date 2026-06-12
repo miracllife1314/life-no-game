@@ -68,6 +68,7 @@ export interface Submission {
   score_awarded: number;
   reviewed_by: string | null;
   reviewed_at: string | null;
+  share_to_witness?: boolean;
   created_at: string;
   // Joined fields
   mission?: Mission;

@@ -829,7 +829,7 @@ export default function Home() {
   };
 
   // --- Student Actions ---
-  const handleCheckIn = async (taskId: string, proofText?: string, proofImg?: string, proofLink?: string) => {
+  const handleCheckIn = async (taskId: string, proofText?: string, proofImg?: string, proofLink?: string, shareToWitness?: boolean) => {
     if (!currentUser) return;
 
     // 先在 tasks 找，找不到再去 missions 找（期數任務）
@@ -853,6 +853,8 @@ export default function Home() {
       score_awarded: requiresApproval ? 0 : points,
       reviewed_by: null,       // must be UUID or null; 'admin1' is not valid
       reviewed_at: requiresApproval ? null : new Date().toISOString(),
+      // 只有「需審核」的提交、且學員勾選分享時才上見證牆；自動簽到一律不上牆
+      share_to_witness: requiresApproval && !!shareToWitness,
       created_at: new Date().toISOString()
     };
 

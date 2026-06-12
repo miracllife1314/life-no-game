@@ -14,7 +14,7 @@ interface DailyQuestsTabProps {
   tasks: Task[];
   submissions: Submission[];
   announcements: Announcement[];
-  onCheckIn: (taskId: string, proofText?: string, proofImg?: string, proofLink?: string) => Promise<void>;
+  onCheckIn: (taskId: string, proofText?: string, proofImg?: string, proofLink?: string, shareToWitness?: boolean) => Promise<void>;
   isSyncing: boolean;
   missions?: Mission[];
   showToast?: (message: string, type?: 'success' | 'info' | 'error') => void;
@@ -153,6 +153,7 @@ export function DailyQuestsTab({
   const [proofText, setProofText] = useState('');
   const [proofLink, setProofLink] = useState('');
   const [showProofModal, setShowProofModal] = useState(false);
+  const [shareToWitness, setShareToWitness] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [confirmTask, setConfirmTask] = useState<any | null>(null);
@@ -622,16 +623,18 @@ export function DailyQuestsTab({
     const txt = proofText;
     const img = proofImg;
     const lnk = proofLink;
+    const share = shareToWitness;
 
     setShowProofModal(false);
     setSelectedTask(null);
     setProofImg('');
     setProofText('');
     setProofLink('');
+    setShareToWitness(false);
 
     setSubmitting(true);
     try {
-      await onCheckIn(task.id, txt, img || undefined, lnk);
+      await onCheckIn(task.id, txt, img || undefined, lnk, share);
     } catch (err) {
       console.error(err);
       // 若失敗，則還原對話框狀態
@@ -639,6 +642,7 @@ export function DailyQuestsTab({
       setProofText(txt);
       setProofImg(img);
       setProofLink(lnk);
+      setShareToWitness(share);
       setShowProofModal(true);
     } finally {
       setSubmitting(false);
@@ -1497,6 +1501,21 @@ export function DailyQuestsTab({
                   送出後，系統小隊長或大隊長將會進行手動審核。審核通過即可獲得 {selectedTask.score !== undefined ? selectedTask.score : selectedTask.points} 經驗積分。
                 </p>
               </div>
+
+              {/* 分享到見證牆（預設不勾；勾選後審核通過會出現在見證牆，照片選填）*/}
+              <button
+                type="button"
+                onClick={() => setShareToWitness(v => !v)}
+                className={`w-full flex items-center gap-3 p-3 rounded-xl border transition-colors text-left ${shareToWitness ? 'bg-purple-500/15 border-purple-500/50' : 'bg-slate-900/50 border-white/5 light:bg-slate-100 light:border-slate-300'}`}
+              >
+                <span className={`w-5 h-5 rounded-md border flex items-center justify-center shrink-0 ${shareToWitness ? 'bg-purple-500 border-purple-500 text-white' : 'border-slate-500'}`}>
+                  {shareToWitness && <CheckCircle2 size={14} />}
+                </span>
+                <span className="flex-1">
+                  <span className="block text-xs font-black text-white light:text-slate-800">分享到見證牆</span>
+                  <span className="block text-[10px] text-slate-400 font-bold light:text-slate-600">審核通過後，與大家分享你的修行見證（照片選填）</span>
+                </span>
+              </button>
 
               <div className="flex gap-3 pt-2">
                 <button

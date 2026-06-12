@@ -127,7 +127,8 @@ export function WitnessTab({ profiles, tasks, submissions, currentUserId, onRefr
       .filter(s =>
         s.status === 'approved' &&
         s.proof_text !== CAPTAIN_MANUAL &&
-        (s.proof_text || s.proof_image_url) &&
+        // 只顯示「主動分享」的：自訂分享貼文，或勾選了分享到見證牆的審核提交
+        (s.mission_id === 'task-custom-post' || s.share_to_witness === true) &&
         !hiddenIds.includes(s.id)
       )
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()),
@@ -251,6 +252,7 @@ export function WitnessTab({ profiles, tasks, submissions, currentUserId, onRefr
         proof_link: null,
         status: 'approved',
         score_awarded: 0,
+        share_to_witness: true,
         reviewed_by: 'system',
         reviewed_at: new Date().toISOString(),
         created_at: new Date().toISOString()
