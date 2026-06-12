@@ -1079,17 +1079,21 @@ export default function Home() {
       return;
     }
 
-    // 審核者通過時可決定是否上見證牆；退回則一律不上牆
+    // 審核通過時要把 score_awarded 設成該任務分數，計分觸發器才會加分（提交時為 0）
+    const sub = submissions.find(s => s.id === submissionId);
+    const task = sub ? tasks.find(t => t.id === sub.mission_id) : null;
+    const mission = sub && !task ? missions.find(m => m.id === sub.mission_id) : null;
+    const points = task ? task.score : (mission ? mission.points : 0);
+
     const updatePayload: any = {
       status,
       reviewed_by: currentUser.id,
       reviewed_at: new Date().toISOString(),
+      // 通過：給該任務分數（自訂貼文等查不到任務則為 0）；退回：0
+      score_awarded: status === 'approved' ? points : 0,
+      // 審核者通過時可決定是否上見證牆；退回則一律不上牆
+      share_to_witness: status === 'approved' ? !!shareToWitness : false,
     };
-    if (status === 'approved') {
-      updatePayload.share_to_witness = !!shareToWitness;
-    } else {
-      updatePayload.share_to_witness = false;
-    }
     await supabase
       .from('submissions')
       .update(updatePayload)
