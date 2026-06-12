@@ -1179,7 +1179,7 @@ export function DailyQuestsTab({
 
                       <div>
                         <div className="flex justify-between items-start gap-2">
-                          <div className="flex gap-1.5 items-center flex-wrap flex-1">
+                          <div className="flex gap-1.5 items-center flex-wrap flex-1 min-w-0">
                           <span className="text-[10px] font-black tracking-widest text-amber-500 bg-amber-500/10 px-2.5 py-1 rounded-md">
                             {mission.mission_type === 'daily'
                               ? '每日任務'
@@ -1233,7 +1233,7 @@ export function DailyQuestsTab({
                             );
                           })()}
                         </div>
-                        <div className="shrink-0 -mt-2 -mr-2">
+                        <div className="shrink-0">
                           {status === 'approved' ? (
                             <span className="flex items-center gap-1.5 text-xs font-black text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-full">
                               <CheckCircle2 size={13} className="text-emerald-400" />
