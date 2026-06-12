@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { Task, Submission, Announcement, Profile, Mission, UserPet, PetStage, Batch, PetLine, MissionTemplate } from '@/types';
+import { nowTaipei, parseTaipei } from '@/lib/time';
 import { 
   CheckCircle2, Circle, Clock, MessageSquare, 
   AlertCircle, FileText, Send, Flame, Sparkles, 
@@ -29,19 +30,15 @@ interface DailyQuestsTabProps {
   onSelectEvolutionLine: (studentId: string, lineKey: string) => Promise<void>;
 }
 
+// 一律以台灣時間 (UTC+8) 解讀儲存的時間字串
 function parseLocalTime(dateStr: string | undefined | null): Date {
-  if (!dateStr) return new Date();
-  // 移除 Supabase 自動附加的 UTC 時區標記，強制轉為本地時間解析
-  const localStr = dateStr.replace(/(Z|\+00:00|\+00)$/, '');
-  // 如果字串只有 yyyy-mm-dd，手動加上 T00:00:00 確保不被當作 UTC
-  const safeStr = localStr.includes('T') || localStr.includes(' ') ? localStr : `${localStr}T00:00:00`;
-  return new Date(safeStr.replace(' ', 'T'));
+  return parseTaipei(dateStr);
 }
 
 function getCountdownText(endTimeStr: string | undefined): { text: string; isUrgent: boolean; isExpired: boolean } | null {
   if (!endTimeStr) return null;
   const endTime = parseLocalTime(endTimeStr).getTime();
-  const now = Date.now();
+  const now = nowTaipei().getTime();
   const diff = endTime - now;
   if (diff <= 0) {
     return { text: '已截止', isUrgent: true, isExpired: true };
@@ -477,7 +474,7 @@ export function DailyQuestsTab({
   const attrRapport = Math.min(100, 40 + Math.floor(activeProfile.score / 120));
   const attrReshaping = Math.min(100, 20 + Math.floor(activeProfile.score / 200));
 
-  const now = new Date();
+  const now = nowTaipei();
   const isUsingMissions = profile.role !== 'admin' && !!profile.batch_id;
 
   const getTaskProgress = (taskId: string) => {
@@ -1052,7 +1049,7 @@ export function DailyQuestsTab({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {isUsingMissions && filteredMissions.length > 0
             ? filteredMissions.map((mission) => {
-                  const nowTime = Date.now();
+                  const nowTime = nowTaipei().getTime();
                   const pubTime = parseLocalTime(mission.publish_at).getTime();
                   const deadTime = parseLocalTime(mission.deadline_at).getTime();
                   const { isDone, approvedCount, limit } = getTaskProgress(mission.id);

@@ -10,6 +10,7 @@ import {
   BookOpen, ImageIcon, Quote, Sparkles, ListChecks, Timer, ScrollText, Share2, Link
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { nowTaipei, parseTaipei, taipeiDay } from '@/lib/time';
 
 interface SquadMemberWithRole {
   userId: string;
@@ -63,8 +64,8 @@ const DEFAULT_CHARACTERS: Record<string, string> = {
 
 function getCountdownText(endTimeStr: string | undefined): { text: string; isUrgent: boolean; isExpired: boolean } | null {
   if (!endTimeStr) return null;
-  const endTime = new Date(endTimeStr).getTime();
-  const now = Date.now();
+  const endTime = parseTaipei(endTimeStr).getTime();
+  const now = nowTaipei().getTime();
   const diff = endTime - now;
   if (diff <= 0) {
     return { text: '已截止', isUrgent: true, isExpired: true };
@@ -422,9 +423,9 @@ export function CaptainDashboard({
   };
 
   const getTodayScore = (studentId: string) => {
-    const todayStr = new Date().toDateString();
+    const todayStr = taipeiDay();
     return submissions
-      .filter(s => s.student_id === studentId && s.status === 'approved' && new Date(s.created_at).toDateString() === todayStr)
+      .filter(s => s.student_id === studentId && s.status === 'approved' && taipeiDay(s.created_at) === todayStr)
       .reduce((sum, s) => sum + (s.score_awarded || 0), 0);
   };
 
