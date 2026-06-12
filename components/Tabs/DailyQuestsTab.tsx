@@ -449,6 +449,52 @@ export function DailyQuestsTab({
     return { completed: hasApprovedSub, mission: matchedMission };
   };
 
+  // 找出「已被審核通過」的進化方向：學員提交了哪個方向的考驗任務並通過，方向即確定
+  const approvedEvoLine: string | null = (() => {
+    const studentBatchId = profile.batch_id || 'batch-50';
+    for (const line of petLines) {
+      if (!line.task_template_id) continue;
+      const mission = (missions || []).find(
+        m => m.template_id === line.task_template_id && m.batch_id === studentBatchId
+      );
+      if (!mission) continue;
+      const approved = submissions.some(
+        s => s.mission_id === mission.id && s.student_id === profile.id && s.status === 'approved'
+      );
+      if (approved) return line.line_key;
+    }
+    return null;
+  })();
+
+  // 執行破殼進化（審核通過後可直接從寵物面板進化，不必再走選擇 modal）
+  const runEvolution = (targetLineKey: string) => {
+    if (isCohortEnded) { alert('已結束期數僅可查看，不可再互動或培養。'); return; }
+    setShowConfirmEvolve(false);
+    setSelectedTempLine(null);
+    setIsEvolvingLocal(true);
+    setTimeout(async () => {
+      try {
+        await onEvolvePet(profile.id, targetLineKey);
+        const finalStage = petStages.find(s => s.line_key === targetLineKey && s.stage_index === 2);
+        const lineDetail = petLines.find(l => l.line_key === targetLineKey);
+        setShowSuccessModal({
+          isSubsequent: false,
+          beastName: finalStage?.stage_name || '守護神獸',
+          lineName: lineDetail?.name || '專屬系',
+          traits: lineDetail?.core_traits || '未設定',
+          desc: finalStage?.description || '解鎖專屬的守護神獸，陪伴您的 NLP 修行。',
+          image: finalStage?.image_url || 'https://images.unsplash.com/photo-1516233758813-a38d024919c5?auto=format&fit=crop&q=80&w=300',
+          glowColor: finalStage?.glow_color || '#A855F7'
+        });
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setIsEvolvingLocal(false);
+        setSelectedTempLine(null);
+      }
+    }, 800);
+  };
+
   console.log('[PET LOAD] DailyQuestsTab rendering pet:', {
     student_id: userPet?.student_id,
     pet_line: userPet?.pet_line,
@@ -791,9 +837,11 @@ export function DailyQuestsTab({
             </span>
             
             <p className="text-xs text-slate-400 mt-2 leading-relaxed light:text-slate-500 max-w-xs text-center">
-              {((userPet?.has_pending_evolution) || (userLevel >= 5 && (!userPet || userPet.current_stage_index === 1))) && (!userPet || userPet.current_stage_index === 1) ? (
+              {((userPet?.has_pending_evolution) || (userLevel >= 5 && (!userPet || userPet.current_stage_index <= 1))) && (!userPet || userPet.current_stage_index <= 1) ? (
                 <span className="text-amber-400 font-bold block animate-pulse">
-                  你的混沌之卵已經覺醒！完成對應的神秘考驗任務，即可解鎖該方向並破殼進化。
+                  {approvedEvoLine
+                    ? '考驗任務已通過！點擊下方按鈕即可直接破殼進化。'
+                    : '你的混沌之卵已經覺醒！完成對應的神秘考驗任務，即可解鎖該方向並破殼進化。'}
                 </span>
               ) : (
                 stageDesc
@@ -801,12 +849,21 @@ export function DailyQuestsTab({
             </p>
             
             {/* ✨ 開始進化 Button */}
-            {((userPet?.has_pending_evolution) || (userLevel >= 5 && (!userPet || userPet.current_stage_index === 1))) && !isCohortEnded && (
+            {((userPet?.has_pending_evolution) || (userLevel >= 5 && (!userPet || userPet.current_stage_index <= 1))) && !isCohortEnded && (
               <button
-                onClick={() => setShowConfirmEvolve(true)}
+                onClick={() => {
+                  // 已有審核通過的考驗任務 → 直接破殼進化，不必再進選擇 modal
+                  if (approvedEvoLine && (!userPet || userPet.current_stage_index <= 1)) {
+                    runEvolution(approvedEvoLine);
+                  } else {
+                    setShowConfirmEvolve(true);
+                  }
+                }}
                 className="mt-3 w-full bg-gradient-to-r from-purple-500 via-pink-500 to-red-500 text-white text-xs font-black py-2 px-4 rounded-xl shadow-[0_0_20px_rgba(236,72,153,0.5)] border border-pink-400/30 hover:scale-105 active:scale-95 transition-all select-none animate-pulse shrink-0 cursor-pointer font-bold"
               >
-                {(!userPet || userPet.current_stage_index === 1) ? '✨ 混沌破殼・開始進化' : '✨ 靈能突破・開始進化'}
+                {approvedEvoLine && (!userPet || userPet.current_stage_index <= 1)
+                  ? '🔥 考驗通過・立即破殼進化'
+                  : ((!userPet || userPet.current_stage_index <= 1) ? '✨ 混沌破殼・開始進化' : '✨ 靈能突破・開始進化')}
               </button>
             )}
           </div>
@@ -1627,7 +1684,7 @@ export function DailyQuestsTab({
 
       {/* 🔮 準備進化確認 Modal */}
       {showConfirmEvolve && (() => {
-        const isFirst = userPet?.current_stage_index === 1;
+        const isFirst = !userPet || userPet.current_stage_index <= 1;
         
         // ── 1. 混沌之卵初次進化：完成對應任務即可選擇進化方向 ──
         if (isFirst) {
@@ -1761,41 +1818,7 @@ export function DailyQuestsTab({
                   {highlightedStatus.completed ? (
                     <button
                       type="button"
-                      onClick={async () => {
-                        if (isCohortEnded) {
-                          alert('已結束期數僅可查看，不可再互動或培養。');
-                          setShowConfirmEvolve(false);
-                          return;
-                        }
-                        
-                        setShowConfirmEvolve(false);
-                        setIsEvolvingLocal(true);
-                        
-                        setTimeout(async () => {
-                          try {
-                            const targetLineKey = activeSelection!;
-                            await onEvolvePet(userPet!.student_id, targetLineKey);
-                            
-                            const finalStage = petStages.find(s => s.line_key === targetLineKey && s.stage_index === 2);
-                            const lineDetail = petLines.find(l => l.line_key === targetLineKey);
-                            
-                            setShowSuccessModal({
-                              isSubsequent: false,
-                              beastName: finalStage?.stage_name || '守護神獸',
-                              lineName: lineDetail?.name || '專屬系',
-                              traits: lineDetail?.core_traits || '未設定',
-                              desc: finalStage?.description || '解鎖專屬的守護神獸，陪伴您的 NLP 修行。',
-                              image: finalStage?.image_url || 'https://images.unsplash.com/photo-1516233758813-a38d024919c5?auto=format&fit=crop&q=80&w=300',
-                              glowColor: finalStage?.glow_color || '#A855F7'
-                            });
-                          } catch (e) {
-                            console.error(e);
-                          } finally {
-                            setIsEvolvingLocal(false);
-                            setSelectedTempLine(null);
-                          }
-                        }, 800);
-                      }}
+                      onClick={() => runEvolution(activeSelection!)}
                       className="flex-1 btn-action py-3 rounded-xl bg-gradient-to-r from-purple-500 via-pink-500 to-red-500 text-white text-xs font-black shadow-[0_0_15px_rgba(236,72,153,0.4)] cursor-pointer font-bold shimmer-btn"
                     >
                       🔥 開始破殼解密儀式
