@@ -15,6 +15,7 @@ export interface Profile {
   created_at: string;
   profile_id?: string;
   status?: 'active' | 'ended' | 'inactive';
+  squad_role?: string | null;
 }
 
 
