@@ -1428,11 +1428,9 @@ export function CaptainDashboard({
                             ) : (
                               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[360px] overflow-y-auto pr-1">
                                 {completedTasks.map(({ task, sub }) => (
-                                  <div 
-                                    key={task.id} 
-                                    onClick={() => handleToggleCell(member.id, task.id)}
-                                    className="bg-slate-950/40 border border-white/5 p-4 rounded-2xl flex flex-col justify-between gap-2.5 opacity-65 hover:opacity-100 transition-all cursor-pointer select-none light:bg-slate-200/50 light:border-slate-300"
-                                    title="點擊可以取消打卡"
+                                  <div
+                                    key={task.id}
+                                    className="bg-slate-950/40 border border-white/5 p-4 rounded-2xl flex flex-col justify-between gap-2.5 opacity-80 transition-all cursor-default select-none light:bg-slate-200/50 light:border-slate-300"
                                   >
                                     <div className="flex justify-between items-center">
                                       <div className="flex items-center gap-1.5 min-w-0">
@@ -1491,8 +1489,8 @@ export function CaptainDashboard({
                                         <ImageIcon size={10} /> 含圖片證明
                                       </div>
                                     )}
-                                    <div className="text-[8px] text-slate-600 font-mono text-right mt-1">
-                                      點擊以撤銷打卡 ↩
+                                    <div className="text-[8px] text-emerald-500/70 font-mono text-right mt-1">
+                                      ✓ 已完成（不可撤銷）
                                     </div>
                                   </div>
                                 ))}
