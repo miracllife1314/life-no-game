@@ -380,14 +380,14 @@ export default function Home() {
                   }
                 });
                 
-                // 用 epoch 毫秒正規化時間，避免 DB 格式與預覽字串不符導致每次載入重複注入
+                // 用「發布日期(YYYY-MM-DD)」當去重 key：兩邊字串皆以日期開頭，不受時區解讀差異影響
                 const existingKeys = new Set(
                   finalMissions
                     .filter((m: any) => m.batch_id === batch.id)
-                    .map((m: any) => `${m.template_id}_${new Date(m.publish_at).getTime()}`)
+                    .map((m: any) => `${m.template_id}_${String(m.publish_at).substring(0, 10)}`)
                 );
                 const missingPreviews = previews.filter(
-                  p => !existingKeys.has(`${p.templateId}_${new Date(p.publishAt).getTime()}`)
+                  p => !existingKeys.has(`${p.templateId}_${String(p.publishAt).substring(0, 10)}`)
                 );
                 
                 if (missingPreviews.length > 0) {
@@ -1748,15 +1748,15 @@ export default function Home() {
     try {
       // 1. Fetch existing missions for the batch
       const { data: existing } = await supabase.from('missions').select('*').eq('batch_id', batchId);
-      // 用 epoch 毫秒正規化時間，避免 DB 格式 (+00:00) 與 JS toISOString (.000Z) 不相等導致去重失敗
+      // 用「發布日期(YYYY-MM-DD)」當去重 key：不受 DB(+00:00) 與預覽字串時區解讀差異影響
       const existingSet = new Set(
-        (existing || []).map((m: any) => `${m.batch_id}_${m.template_id}_${new Date(m.publish_at).getTime()}`)
+        (existing || []).map((m: any) => `${m.batch_id}_${m.template_id}_${String(m.publish_at).substring(0, 10)}`)
       );
 
       const newMissions: Omit<Mission, 'id' | 'created_at' | 'updated_at'>[] = [];
 
       previews.forEach(p => {
-        const key = `${batchId}_${p.templateId}_${new Date(p.publishAt).getTime()}`;
+        const key = `${batchId}_${p.templateId}_${String(p.publishAt).substring(0, 10)}`;
         if (existingSet.has(key)) {
           skipCount++;
         } else {
