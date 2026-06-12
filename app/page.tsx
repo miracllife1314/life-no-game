@@ -1464,6 +1464,32 @@ export default function Home() {
     await fetchData();
   };
 
+  const handleHideWitness = async (submissionId: string) => {
+    setIsSyncing(true);
+    try {
+      const { error } = await supabase.from('submissions').update({ share_to_witness: false }).eq('id', submissionId);
+      if (error) throw new Error(error.message);
+      await fetchData();
+    } catch (err) {
+      console.error('Error hiding witness:', err);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const handleDeleteWitness = async (submissionId: string) => {
+    setIsSyncing(true);
+    try {
+      const { error } = await supabase.from('submissions').delete().eq('id', submissionId);
+      if (error) throw new Error(error.message);
+      await fetchData();
+    } catch (err) {
+      console.error('Error deleting witness:', err);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   const handleUpdateBatch = async (batchId: string, batchData: Partial<Batch>, teamCount?: number) => {
     await supabase
       .from('batches')
@@ -2380,6 +2406,8 @@ export default function Home() {
             currentUserId={currentUser.id}
             onRefresh={async () => { await fetchData(); }}
             batches={batches}
+            onHideWitness={handleHideWitness}
+            onDeleteWitness={handleDeleteWitness}
           />
         )}
 

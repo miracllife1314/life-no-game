@@ -26,6 +26,8 @@ interface WitnessTabProps {
   currentUserId: string;
   onRefresh?: () => Promise<void>;
   batches: Batch[];
+  onHideWitness?: (subId: string) => Promise<void>;
+  onDeleteWitness?: (subId: string) => Promise<void>;
 }
 
 const STORAGE_KEY_LIKES    = 'nlp_witness_likes';    // { [submissionId]: string[] (userIds) }
@@ -86,7 +88,7 @@ const compressImage = (file: File): Promise<string> => {
   });
 };
 
-export function WitnessTab({ profiles, tasks, submissions, currentUserId, onRefresh, batches }: WitnessTabProps) {
+export function WitnessTab({ profiles, tasks, submissions, currentUserId, onRefresh, batches, onHideWitness, onDeleteWitness }: WitnessTabProps) {
   const [category,     setCategory]     = useState<'all' | 'current' | 'mission' | 'sharing'>('all');
   const [searchQuery,  setSearchQuery]  = useState('');
   const [likes,        setLikes]        = useState<Record<string, string[]>>({});
@@ -127,6 +129,7 @@ export function WitnessTab({ profiles, tasks, submissions, currentUserId, onRefr
       .filter(s =>
         s.status === 'approved' &&
         s.proof_text !== CAPTAIN_MANUAL &&
+        s.share_to_witness !== false &&
         // 只顯示「主動分享」的：自訂分享貼文，或勾選了分享到見證牆的審核提交
         (s.mission_id === 'task-custom-post' || s.share_to_witness === true) &&
         !hiddenIds.includes(s.id)
@@ -557,9 +560,39 @@ export function WitnessTab({ profiles, tasks, submissions, currentUserId, onRefr
                         </span>
                       </div>
                     </div>
-                    {/* XP Badge */}
-                    <div className="text-[10px] font-black text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/15">
-                      +{s.score_awarded} 經驗
+                    {/* XP Badge and Admin Actions */}
+                    <div className="flex flex-col items-end gap-1.5">
+                      <div className="text-[10px] font-black text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/15">
+                        +{s.score_awarded} 經驗
+                      </div>
+                      {currentUser?.role === 'admin' && (
+                        <div className="flex gap-1">
+                          {onHideWitness && (
+                            <button
+                              onClick={() => {
+                                if (window.confirm('確定要從見證牆隱藏這筆資料嗎？')) {
+                                  onHideWitness(s.id);
+                                }
+                              }}
+                              className="text-[10px] font-bold text-slate-400 hover:text-orange-400 bg-slate-800/50 hover:bg-slate-800 px-2 py-0.5 rounded cursor-pointer transition-colors light:bg-slate-100 light:hover:bg-slate-200"
+                            >
+                              隱藏
+                            </button>
+                          )}
+                          {onDeleteWitness && (
+                            <button
+                              onClick={() => {
+                                if (window.confirm('確定要永久刪除這筆資料嗎？(包含扣除經驗值，刪除後無法恢復)')) {
+                                  onDeleteWitness(s.id);
+                                }
+                              }}
+                              className="text-[10px] font-bold text-slate-400 hover:text-red-400 bg-slate-800/50 hover:bg-slate-800 px-2 py-0.5 rounded cursor-pointer transition-colors light:bg-slate-100 light:hover:bg-slate-200"
+                            >
+                              刪除
+                            </button>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
 
