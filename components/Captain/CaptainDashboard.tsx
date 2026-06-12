@@ -675,7 +675,7 @@ export function CaptainDashboard({
             <div className="text-left md:text-right space-y-0.5">
               <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">小隊總分</span>
               <div className="text-4xl font-black text-amber-500 font-mono tracking-tight">
-                {(team.total_score || 89200).toLocaleString()}
+                {(team.total_score || 0).toLocaleString()}
               </div>
             </div>
 
