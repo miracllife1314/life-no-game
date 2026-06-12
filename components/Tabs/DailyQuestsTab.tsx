@@ -582,6 +582,8 @@ export function DailyQuestsTab({
 
   // Task filtering logic
   const filteredTasks = tasks.filter(t => {
+    // 進化任務只在寵物進化流程出現，不列入一般任務列表
+    if (isEvolutionTask(t)) return false;
     let matchesTab = false;
     if (activeCategory === 'daily') matchesTab = t.type === 'daily';
     else if (activeCategory === 'weekly') matchesTab = t.type === 'weekly';
@@ -614,6 +616,8 @@ export function DailyQuestsTab({
 
   const displayMissions = isUsingMissions
     ? missions.filter(m => {
+        // 進化任務只在寵物進化流程出現，不列入一般任務列表
+        if (isEvolutionTask(m)) return false;
         const publishTime = parseLocalTime(m.publish_at);
         const deadlineTime = parseLocalTime(m.deadline_at);
         const sub = submissions.find(s => s.mission_id === m.id);
@@ -1207,7 +1211,7 @@ export function DailyQuestsTab({
                       </div>
 
                       <div>
-                        <div className="flex gap-1.5 items-center flex-wrap">
+                        <div className="flex gap-1.5 items-center flex-wrap pr-24">
                           <span className="text-[10px] font-black tracking-widest text-amber-500 bg-amber-500/10 px-2.5 py-1 rounded-md">
                             {mission.mission_type === 'daily'
                               ? '每日任務'
