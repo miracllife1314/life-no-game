@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   Profile, Team, Task, Submission, 
   Course, Achievement, Announcement, UserRole, TaskType, TaskTargetType,
