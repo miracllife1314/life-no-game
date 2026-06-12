@@ -8,7 +8,7 @@ import {
 } from '@/types';
 import { 
   ShieldCheck, FileCheck, Calendar, Trophy, 
-  UserPlus, Sliders, Check, X, Plus, Trash2, 
+  UserPlus, Sliders, Check, X, Plus, Trash2, Edit2,
   TrendingUp, Megaphone, HelpCircle, Save,
   Sparkles, Layers, BookOpen, Upload, Image as ImageIcon, AlertCircle, Shield
 } from 'lucide-react';
@@ -93,6 +93,8 @@ interface AdminDashboardProps {
   onCreateCourse: (name: string, description: string, classDate: string, batchId?: string | null, registerUrl?: string | null) => Promise<void>;
   onDeleteCourse?: (courseId: string) => Promise<void>;
   onCreateAchievement: (title: string, description: string, value: number, iconUrl?: string | null) => Promise<void>;
+  onUpdateAchievement?: (id: string, updates: Partial<Achievement>) => Promise<void>;
+  onDeleteAchievement?: (id: string) => Promise<void>;
   onCreatePet: (petData: Omit<Pet, 'id' | 'created_at'>) => Promise<void>;
   onCreateCard: (cardData: Omit<Card, 'id' | 'created_at'>) => Promise<void>;
   onCreateDeck: (name: string, isTemplate: boolean, cardIds: { cardId: string; count: number }[]) => Promise<void>;
@@ -132,6 +134,8 @@ export function AdminDashboard({
   petLines,
   petStages,
   captainCandidates,
+  onUpdateAchievement,
+  onDeleteAchievement,
   onAddCaptainCandidate,
   onUpdateCaptainCandidate,
   onDeleteCaptainCandidate,
@@ -612,6 +616,31 @@ export function AdminDashboard({
   const [achDesc, setAchDesc] = useState('');
   const [achValue, setAchValue] = useState(5000);
   const [achIconUrl, setAchIconUrl] = useState<string | null>(null);
+  // 編輯既有成就
+  const [editingAchId, setEditingAchId] = useState<string | null>(null);
+  const [editAchTitle, setEditAchTitle] = useState('');
+  const [editAchDesc, setEditAchDesc] = useState('');
+  const [editAchValue, setEditAchValue] = useState(5000);
+  const [editAchIconUrl, setEditAchIconUrl] = useState<string | null>(null);
+  const handleStartEditAch = (ach: Achievement) => {
+    setEditingAchId(ach.id);
+    setEditAchTitle(ach.title);
+    setEditAchDesc(ach.description || '');
+    setEditAchValue(ach.condition_value);
+    setEditAchIconUrl(ach.icon_url || null);
+  };
+  const handleCancelEditAch = () => setEditingAchId(null);
+  const handleSaveEditAch = async (id: string) => {
+    if (onUpdateAchievement) {
+      await onUpdateAchievement(id, {
+        title: editAchTitle,
+        description: editAchDesc || null,
+        condition_value: Number(editAchValue),
+        icon_url: editAchIconUrl || 'Flame',
+      });
+    }
+    setEditingAchId(null);
+  };
 
   // --- Handlers ---
   const handleCreateTask = async (e: React.FormEvent) => {
@@ -2705,6 +2734,117 @@ export function AdminDashboard({
                 建立成就
               </button>
             </form>
+
+            {/* 現有成就列表 */}
+            {achievements && achievements.length > 0 && (
+              <div className="mt-6 pt-6 border-t border-white/5 space-y-3">
+                <h4 className="text-xs font-bold text-slate-400">現有成就列表 ({achievements.length})</h4>
+                <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1 custom-scrollbar">
+                  {[...achievements].sort((a, b) => a.condition_value - b.condition_value).map(ach => (
+                    <div key={ach.id} className="bg-slate-900 border border-white/5 p-3 rounded-xl flex flex-col gap-3">
+                      {editingAchId === ach.id ? (
+                        <div className="space-y-3">
+                          <input
+                            type="text"
+                            value={editAchTitle}
+                            onChange={e => setEditAchTitle(e.target.value)}
+                            className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-white outline-none"
+                            placeholder="成就稱號"
+                          />
+                          <input
+                            type="text"
+                            value={editAchDesc}
+                            onChange={e => setEditAchDesc(e.target.value)}
+                            className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-white outline-none"
+                            placeholder="成就描述"
+                          />
+                          <input
+                            type="number"
+                            value={editAchValue}
+                            onChange={e => setEditAchValue(Number(e.target.value))}
+                            className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-white outline-none"
+                            placeholder="分數門檻"
+                          />
+                          <div className="flex items-center gap-2">
+                            {editAchIconUrl ? (
+                              <div className="relative w-8 h-8 rounded-lg overflow-hidden border border-white/10 shrink-0">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img src={editAchIconUrl} alt="Preview" className="w-full h-full object-cover" />
+                                <button
+                                  type="button"
+                                  onClick={() => setEditAchIconUrl(null)}
+                                  className="absolute top-0 right-0 bg-black/75 hover:bg-black text-white p-0.5 rounded-bl-lg"
+                                >
+                                  <X size={8} />
+                                </button>
+                              </div>
+                            ) : (
+                              <label className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-slate-950 border border-white/5 text-[10px] font-bold text-slate-300 cursor-pointer hover:border-red-500/30 hover:text-red-300 transition-all shrink-0">
+                                <ImageIcon size={10} className="text-red-400" />
+                                <span>上傳圖片</span>
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  onChange={async (e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) {
+                                      try {
+                                        const rawBase64 = await new Promise<string>((resolve, reject) => {
+                                          const r = new FileReader();
+                                          r.onload = (ev) => resolve(ev.target?.result as string);
+                                          r.onerror = () => reject(new Error('檔案讀取失敗'));
+                                          r.readAsDataURL(file);
+                                        });
+                                        setEditAchIconUrl(rawBase64);
+                                      } catch (err) {
+                                        console.error(err);
+                                      }
+                                    }
+                                  }}
+                                  className="hidden"
+                                />
+                              </label>
+                            )}
+                            <div className="flex-1 flex justify-end gap-2">
+                              <button onClick={handleCancelEditAch} className="px-3 py-1 rounded-lg bg-slate-800 text-xs text-white hover:bg-slate-700">取消</button>
+                              <button onClick={() => handleSaveEditAch(ach.id)} className="px-3 py-1 rounded-lg bg-red-500 text-xs text-white font-bold hover:bg-red-600">儲存</button>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-lg bg-slate-800 flex items-center justify-center shrink-0 border border-white/5">
+                            {ach.icon_url && (ach.icon_url.startsWith('data:') || ach.icon_url.startsWith('http')) ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img src={ach.icon_url} alt="icon" className="w-6 h-6 object-contain" />
+                            ) : (
+                              <Trophy size={16} className="text-amber-500" />
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-2">
+                              <p className="text-sm font-bold text-white truncate">{ach.title}</p>
+                              <span className="text-[10px] text-amber-400 font-mono bg-amber-500/10 px-2 py-0.5 rounded-full shrink-0">
+                                {ach.condition_value} 分
+                              </span>
+                            </div>
+                            <p className="text-[10px] text-slate-400 mt-1 line-clamp-1">{ach.description}</p>
+                          </div>
+                          <div className="flex flex-col gap-1 shrink-0">
+                            <button onClick={() => handleStartEditAch(ach)} className="p-1.5 rounded-lg bg-slate-800/50 hover:bg-slate-700 text-slate-300 transition-colors">
+                              <Edit2 size={12} />
+                            </button>
+                            <button onClick={() => onDeleteAchievement && onDeleteAchievement(ach.id)} className="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 transition-colors">
+                              <Trash2 size={12} />
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </section>
 
           {/* Cohorts section hidden because it duplicates '期數管理' tab */}
@@ -3115,6 +3255,87 @@ export function AdminDashboard({
                             {editDescription || '尚未輸入神獸敘述描述...'}
                           </p>
                         </div>
+
+                        {/* 偏移量微調 (右側預覽專用) */}
+                        <div className="w-full max-w-[240px] mt-6 space-y-2.5 bg-slate-950/50 p-3 rounded-xl border border-slate-800">
+                          <div className="text-center text-[10px] text-slate-400 font-bold mb-2">
+                            ✨ 拖曳微調神獸位置與大小
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[9px] text-slate-500 font-bold w-6 shrink-0">X</span>
+                            <input 
+                              type="range" 
+                              min="-200" max="200" step="1"
+                              value={parsePetOffset(editImageUrl).x} 
+                              onChange={e => {
+                                const val = parseInt(e.target.value) || 0;
+                                const current = parsePetOffset(editImageUrl);
+                                current.x = val;
+                                
+                                // 保留舊的 zoom 參數
+                                let zoomVal = 1.5;
+                                const match = editImageUrl?.match(/[#&?]zoom=([0-9.]+)/i);
+                                if (match && match[1]) { zoomVal = parseFloat(match[1]); }
+                                
+                                const cleanUrl = editImageUrl.split('#')[0];
+                                setEditImageUrl(`${cleanUrl}#x=${current.x}&y=${current.y}&zoom=${zoomVal}`);
+                              }}
+                              className="flex-1 accent-red-500 h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer"
+                            />
+                            <span className="text-[9px] text-slate-400 font-mono w-6 text-right">{parsePetOffset(editImageUrl).x}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[9px] text-slate-500 font-bold w-6 shrink-0">Y</span>
+                            <input 
+                              type="range" 
+                              min="-200" max="200" step="1"
+                              value={parsePetOffset(editImageUrl).y} 
+                              onChange={e => {
+                                const val = parseInt(e.target.value) || 0;
+                                const current = parsePetOffset(editImageUrl);
+                                current.y = val;
+
+                                // 保留舊的 zoom 參數
+                                let zoomVal = 1.5;
+                                const match = editImageUrl?.match(/[#&?]zoom=([0-9.]+)/i);
+                                if (match && match[1]) { zoomVal = parseFloat(match[1]); }
+
+                                const cleanUrl = editImageUrl.split('#')[0];
+                                setEditImageUrl(`${cleanUrl}#x=${current.x}&y=${current.y}&zoom=${zoomVal}`);
+                              }}
+                              className="flex-1 accent-red-500 h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer"
+                            />
+                            <span className="text-[9px] text-slate-400 font-mono w-6 text-right">{parsePetOffset(editImageUrl).y}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[9px] text-slate-500 font-bold w-6 shrink-0">大小</span>
+                            <input 
+                              type="range" 
+                              min="0.5" max="3" step="0.1"
+                              value={(() => {
+                                let zoom = 1.5;
+                                const match = editImageUrl?.match(/[#&?]zoom=([0-9.]+)/i) || editImageUrl?.match(/[#&?]scale=([0-9.]+)/i);
+                                if (match && match[1]) { zoom = parseFloat(match[1]); }
+                                return zoom;
+                              })()}
+                              onChange={e => {
+                                const val = parseFloat(e.target.value) || 1.5;
+                                const current = parsePetOffset(editImageUrl);
+                                const cleanUrl = editImageUrl.split('#')[0];
+                                setEditImageUrl(`${cleanUrl}#x=${current.x}&y=${current.y}&zoom=${val}`);
+                              }}
+                              className="flex-1 accent-amber-500 h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer"
+                            />
+                            <span className="text-[9px] text-slate-400 font-mono w-6 text-right">
+                              {(() => {
+                                let zoom = 1.5;
+                                const match = editImageUrl?.match(/[#&?]zoom=([0-9.]+)/i) || editImageUrl?.match(/[#&?]scale=([0-9.]+)/i);
+                                if (match && match[1]) { zoom = parseFloat(match[1]); }
+                                return zoom.toFixed(1);
+                              })()}x
+                            </span>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </form>
@@ -3129,7 +3350,12 @@ export function AdminDashboard({
                   🐉 目前神獸進化階段圖鑑 ({petStages?.length || 0})
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[560px] overflow-y-auto pr-1">
-                  {petStages?.map(stage => {
+                  {[...(petStages || [])].sort((a, b) => {
+                    if (a.line_key !== b.line_key) {
+                      return (a.line_key || '').localeCompare(b.line_key || '');
+                    }
+                    return a.min_level - b.min_level;
+                  }).map(stage => {
                     const cleanAnim = (stage.animation_type || '').replace('animate-', '');
                     const isGlow = cleanAnim === 'glow';
                     const glowAnimClass = isGlow ? 'animate-glow-pulse' : `animate-${cleanAnim}`;

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { supabase, uploadProofImage } from '@/lib/supabase';
+import { supabase, uploadProofImage, isRealSupabase } from '@/lib/supabase';
 import { CheckCircle2, Clock, AlertCircle } from 'lucide-react';
 import { 
   Profile, Team, Task, Submission, ScoreLog, SubmissionStatus,
@@ -1876,6 +1876,47 @@ export default function Home() {
     await fetchData();
   };
 
+  const handleUpdateAchievement = async (id: string, updates: Partial<Achievement>) => {
+    try {
+      setIsSyncing(true);
+      if (isRealSupabase && supabase) {
+        if (updates.icon_url && updates.icon_url.startsWith('data:')) {
+          updates.icon_url = await uploadProofImage(updates.icon_url);
+        }
+        const { error } = await supabase.from('achievements').update(updates).eq('id', id);
+        if (error) throw error;
+      }
+      setAchievements(prev => prev.map(a => a.id === id ? { ...a, ...updates } : a));
+      alert('成就更新成功！');
+      await fetchData();
+    } catch (err: any) {
+      console.error('Update achievement error:', err);
+      alert('更新失敗：' + err.message);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const handleDeleteAchievement = async (id: string) => {
+    if (!confirm('確定要刪除這個成就嗎？這會同時刪除所有學員解鎖此成就的紀錄。')) return;
+    try {
+      setIsSyncing(true);
+      if (isRealSupabase && supabase) {
+        const { error } = await supabase.from('achievements').delete().eq('id', id);
+        if (error) throw error;
+      }
+      setAchievements(prev => prev.filter(a => a.id !== id));
+      setUserAchievements(prev => prev.filter(ua => ua.achievement_id !== id));
+      alert('成就已刪除！');
+      await fetchData();
+    } catch (err: any) {
+      console.error('Delete achievement error:', err);
+      alert('刪除失敗：' + err.message);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   const handleCreatePet = async (petData: Omit<Pet, 'id' | 'created_at'>) => {
     await supabase.from('pets').insert(petData);
     await fetchData();
@@ -2269,6 +2310,8 @@ export default function Home() {
             onCreateCourse={handleCreateCourse}
             onDeleteCourse={handleDeleteCourse}
             onCreateAchievement={handleCreateAchievement}
+            onUpdateAchievement={handleUpdateAchievement}
+            onDeleteAchievement={handleDeleteAchievement}
             onCreatePet={handleCreatePet}
             onCreateCard={handleCreateCard}
             onCreateDeck={handleCreateDeck}

@@ -44,6 +44,23 @@ function isEvolutionTask(t: any): boolean {
   );
 }
 
+// 依「等級」在該進化路線中找出對應的成長階段（蛋未選路線時回傳蛋）。
+// 階段以 min_level 區間自動晉級：例如龍系 幼龍5-9 / 飛龍10-14 / 幻龍15-19…
+function getActiveStage(userPet: any, petStages: any[]): any {
+  const egg = petStages.find(s => s.line_key === null && (s.stage_index === 1 || s.stage_index === 0));
+  if (!userPet || !userPet.pet_line) return egg;
+  const lineStages = petStages
+    .filter(s => s.line_key === userPet.pet_line)
+    .sort((a, b) => (a.min_level || 0) - (b.min_level || 0));
+  if (!lineStages.length) return egg;
+  // 取「min_level <= 目前等級」中最高的那一階
+  let matched = lineStages[0];
+  for (const s of lineStages) {
+    if ((userPet.level || 0) >= (s.min_level || 0)) matched = s;
+  }
+  return matched || egg;
+}
+
 function getCountdownText(endTimeStr: string | undefined): { text: string; isUrgent: boolean; isExpired: boolean } | null {
   if (!endTimeStr) return null;
   const endTime = parseLocalTime(endTimeStr).getTime();
@@ -310,9 +327,8 @@ export function DailyQuestsTab({
     if (storedLevelStr !== null) {
       const storedLevel = parseInt(storedLevelStr, 10);
       if (userPet.level > storedLevel) {
-        const activeStage = petStages.find(s => s.line_key === userPet.pet_line && s.stage_index === userPet.current_stage_index) || 
-                            petStages.find(s => s.line_key === null && s.stage_index === 1);
-        
+        const activeStage = getActiveStage(userPet, petStages);
+
         setShowLevelUpModal({
           petName: activeStage?.stage_name || '修行小龍蛋',
           oldLevel: storedLevel,
@@ -411,10 +427,7 @@ export function DailyQuestsTab({
     return { days, lineKey, lineName, traits, beastName, desc };
   };
 
-  const activeStage = userPet 
-    ? (petStages.find(s => s.line_key === userPet.pet_line && s.stage_index === userPet.current_stage_index) || 
-       petStages.find(s => s.line_key === null && s.stage_index === 1))
-    : petStages.find(s => s.line_key === null && s.stage_index === 1);
+  const activeStage = getActiveStage(userPet, petStages);
 
   const checkEvolutionTaskCompleted = () => {
     if (!userPet || !userPet.selected_evolution_line) return { completed: false, mission: null };
@@ -777,9 +790,8 @@ export function DailyQuestsTab({
               成長等級：LV.{userLevel}
             </span>
             
-            {/* 說明文字區 */}
             <p className="text-xs text-slate-400 mt-2 leading-relaxed light:text-slate-500 max-w-xs text-center">
-              {userPet?.has_pending_evolution && userPet.current_stage_index === 1 ? (
+              {((userPet?.has_pending_evolution) || (userLevel >= 5 && (!userPet || userPet.current_stage_index === 1))) && (!userPet || userPet.current_stage_index === 1) ? (
                 <span className="text-amber-400 font-bold block animate-pulse">
                   你的混沌之卵已經覺醒！完成對應的神秘考驗任務，即可解鎖該方向並破殼進化。
                 </span>
@@ -789,12 +801,12 @@ export function DailyQuestsTab({
             </p>
             
             {/* ✨ 開始進化 Button */}
-            {userPet?.has_pending_evolution && !isCohortEnded && (
+            {((userPet?.has_pending_evolution) || (userLevel >= 5 && (!userPet || userPet.current_stage_index === 1))) && !isCohortEnded && (
               <button
                 onClick={() => setShowConfirmEvolve(true)}
                 className="mt-3 w-full bg-gradient-to-r from-purple-500 via-pink-500 to-red-500 text-white text-xs font-black py-2 px-4 rounded-xl shadow-[0_0_20px_rgba(236,72,153,0.5)] border border-pink-400/30 hover:scale-105 active:scale-95 transition-all select-none animate-pulse shrink-0 cursor-pointer font-bold"
               >
-                {userPet?.current_stage_index === 1 ? '✨ 混沌破殼・開始進化' : '✨ 靈能突破・開始進化'}
+                {(!userPet || userPet.current_stage_index === 1) ? '✨ 混沌破殼・開始進化' : '✨ 靈能突破・開始進化'}
               </button>
             )}
           </div>
