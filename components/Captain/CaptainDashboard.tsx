@@ -982,9 +982,11 @@ export function CaptainDashboard({
                                    if (hasRejected) {
                                      return (
                                        <button 
-                                         onClick={() => triggerManualCheckin(member.id, task)}
-                                         title="已被駁回 (點擊可手動補簽)"
-                                         className="p-1 rounded hover:bg-slate-800 transition-colors shrink-0"
+                                         onClick={() => {
+                                           if (currentUserRole === 'admin') triggerManualCheckin(member.id, task);
+                                         }}
+                                         title="已被駁回"
+                                         className={`p-1 rounded transition-colors shrink-0 ${currentUserRole === 'admin' ? 'hover:bg-slate-800 cursor-pointer' : 'cursor-default'}`}
                                        >
                                          <AlertCircle size={16} className="text-red-400" />
                                        </button>
@@ -993,9 +995,11 @@ export function CaptainDashboard({
 
                                    return (
                                      <button 
-                                       onClick={() => triggerManualCheckin(member.id, task)}
-                                       title={`尚未打卡 (點擊可手動簽到${limit > 1 || limit === 0 ? `，上限: ${limit === 0 ? '無限制' : `${limit}次`}` : ''})`}
-                                       className="p-1 rounded hover:bg-slate-800/40 transition-colors shrink-0 text-slate-700 hover:text-amber-500"
+                                       onClick={() => {
+                                         if (currentUserRole === 'admin') triggerManualCheckin(member.id, task);
+                                       }}
+                                       title={`尚未打卡${currentUserRole === 'admin' ? ' (點擊可手動簽到)' : ''}`}
+                                       className={`p-1 rounded transition-colors shrink-0 text-slate-700 ${currentUserRole === 'admin' ? 'hover:bg-slate-800/40 hover:text-amber-500 cursor-pointer' : 'cursor-default'}`}
                                      >
                                        <Circle size={16} />
                                      </button>
@@ -1020,7 +1024,7 @@ export function CaptainDashboard({
                 <span className="flex items-center gap-1"><AlertCircle size={12} className="text-red-400" /> 被退回</span>
                 <span className="flex items-center gap-1"><Circle size={12} className="text-slate-700" /> 未打卡</span>
               </div>
-              <p className="text-amber-500/80">※ 小提示：點擊矩陣即可直接為該隊員進行【手動補簽】或【撤銷打卡】</p>
+              <p className="text-amber-500/80">※ 小提示：點擊矩陣即可直接為該隊員進行審核{currentUserRole === 'admin' ? '或【手動補簽】' : ''}</p>
             </div>
           </div>
         )}
@@ -1154,7 +1158,14 @@ export function CaptainDashboard({
 
                       const pendingTasks = memberTasks.filter(item => item.progress.pendingCount > 0);
                       const completedTasks = memberTasks.filter(item => item.progress.isDone);
-                      const uncompletedTasks = memberTasks.filter(item => !item.progress.isDone && item.progress.pendingCount === 0);
+                      const uncompletedTasks = memberTasks.filter(item => {
+                        if (item.progress.isDone || item.progress.pendingCount > 0) return false;
+                        // 只顯示當時區（當前有效）的未完成任務
+                        const now = new Date().getTime();
+                        const st = item.task.start_time ? new Date(item.task.start_time).getTime() : (item.task.publish_time ? new Date(item.task.publish_time).getTime() : 0);
+                        const et = item.task.end_time ? new Date(item.task.end_time).getTime() : Infinity;
+                        return now >= st && now <= et;
+                      });
 
                       const totalCount = memberTasks.length;
                       const completedCount = completedTasks.length;
@@ -1242,10 +1253,20 @@ export function CaptainDashboard({
                                     ) : (
                                       memberLogs.map(log => {
                                         const isPositive = log.amount >= 0;
+                                        
+                                        let displayReason = log.reason;
+                                        if (displayReason === '完成任務' && log.submission_id) {
+                                          const sub = submissions.find(s => s.id === log.submission_id);
+                                          if (sub) {
+                                            const t = tasks.find(t => t.id === sub.mission_id);
+                                            if (t) displayReason = `完成任務：${t.name}`;
+                                          }
+                                        }
+
                                         return (
                                           <div key={log.id} className="flex justify-between items-center py-2 text-xs first:pt-0 last:pb-0">
                                             <div className="text-left space-y-0.5 min-w-0 pr-2">
-                                              <div className="text-white font-bold light:text-slate-800 text-[11px] truncate" title={log.reason}>{log.reason}</div>
+                                              <div className="text-white font-bold light:text-slate-800 text-[11px] truncate" title={displayReason}>{displayReason}</div>
                                               <div className="text-[9px] text-slate-500 font-mono">{new Date(log.created_at).toLocaleString()}</div>
                                             </div>
                                             <span className={`font-black text-xs font-mono shrink-0 ${isPositive ? 'text-emerald-400' : 'text-red-400'}`}>
@@ -1348,7 +1369,8 @@ export function CaptainDashboard({
                                         </span>
                                       </div>
 
-                                      {/* Action button */}
+                                      {/* Action button - Hidden for non-admins */}
+                                      {currentUserRole === 'admin' && (
                                       <div className="flex justify-end pt-1 select-none">
                                         <button
                                           onClick={() => triggerManualCheckin(member.id, task)}
@@ -1357,6 +1379,7 @@ export function CaptainDashboard({
                                           {approvedCount > 0 ? `繼續補簽 (已打卡 ${approvedCount} 次) →` : '手動補簽 / 立即完成'}
                                         </button>
                                       </div>
+                                      )}
                                     </div>
                                   );
                                 })}
