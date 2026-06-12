@@ -63,7 +63,8 @@ export function LoginForm({ onLogin, onGoToRegister, isSyncing }: LoginFormProps
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="請輸入您的手機號碼或姓名"
-                className="w-full bg-slate-950/80 border border-slate-800 rounded-2xl p-4 text-white text-center text-lg font-bold outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-all placeholder:text-slate-600"
+                style={{ backgroundColor: '#020617', color: '#ffffff', WebkitTextFillColor: '#ffffff' }}
+                className="w-full border border-slate-800 rounded-2xl p-4 text-center text-lg font-bold outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-all placeholder:text-slate-600"
               />
             </div>
 
