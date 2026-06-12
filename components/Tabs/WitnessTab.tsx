@@ -30,26 +30,8 @@ interface WitnessTabProps {
   onDeleteWitness?: (subId: string) => Promise<void>;
 }
 
-const STORAGE_KEY_LIKES    = 'nlp_witness_likes';    // { [submissionId]: string[] (userIds) }
-const STORAGE_KEY_COMMENTS = 'nlp_witness_comments'; // WitnessComment[]
 const CAPTAIN_MANUAL       = '由小隊長於指揮所手動設定打卡';
 
-// ── persistence helpers ─────────────────────────────────────────────
-function loadLikes(): Record<string, string[]> {
-  if (typeof window === 'undefined') return {};
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY_LIKES) || '{}'); } catch { return {}; }
-}
-function saveLikes(likes: Record<string, string[]>) {
-  if (typeof window !== 'undefined') localStorage.setItem(STORAGE_KEY_LIKES, JSON.stringify(likes));
-}
-function loadComments(): WitnessComment[] {
-  if (typeof window === 'undefined') return [];
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY_COMMENTS) || '[]'); } catch { return []; }
-}
-function saveComments(comments: WitnessComment[]) {
-  if (typeof window !== 'undefined') localStorage.setItem(STORAGE_KEY_COMMENTS, JSON.stringify(comments));
-}
-// ───────────────────────────────────────────────────────────────────
 
 const compressImage = (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {
@@ -108,10 +90,32 @@ export function WitnessTab({ profiles, tasks, submissions, currentUserId, onRefr
   const [customImgs, setCustomImgs] = useState<string[]>([]);
   const [isPublishing, setIsPublishing] = useState(false);
 
-  // load from localStorage on mount
+  // 從資料庫載入按讚/留言（跨裝置共享）
+  const loadSocial = async () => {
+    try {
+      const [likeRes, commentRes] = await Promise.all([
+        supabase.from('witness_likes').select('submission_id, user_id'),
+        supabase.from('witness_comments').select('*').order('created_at', { ascending: true }),
+      ]);
+      const likeMap: Record<string, string[]> = {};
+      (likeRes.data || []).forEach((r: any) => {
+        (likeMap[r.submission_id] = likeMap[r.submission_id] || []).push(r.user_id);
+      });
+      setLikes(likeMap);
+      setComments((commentRes.data || []).map((r: any) => ({
+        id: r.id,
+        submissionId: r.submission_id,
+        userId: r.user_id,
+        userName: r.user_name,
+        text: r.content,
+        createdAt: r.created_at,
+      })));
+    } catch (e) { console.error('載入見證互動失敗', e); }
+  };
+
+  // on mount：載入互動資料 + 本機隱藏清單
   useEffect(() => {
-    setLikes(loadLikes());
-    setComments(loadComments());
+    loadSocial();
     try {
       setHiddenIds(JSON.parse(localStorage.getItem('nlp_witness_hidden') || '[]'));
     } catch (e) {}
@@ -207,36 +211,74 @@ export function WitnessTab({ profiles, tasks, submissions, currentUserId, onRefr
   }, [baseItems, category, currentBatchId, searchQuery, scopeFilter, sortBy, profiles, tasks, currentUser, likes, hiddenIds]);
 
   // ── like toggle ───────────────────────────────────────────────────
-  const handleToggleLike = (subId: string) => {
+  const handleToggleLike = async (subId: string) => {
+    const arr = likes[subId] || [];
+    const liked = arr.includes(currentUserId);
+
+    // 樂觀更新 UI
     setLikes(prev => {
-      const arr = prev[subId] || [];
-      const next = arr.includes(currentUserId)
-        ? arr.filter(id => id !== currentUserId)
-        : [...arr, currentUserId];
-      const updated = { ...prev, [subId]: next };
-      saveLikes(updated);
-      return updated;
+      const currentArr = prev[subId] || [];
+      const next = currentArr.includes(currentUserId)
+        ? currentArr.filter(id => id !== currentUserId)
+        : [...currentArr, currentUserId];
+      return { ...prev, [subId]: next };
     });
+
+    try {
+      if (liked) {
+        await supabase
+          .from('witness_likes')
+          .delete()
+          .eq('submission_id', subId)
+          .eq('user_id', currentUserId);
+      } else {
+        await supabase
+          .from('witness_likes')
+          .insert({
+            submission_id: subId,
+            user_id: currentUserId,
+          });
+      }
+    } catch (e) {
+      console.error('更新按讚失敗', e);
+    }
   };
 
   // ── comment submit ────────────────────────────────────────────────
-  const handleSubmitComment = (subId: string) => {
+  const handleSubmitComment = async (subId: string) => {
     const text = (commentDraft[subId] || '').trim();
     if (!text || !currentUser) return;
+    const newCommentId = (typeof crypto !== 'undefined' && crypto.randomUUID)
+      ? crypto.randomUUID()
+      : Math.random().toString(36).substring(2, 11);
+
     const newComment: WitnessComment = {
-      id: Math.random().toString(36).substring(2, 11),
+      id: newCommentId,
       submissionId: subId,
       userId: currentUserId,
       userName: currentUser.name,
       text,
       createdAt: new Date().toISOString()
     };
-    setComments(prev => {
-      const updated = [...prev, newComment];
-      saveComments(updated);
-      return updated;
-    });
+
+    // 樂觀更新 UI
+    setComments(prev => [...prev, newComment]);
     setCommentDraft(prev => ({ ...prev, [subId]: '' }));
+
+    try {
+      await supabase
+        .from('witness_comments')
+        .insert({
+          id: newCommentId,
+          submission_id: subId,
+          user_id: currentUserId,
+          user_name: currentUser.name,
+          content: text,
+          created_at: newComment.createdAt
+        });
+    } catch (e) {
+      console.error('發布留言失敗', e);
+    }
   };
 
   const toggleExpand = (id: string) => {
@@ -787,12 +829,17 @@ export function WitnessTab({ profiles, tasks, submissions, currentUserId, onRefr
                                 {/* Delete own comment */}
                                 {isMyComment && (
                                   <button
-                                    onClick={() => {
-                                      setComments(prev => {
-                                        const updated = prev.filter(x => x.id !== c.id);
-                                        saveComments(updated);
-                                        return updated;
-                                      });
+                                    onClick={async () => {
+                                      // 樂觀更新 UI
+                                      setComments(prev => prev.filter(x => x.id !== c.id));
+                                      try {
+                                        await supabase
+                                          .from('witness_comments')
+                                          .delete()
+                                          .eq('id', c.id);
+                                      } catch (e) {
+                                        console.error('刪除留言失敗', e);
+                                      }
                                     }}
                                     className="opacity-0 group-hover/comment:opacity-100 transition-opacity mt-1 text-slate-600 hover:text-red-400 cursor-pointer"
                                   >
