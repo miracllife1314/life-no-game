@@ -36,6 +36,7 @@ export default function Home() {
   const [userEnrollments, setUserEnrollments] = useState<Profile[]>([]);
   const [currentTeam, setCurrentTeam] = useState<Team | null>(null);
   const [viewState, setViewState] = useState<'login' | 'register' | 'app'>('login');
+  const [loadError, setLoadError] = useState(false);
   // 開機時先確認 session，避免每次重整閃一下登入頁
   const [booting, setBooting] = useState(true);
 
@@ -180,6 +181,7 @@ export default function Home() {
   // Fetch all data from localStorage/Supabase
   const fetchData = useCallback(async (userId?: string) => {
     setIsSyncing(true);
+    setLoadError(false);
     let loadedProfile: Profile | null = null;
     try {
       // 1. Fetch current profile
@@ -298,201 +300,9 @@ export default function Home() {
       if (tasksList) setTasks(tasksList);
       if (subsList) setSubmissions(subsList);
 
-      // Inject mock missions for batch-50 to ensure frontend displays test data correctly
-      let finalMissions = missionsList || [];
-      
-      if (batchesList && rulesList && templatesList) {
-        for (const batch of batchesList) {
-          if (batch.status === 'active' || batch.status === 'ended' || batch.id === 'batch-50') {
-            const rules = rulesList.filter((r: any) => r.batch_id === batch.id && r.is_enabled);
-            if (rules.length > 0) {
-                const startDate = new Date(batch.start_date);
-                const endDate = new Date(batch.end_date);
-                const previews: any[] = [];
-                
-                rules.forEach((rule: any) => {
-                  const template = templatesList.find((t: any) => t.id === rule.template_id);
-                  if (!template) return;
-                  
-                  const type = template.mission_type;
-                  const points = template.points;
-                  const title = template.title;
-                  const desc = template.description;
-                  const reviewType = template.review_type;
-                  const category = template.category;
-                  const maxCompletions = template.max_completions;
-                  
-                  if (type === 'daily') {
-                    let cur = new Date(startDate);
-                    while (cur <= endDate) {
-                      const dayStr = cur.toISOString().substring(0, 10);
-                      previews.push({
-                        templateId: rule.template_id,
-                        title,
-                        description: desc,
-                        type,
-                        points,
-                        publishAt: `${dayStr} 00:00:00`,
-                        deadlineAt: `${dayStr} 23:59:59`,
-                        reviewType: reviewType,
-                        category: category,
-                        maxCompletions: maxCompletions
-                      });
-                      cur.setDate(cur.getDate() + 1);
-                    }
-                  } else if (type === 'weekly') {
-                    const getMondayOfWeek = (dateStr: string) => {
-                      const date = new Date(dateStr);
-                      const day = date.getUTCDay();
-                      const diff = day === 0 ? -6 : 1 - day;
-                      const monday = new Date(date);
-                      monday.setUTCDate(date.getUTCDate() + diff);
-                      monday.setUTCHours(0, 0, 0, 0);
-                      return monday;
-                    };
-                    const firstMonday = getMondayOfWeek(batch.start_date);
-                    const weekOffset = rule.week_offset !== null ? rule.week_offset : 1;
-                    
-                    const publishDate = new Date(firstMonday);
-                    publishDate.setUTCDate(firstMonday.getUTCDate() + (weekOffset - 1) * 7);
-                    
-                    const deadlineDate = new Date(publishDate);
-                    deadlineDate.setUTCDate(publishDate.getUTCDate() + 6);
-                    
-                    const pubStr = publishDate.toISOString().substring(0, 10);
-                    const deadStr = deadlineDate.toISOString().substring(0, 10);
-                    
-                    previews.push({
-                      templateId: rule.template_id,
-                      title,
-                      description: desc,
-                      type,
-                      points,
-                      publishAt: `${pubStr} 00:00:00`,
-                      deadlineAt: `${deadStr} 23:59:59`,
-                      reviewType: reviewType,
-                      category: category,
-                      maxCompletions: maxCompletions
-                    });
-                  } else if (type === 'special') {
-                    const dayStr = startDate.toISOString().substring(0, 10);
-                    previews.push({
-                      templateId: rule.template_id,
-                      title,
-                      description: desc,
-                      type,
-                      points,
-                      publishAt: `${dayStr} 00:00:00`,
-                      deadlineAt: batch.end_date.substring(0, 10) + ' 23:59:59',
-                      reviewType: reviewType,
-                      category: category,
-                      maxCompletions: maxCompletions
-                    });
-                  } else if (type === 'limited') {
-                    const offset = rule.day_offset !== null ? Math.max(0, rule.day_offset - 1) : 0;
-                    const duration = rule.duration_days !== null ? rule.duration_days : 1;
-                    
-                    const pubDate = new Date(startDate);
-                    pubDate.setDate(pubDate.getDate() + offset);
-                    
-                    const deadDate = new Date(pubDate);
-                    deadDate.setDate(deadDate.getDate() + duration);
-                    
-                    const pubStr = pubDate.toISOString().substring(0, 10);
-                    const deadStr = deadDate.toISOString().substring(0, 10);
-                    
-                    previews.push({
-                      templateId: rule.template_id,
-                      title,
-                      description: desc,
-                      type,
-                      points,
-                      publishAt: `${pubStr} 00:00:00`,
-                      deadlineAt: `${deadStr} 23:59:59`,
-                      reviewType: reviewType,
-                      category: category,
-                      maxCompletions: maxCompletions
-                    });
-                  }
-                });
-                
-                // 用「發布日期(YYYY-MM-DD)」當去重 key：兩邊字串皆以日期開頭，不受時區解讀差異影響
-                const existingKeys = new Set(
-                  finalMissions
-                    .filter((m: any) => m.batch_id === batch.id)
-                    .map((m: any) => `${m.template_id}_${String(m.publish_at).substring(0, 10)}`)
-                );
-                const missingPreviews = previews.filter(
-                  p => !existingKeys.has(`${p.templateId}_${String(p.publishAt).substring(0, 10)}`)
-                );
-                
-                // ⚠️ 不再於「載入頁面時」自動寫入任務 —— 那是任務不斷重複的根源
-                // （讀取時寫入 DB）。任務一律由後台「任務排程預覽 → 確認產生任務」按鈕
-                // （handleGenerateMissions）明確產生，該處已用日期去重，不會重複。
-                void missingPreviews;
-              }
-            }
-          }
-        }
-      // 🔮 Auto-publish the 4 evolution missions when a student reaches Lv.5 and has stage_index === 1
-      if (userPetsList && finalMissions && templatesList && batchesList) {
-        const studentsEligible = userPetsList.filter((up: any) => up.level >= 5 && up.current_stage_index === 1);
-        if (studentsEligible.length > 0) {
-          const batchIds = new Set<string>();
-          studentsEligible.forEach((up: any) => {
-            const prof = profilesList?.find((p: any) => p.id === up.student_id);
-            if (prof?.batch_id) {
-              batchIds.add(prof.batch_id);
-            }
-          });
-
-          let missionsUpdated = false;
-          for (const bid of Array.from(batchIds)) {
-            const templatesToPublish = ['temp-evolve-dragon', 'temp-evolve-lion', 'temp-evolve-fox', 'temp-evolve-spirit'];
-            const newMissionsToInsert: any[] = [];
-
-            for (const tid of templatesToPublish) {
-              const hasMission = finalMissions.some((m: any) => m.template_id === tid && m.batch_id === bid);
-              if (!hasMission) {
-                const template = templatesList.find((t: any) => t.id === tid);
-                const batch = batchesList.find((b: any) => b.id === bid);
-                if (template) {
-                  const publishAt = batch?.start_date || new Date().toISOString();
-                  const deadlineAt = batch?.end_date || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
-                  newMissionsToInsert.push({
-                    batch_id: bid,
-                    template_id: template.id,
-                    title: template.title,
-                    description: template.description,
-                    mission_type: template.mission_type,
-                    points: template.points,
-                    publish_at: publishAt,
-                    deadline_at: deadlineAt,
-                    status: 'active',
-                    review_type: template.review_type,
-                    category: template.category || '神獸進化',
-                    max_completions: template.max_completions || 1,
-                    created_at: new Date().toISOString(),
-                    updated_at: new Date().toISOString()
-                  });
-                }
-              }
-            }
-
-            if (newMissionsToInsert.length > 0) {
-              await supabase.from('missions').insert(newMissionsToInsert);
-              missionsUpdated = true;
-            }
-          }
-
-          if (missionsUpdated) {
-            const { data: refetchedMissions } = await supabase.from('missions').select('*');
-            if (refetchedMissions) {
-              finalMissions = refetchedMissions;
-            }
-          }
-        }
-      }
+      // 任務一律由後台「產生任務」明確發布（含 4 個隱藏的進化任務）。
+      // 不再於載入頁面時寫入 DB —— 那會在多人同時開啟時造成任務重複、並拖慢載入。
+      const finalMissions = missionsList || [];
 
       // ---- 在 JS 端補上巢狀關聯（真實 PostgREST 不會自動 embed）----
       const profArr: any[] = profilesList || [];
@@ -593,6 +403,7 @@ export default function Home() {
       return loadedProfile;
     } catch (err) {
       console.error('Error fetching data:', err);
+      setLoadError(true);
       return null;
     } finally {
       setIsSyncing(false);
@@ -1949,7 +1760,33 @@ export default function Home() {
           successCount++;
         }
       });
-      
+
+      // 1b. 確保 4 個「進化任務」存在（隱藏任務，學員到 5 級走進化流程才會用到）
+      //     改由此處集中發布，取代過去「每次載入頁面就寫入」造成的重複與變慢問題。
+      const EVOLVE_TEMPLATE_IDS = ['temp-evolve-dragon', 'temp-evolve-lion', 'temp-evolve-fox', 'temp-evolve-spirit'];
+      const targetBatch = batches.find(b => b.id === batchId);
+      EVOLVE_TEMPLATE_IDS.forEach(tid => {
+        const alreadyExists = (existing || []).some((m: any) => m.template_id === tid);
+        if (alreadyExists) return;
+        const template = missionTemplates.find(t => t.id === tid);
+        if (!template) return;
+        newMissions.push({
+          batch_id: batchId,
+          template_id: tid,
+          title: template.title,
+          description: template.description,
+          mission_type: template.mission_type,
+          points: template.points,
+          publish_at: targetBatch?.start_date || new Date().toISOString(),
+          deadline_at: targetBatch?.end_date || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+          status: 'active',
+          review_type: template.review_type,
+          category: template.category || '神獸進化',
+          max_completions: template.max_completions || 1
+        });
+        successCount++;
+      });
+
       // 2. Insert batch missions
       if (newMissions.length > 0) {
         await supabase.from('missions').insert(
@@ -2337,7 +2174,36 @@ export default function Home() {
     );
   }
 
-  if (!currentUser) return null;
+  // 載入失敗（免費版 Supabase 偶爾慢或斷線）→ 給明確提示與重試，避免白畫面
+  if (loadError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-6 bg-slate-950 text-center">
+        <div className="glass-panel max-w-sm w-full p-8 rounded-3xl border border-white/10">
+          <div className="text-4xl mb-4">⚠️</div>
+          <h2 className="text-lg font-bold text-white mb-2">連線失敗</h2>
+          <p className="text-sm text-slate-400 mb-6">
+            無法載入資料，可能是網路不穩或伺服器忙碌。請稍候再試一次。
+          </p>
+          <button
+            onClick={() => { if (typeof window !== 'undefined') window.location.reload(); }}
+            className="w-full btn-action py-3 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-600 text-slate-950 font-black active:scale-95 transition-transform"
+          >
+            重新載入
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // 資料尚未載入完成（避免短暫白畫面）
+  if (!currentUser) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-slate-950">
+        <div className="w-10 h-10 border-4 border-amber-500/30 border-t-amber-500 rounded-full animate-spin" />
+        <p className="text-sm text-slate-400 font-bold tracking-wide">載入中…</p>
+      </div>
+    );
+  }
 
   // Compute active role for UI (GM override mode)
   const currentUiRole = (gmMode && currentUser.role === 'admin') ? selectedGmRole : currentUser.role;
