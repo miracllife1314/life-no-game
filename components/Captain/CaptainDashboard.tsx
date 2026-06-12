@@ -348,6 +348,7 @@ export function CaptainDashboard({
 
   // Quest Roles assignment simulation
   const [notesMap, setNotesMap] = useState<Record<string, string>>({});
+  const [localRoles, setLocalRoles] = useState<Record<string, string>>({});
 
   // Manual Check-in Confirm Modal States
   const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -362,11 +363,14 @@ export function CaptainDashboard({
 
   useEffect(() => {
     const map: Record<string, string> = {};
+    const roleMap: Record<string, string> = {};
     sortedMembers.forEach(member => {
       const note = notes.find(n => n.student_id === member.id && n.captain_id === currentUserId)?.note || '';
       map[member.id] = note;
+      roleMap[member.id] = member.squad_role || '';
     });
     setNotesMap(map);
+    setLocalRoles(roleMap);
   }, [notes, profiles, team?.id, currentUserId]);
 
   // Load local mock configs on mount
@@ -444,14 +448,6 @@ export function CaptainDashboard({
     setNotesMap(prev => ({ ...prev, [memberId]: value }));
   };
 
-  const handleNoteBlur = async (memberId: string) => {
-    const noteText = notesMap[memberId] || '';
-    try {
-      await onSaveNote(memberId, noteText);
-    } catch (err) {
-      console.error('Error auto-saving note:', err);
-    }
-  };
 
   const toggleMemberScores = (memberId: string) => {
     setShowMemberScores(prev => ({ ...prev, [memberId]: !prev[memberId] }));
@@ -519,16 +515,22 @@ export function CaptainDashboard({
     }, 1000);
   };
 
-  // Quest Roles assignment
-  const handleRoleChange = async (memberId: string, selectedRoleId: string) => {
+  // Quest Roles and Notes save
+  const handleSaveSettings = async (memberId: string) => {
     setSavingMemberId(memberId);
     
     try {
+      // 1. Save note
+      const noteText = notesMap[memberId] || '';
+      await onSaveNote(memberId, noteText);
+
+      // 2. Save role
+      const selectedRoleId = localRoles[memberId] || '';
       if (onUpdateProfile) {
         await onUpdateProfile(memberId, { squad_role: selectedRoleId || null });
       }
     } catch (err) {
-      console.error('Error saving role:', err);
+      console.error('Error saving settings:', err);
     } finally {
       setSavingMemberId(null);
     }
@@ -1564,11 +1566,10 @@ export function CaptainDashboard({
                     type="text"
                     value={noteText}
                     placeholder={DEFAULT_CHARACTERS[member.name] || "例如：如來佛祖(大隊長)"}
-                    onBlur={() => handleNoteBlur(member.id)}
                     onChange={(e) => handleNoteChangeLocal(member.id, e.target.value)}
                     className="w-full text-xs bg-slate-900 border border-white/5 rounded-xl px-3 py-2.5 text-slate-300 outline-none focus:border-amber-500 focus:bg-slate-950 transition-all light:bg-white light:border-slate-300 light:text-slate-800"
                   />
-                  <p className="text-[9px] text-slate-500 italic">備註輸入後移開焦點（Blur）將自動同步與儲存</p>
+                  <p className="text-[9px] text-slate-500 italic">完成編輯後請點擊下方儲存按鈕</p>
                 </div>
 
                 {/* 2. Duty Selection */}
@@ -1577,8 +1578,8 @@ export function CaptainDashboard({
                     指派小組職責
                   </label>
                   <select
-                    value={currentRole}
-                    onChange={(e) => handleRoleChange(member.id, e.target.value)}
+                    value={localRoles[member.id] || ''}
+                    onChange={(e) => setLocalRoles(prev => ({ ...prev, [member.id]: e.target.value }))}
                     className="w-full text-xs bg-slate-900 border border-white/5 rounded-xl px-3 py-2.5 text-slate-300 font-bold outline-none focus:border-teal-500 focus:bg-slate-950 transition-all light:bg-white light:border-slate-300 light:text-slate-800"
                   >
                     <option value="">未分配職責</option>
@@ -1588,6 +1589,21 @@ export function CaptainDashboard({
                       </option>
                     ))}
                   </select>
+                </div>
+                
+                {/* 3. Save Button */}
+                <div className="md:col-span-2 flex justify-end mt-2">
+                  <button
+                    onClick={() => handleSaveSettings(member.id)}
+                    disabled={savingMemberId === member.id}
+                    className="px-6 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white text-xs font-black rounded-xl shadow-lg transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2"
+                  >
+                    {savingMemberId === member.id ? (
+                      <><Loader2 size={14} className="animate-spin" /> 儲存中...</>
+                    ) : (
+                      <>確認儲存設定</>
+                    )}
+                  </button>
                 </div>
               </div>
             );
