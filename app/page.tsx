@@ -1305,6 +1305,16 @@ export default function Home() {
     await fetchData();
   };
 
+  const handleUpdateTask = async (taskId: string, taskData: Partial<Task>) => {
+    await supabase.from('tasks').update(taskData).eq('id', taskId);
+    await fetchData();
+  };
+
+  const handleDeleteTeam = async (teamId: string) => {
+    await supabase.from('teams').delete().eq('id', teamId);
+    await fetchData();
+  };
+
   const handleAddProfile = async (profileData: { name: string; phone: string; role: UserRole; batchId: string; teamId: string; divisionName?: string | null; directorId?: string | null }) => {
     setIsSyncing(true);
     
@@ -1860,6 +1870,16 @@ export default function Home() {
     await fetchData();
   };
 
+  const handleUpdateAnnouncement = async (id: string, updates: Partial<Announcement>) => {
+    await supabase.from('announcements').update(updates).eq('id', id);
+    await fetchData();
+  };
+
+  const handleDeleteAnnouncement = async (id: string) => {
+    await supabase.from('announcements').delete().eq('id', id);
+    await fetchData();
+  };
+
   const handleCreateCourse = async (name: string, description: string, classDate: string, batchId?: string | null, registerUrl?: string | null) => {
     await supabase.from('courses').insert({
       name,
@@ -1868,6 +1888,11 @@ export default function Home() {
       batch_id: batchId || null,
       register_url: registerUrl || null
     });
+    await fetchData();
+  };
+
+  const handleUpdateCourse = async (courseId: string, courseData: Partial<Course>) => {
+    await supabase.from('courses').update(courseData).eq('id', courseId);
     await fetchData();
   };
 
@@ -2332,6 +2357,7 @@ export default function Home() {
             tasks={tasks}
             submissions={submissions}
             courses={courses}
+            announcements={announcements}
             achievements={achievements}
             pets={pets}
             userPets={userPets}
@@ -2348,11 +2374,17 @@ export default function Home() {
             onUpdatePetLine={handleUpdatePetLine}
             onReviewSubmission={handleReviewSubmission}
             onCreateTask={handleCreateTask}
+            onUpdateTask={handleUpdateTask}
             onDeleteTask={handleDeleteTask}
             onAssignTeam={handleAssignTeam}
+            onUpdateTeamSettings={handleUpdateTeamSettings}
+            onDeleteTeam={handleDeleteTeam}
             onManualAdjustScore={handleManualAdjustScore}
             onCreateAnnouncement={handleCreateAnnouncement}
+            onUpdateAnnouncement={handleUpdateAnnouncement}
+            onDeleteAnnouncement={handleDeleteAnnouncement}
             onCreateCourse={handleCreateCourse}
+            onUpdateCourse={handleUpdateCourse}
             onDeleteCourse={handleDeleteCourse}
             onCreateAchievement={handleCreateAchievement}
             onUpdateAchievement={handleUpdateAchievement}
@@ -2375,7 +2407,6 @@ export default function Home() {
             onAddCaptainCandidate={handleAddCaptainCandidate}
             onUpdateCaptainCandidate={handleUpdateCaptainCandidate}
             onDeleteCaptainCandidate={handleDeleteCaptainCandidate}
-            onUpdateTeamSettings={handleUpdateTeamSettings}
             onQuickAssignCaptain={handleQuickAssignCaptain}
             isSyncing={isSyncing}
           />
