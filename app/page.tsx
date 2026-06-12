@@ -74,6 +74,7 @@ export default function Home() {
   const [petLines, setPetLines] = useState<PetLine[]>([]);
   const [petStages, setPetStages] = useState<PetStage[]>([]);
   const [captainCandidates, setCaptainCandidates] = useState<CaptainCandidate[]>([]);
+  const [squadRoles, setSquadRoles] = useState<SquadRoleDef[]>([]);
 
   // --- UI States ---
   const [activeTab, setActiveTab] = useState<TabKey>('daily');
@@ -215,7 +216,7 @@ export default function Home() {
         batchesRes, templatesRes, rulesRes, profilesRes, teamsRes, tasksRes,
         subsRes, coursesRes, attendanceRes, achsRes, userAchsRes, annsRes,
         notesRes, scoreLogsRes, petsRes, userPetsRes, cardsRes, decksRes,
-        deckCardsRes, userDecksRes, missionsRes, petLinesRes, petStagesRes, candidatesRes
+        deckCardsRes, userDecksRes, missionsRes, petLinesRes, petStagesRes, candidatesRes, squadRolesRes
       ] = await Promise.all([
         supabase.from('batches').select('*'),
         supabase.from('mission_templates').select('*'),
@@ -241,6 +242,7 @@ export default function Home() {
         supabase.from('pet_lines').select('*'),
         supabase.from('pet_stages').select('*'),
         supabase.from('captain_candidates').select('*'),
+        supabase.from('squad_roles').select('*').order('created_at', { ascending: true }),
       ]);
       const batchesList = batchesRes.data;
       const templatesList = templatesRes.data;
@@ -266,6 +268,7 @@ export default function Home() {
       const petLinesList = petLinesRes.data;
       const petStagesList = petStagesRes.data;
       const candidatesList = candidatesRes.data;
+      const squadRolesList = squadRolesRes.data;
 
       if (batchesList) setBatches(batchesList);
       if (templatesList) setMissionTemplates(templatesList);
@@ -569,6 +572,9 @@ export default function Home() {
       if (decksList) setDecks(decksList);
       if (petLinesList) setPetLines(petLinesList);
       if (petStagesList) setPetStages(petStagesList);
+      if (candidatesList) setCaptainCandidates(candidatesList);
+      if (squadRolesList) setSquadRoles(squadRolesList);
+
       // 小隊長候選：依 profile_id 帶出姓名/手機/曾參與期數/曾擔任角色
       const roleLabel = (r: string) => r === 'captain' ? '小隊長' : r === 'admin' ? '大隊長' : '學員';
       const joinedCandidates = (candidatesList || []).map((c: any) => {
@@ -1470,6 +1476,51 @@ export default function Home() {
       .update(updateData)
       .eq('id', studentId);
     await fetchData();
+  };
+
+  const handleCreateSquadRole = async (data: Omit<SquadRoleDef, "id" | "created_at">) => {
+    setIsSyncing(true);
+    try {
+      const { error } = await supabase.from("squad_roles").insert([data]);
+      if (error) throw error;
+      await fetchData();
+      addToast("成功新增小隊職責", "success");
+    } catch (err: any) {
+      console.error("Error creating squad role:", err);
+      addToast(err.message || "新增失敗", "error");
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const handleUpdateSquadRole = async (id: string, updates: Partial<SquadRoleDef>) => {
+    setIsSyncing(true);
+    try {
+      const { error } = await supabase.from("squad_roles").update(updates).eq("id", id);
+      if (error) throw error;
+      await fetchData();
+      addToast("成功更新小隊職責", "success");
+    } catch (err: any) {
+      console.error("Error updating squad role:", err);
+      addToast(err.message || "更新失敗", "error");
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const handleDeleteSquadRole = async (id: string) => {
+    setIsSyncing(true);
+    try {
+      const { error } = await supabase.from("squad_roles").delete().eq("id", id);
+      if (error) throw error;
+      await fetchData();
+      addToast("成功刪除小隊職責", "success");
+    } catch (err: any) {
+      console.error("Error deleting squad role:", err);
+      addToast(err.message || "刪除失敗", "error");
+    } finally {
+      setIsSyncing(false);
+    }
   };
 
   const handleAddCaptainCandidate = async (profileId: string, status: 'eligible' | 'paused' | 'disabled') => {
@@ -2455,6 +2506,7 @@ export default function Home() {
             batches={batches}
             gmMode={gmMode}
             onReviewSubmission={handleReviewSubmission}
+            squadRoles={squadRoles}
             onToggleCell={handleToggleCell}
           />
         )}
@@ -2519,14 +2571,18 @@ export default function Home() {
             onAddCaptainCandidate={handleAddCaptainCandidate}
             onUpdateCaptainCandidate={handleUpdateCaptainCandidate}
             onDeleteCaptainCandidate={handleDeleteCaptainCandidate}
+            squadRoles={squadRoles}
+            onCreateSquadRole={handleCreateSquadRole}
+            onUpdateSquadRole={handleUpdateSquadRole}
+            onDeleteSquadRole={handleDeleteSquadRole}
             onUpdateTeamSettings={handleUpdateTeamSettings}
             onQuickAssignCaptain={handleQuickAssignCaptain}
             isSyncing={isSyncing}
           />
-        )}
-      </main>
 
       {/* Footer copyright select-none */}
+        )}
+      </main>
       <footer className="w-full text-center py-6 border-t border-white/5 text-[10px] text-slate-600 uppercase font-mono select-none light:border-slate-200">
         © {new Date().getFullYear()} NLP 人性溝通術評分系統 • 版權所有
       </footer>

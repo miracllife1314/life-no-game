@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { 
   Profile, Team, Task, Submission, 
   Course, Achievement, Announcement, UserRole, TaskType, TaskTargetType,
-  Pet, UserPet, PetLine, PetStage, PetEvolutionLog, Card, Deck, DeckCard, UserDeck, Batch, MissionTemplate, BatchMissionTemplate, CaptainCandidate, StudentNote
+  Pet, UserPet, PetLine, PetStage, PetEvolutionLog, Card, Deck, DeckCard, UserDeck, Batch, MissionTemplate, BatchMissionTemplate, CaptainCandidate, StudentNote, SquadRoleDef
 } from '@/types';
 import { 
   ShieldCheck, FileCheck, Calendar, Trophy, 
@@ -166,11 +166,15 @@ export function AdminDashboard({
   petLines,
   petStages,
   captainCandidates,
-  onUpdateAchievement,
-  onDeleteAchievement,
+  squadRoles = [],
   onAddCaptainCandidate,
   onUpdateCaptainCandidate,
   onDeleteCaptainCandidate,
+  onCreateSquadRole,
+  onUpdateSquadRole,
+  onDeleteSquadRole,
+  onUpdateAchievement,
+  onDeleteAchievement,
   onUpdateAnnouncement,
   onDeleteAnnouncement,
   onUpdateCourse,
@@ -2663,6 +2667,7 @@ export function AdminDashboard({
                 if (!member) return null;
                 const noteText = notesMap[member.id] || '';
                 const currentSystemRole = member.role || 'student';
+                const currentRole = member.squad_role || '';
 
                 return (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-white/5 light:border-slate-200 animate-in fade-in duration-200 max-w-2xl">
@@ -2697,9 +2702,116 @@ export function AdminDashboard({
                         <option value="admin">大隊長</option>
                       </select>
                     </div>
+
+                    {/* 3. Duty Selection */}
+                    <div className="space-y-1.5 md:col-span-2">
+                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block">
+                        指派小組職責
+                      </label>
+                      <select
+                        value={currentRole}
+                        onChange={(e) => {
+                          if (onUpdateProfile) {
+                            onUpdateProfile(member.id, { squad_role: e.target.value || null });
+                          }
+                        }}
+                        className="w-full text-xs bg-slate-900 border border-white/5 rounded-xl px-3 py-2.5 text-slate-300 font-bold outline-none focus:border-teal-500 focus:bg-slate-950 transition-all light:bg-white light:border-slate-300 light:text-slate-800"
+                      >
+                        <option value="">未分配職責</option>
+                        {squadRoles.map(role => (
+                          <option key={role.id} value={role.id}>
+                            🛡️ {role.name} {role.duties.length > 0 ? `(${role.duties.join(' · ')})` : ''}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
                 );
               })()}
+            </div>
+          </section>
+
+          {/* 🛡️ 小隊職責自訂管理 */}
+          <section className="glass-panel p-6 rounded-3xl border border-white/10 space-y-4 text-left light:bg-white light:border-slate-200">
+            <h3 className="text-sm font-black text-white border-b border-white/5 pb-3 flex items-center gap-2 select-none light:border-slate-200 light:text-slate-900">
+              <Shield size={16} className="text-teal-500" />
+              自訂小隊職責管理
+            </h3>
+            
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {squadRoles.map(role => (
+                  <div key={role.id} className="bg-slate-950/40 p-4 rounded-xl border border-white/5 flex flex-col justify-between light:bg-slate-50 light:border-slate-200">
+                    <div>
+                      <h4 className="font-bold text-teal-400 text-sm mb-1">{role.name}</h4>
+                      {role.duties.length > 0 && (
+                        <ul className="list-disc list-inside text-xs text-slate-400 space-y-0.5">
+                          {role.duties.map((duty, idx) => (
+                            <li key={idx}>{duty}</li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                    <div className="mt-3 flex justify-end">
+                      <button 
+                        onClick={() => {
+                          if (window.confirm(`確定要刪除職責「${role.name}」嗎？這會移除所有已指派此職責的學員設定。`)) {
+                            if (onDeleteSquadRole) onDeleteSquadRole(role.id);
+                          }
+                        }}
+                        disabled={isSyncing}
+                        className="text-[10px] text-red-500 hover:text-red-400 flex items-center gap-1 bg-red-500/10 px-2 py-1 rounded"
+                      >
+                        <Trash2 size={12} /> 刪除
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="bg-slate-900/50 p-4 rounded-xl border border-slate-800 space-y-3 mt-4 light:bg-slate-100 light:border-slate-200">
+                <h4 className="text-xs font-bold text-slate-300 light:text-slate-700">新增小隊職責</h4>
+                <form 
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    const form = e.target as HTMLFormElement;
+                    const name = (form.elements.namedItem('roleName') as HTMLInputElement).value.trim();
+                    const dutiesStr = (form.elements.namedItem('duties') as HTMLInputElement).value;
+                    const duties = dutiesStr.split(',').map(d => d.trim()).filter(d => d);
+                    
+                    if (name && onCreateSquadRole) {
+                      onCreateSquadRole({ name, duties });
+                      form.reset();
+                    }
+                  }}
+                  className="space-y-3"
+                >
+                  <div>
+                    <input 
+                      type="text" 
+                      name="roleName" 
+                      placeholder="角色名稱（如：康樂股長）" 
+                      required
+                      className="w-full text-xs bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-slate-300 outline-none focus:border-teal-500 light:bg-white light:border-slate-300 light:text-slate-800"
+                    />
+                  </div>
+                  <div>
+                    <input 
+                      type="text" 
+                      name="duties" 
+                      placeholder="職責說明（選填，多個職責請用逗號分隔）" 
+                      className="w-full text-xs bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-slate-300 outline-none focus:border-teal-500 light:bg-white light:border-slate-300 light:text-slate-800"
+                    />
+                  </div>
+                  <button 
+                    type="submit" 
+                    disabled={isSyncing}
+                    className="w-full btn-action bg-teal-600 hover:bg-teal-500 text-white text-xs py-2 rounded-lg font-bold flex items-center justify-center gap-1"
+                  >
+                    <Plus size={14} /> 新增職責
+                  </button>
+                </form>
+              </div>
             </div>
           </section>
         </div>

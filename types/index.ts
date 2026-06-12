@@ -1,5 +1,11 @@
 export type UserRole = 'admin' | 'captain' | 'student';
 
+export interface SquadRoleDef {
+  id: string;
+  name: string;
+  duties: string[];
+  created_at: string;
+}
 export interface Profile {
   id: string;
   name: string;

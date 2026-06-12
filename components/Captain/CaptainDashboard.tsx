@@ -242,9 +242,15 @@ export function CaptainDashboard({
   };
 
   const squadStudents = sortedMembers.filter(p => p.role === 'student' || p.role === 'captain');
-  const dailyMissions = tasks.filter(t => t.type === 'daily');
-  const weeklyMissions = tasks.filter(t => t.type === 'weekly');
-  const specialMissions = tasks.filter(t => t.type === 'temporary' || t.type === 'limited');
+  // 達成率/士氣只計入「目前已發布」的任務（未來還沒發布的不算進分母，避免梯次一開始永遠低迷）
+  const nowMs = nowTaipei().getTime();
+  const isPublished = (t: any) => {
+    const pub = t.publish_at || t.publish_time || t.start_time;
+    return !pub || parseTaipei(pub).getTime() <= nowMs;
+  };
+  const dailyMissions = tasks.filter(t => t.type === 'daily' && isPublished(t));
+  const weeklyMissions = tasks.filter(t => t.type === 'weekly' && isPublished(t));
+  const specialMissions = tasks.filter(t => (t.type === 'temporary' || t.type === 'limited') && isPublished(t));
 
   let totalDailyPossible = 0;
   let totalDailyCompleted = 0;
@@ -1096,7 +1102,7 @@ export function CaptainDashboard({
                         )}
                         {/* Assigned role badge — shown next to name like the captain badge */}
                         {!isCaptain && member.squad_role && (() => {
-                          const roleDef = QUEST_ROLES_DEFS.find(r => r.id === member.squad_role);
+                          const roleDef = squadRoles.find(r => r.id === member.squad_role);
                           return roleDef ? (
                             <span className="text-[9px] font-black bg-teal-500/15 text-teal-400 px-2 py-0.5 rounded-md border border-teal-500/20">
                               {roleDef.name}
@@ -1571,9 +1577,9 @@ export function CaptainDashboard({
                     className="w-full text-xs bg-slate-900 border border-white/5 rounded-xl px-3 py-2.5 text-slate-300 font-bold outline-none focus:border-teal-500 focus:bg-slate-950 transition-all light:bg-white light:border-slate-300 light:text-slate-800"
                   >
                     <option value="">未分配職責</option>
-                    {QUEST_ROLES_DEFS.map(role => (
+                    {squadRoles.map(role => (
                       <option key={role.id} value={role.id}>
-                        🛡️ {role.name} ({role.duties.join(' · ')})
+                        🛡️ {role.name} {role.duties.length > 0 ? `(${role.duties.join(' · ')})` : ''}
                       </option>
                     ))}
                   </select>
