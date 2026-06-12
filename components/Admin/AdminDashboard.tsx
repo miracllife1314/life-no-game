@@ -13,7 +13,7 @@ import {
   Sparkles, Layers, BookOpen, Upload, Image as ImageIcon, AlertCircle, Shield
 } from 'lucide-react';
 import { supabase, isRealSupabase } from '@/lib/supabase';
-import { parsePetOffset } from '@/lib/petImage';
+import { parsePetOffset, useTrimmedPetImage } from '@/lib/petImage';
 
 export const MISSION_CATEGORIES = ['初階', '進階', 'VIP', '期數任務'];
 
@@ -319,6 +319,8 @@ export function AdminDashboard({
   const [editDescription, setEditDescription] = useState('');
   const [editEvolutionText, setEditEvolutionText] = useState('');
   const [editImageUrl, setEditImageUrl] = useState('');
+  // 自動置中：裁掉透明邊讓主體置中（LIVE 預覽用）
+  const previewPetSrc = useTrimmedPetImage(editImageUrl);
   const [editMinLevel, setEditMinLevel] = useState(0);
   const [editMaxLevel, setEditMaxLevel] = useState(99);
   const [editStageActive, setEditStageActive] = useState(true);
@@ -3054,8 +3056,8 @@ export function AdminDashboard({
                             <div className="pet-aura"></div>
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             {editImageUrl ? (
-                              <img 
-                                src={editImageUrl} 
+                              <img
+                                src={previewPetSrc || editImageUrl}
                                 alt={editStageName || '預覽神獸'}
                                 className={`pet-image animate-${editAnimationType || 'float'}`}
                                 style={{ 
