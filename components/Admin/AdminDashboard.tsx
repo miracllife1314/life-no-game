@@ -147,7 +147,6 @@ export function AdminDashboard({
   onUpdateAnnouncement,
   onDeleteAnnouncement,
   onUpdateCourse,
-  onDeleteCaptainCandidate,
   onUpdateTeamSettings,
   onUpdatePetStage,
   onUpdatePetLine,
