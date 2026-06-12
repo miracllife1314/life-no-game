@@ -116,8 +116,8 @@ export function CaptainDashboard({
   currentUserRole,
   onAdminSelectTeam
 }: CaptainDashboardProps) {
-  // Get members of this team (both students and captain)
-  const squadMembers = profiles.filter(p => p.team_id === team?.id);
+  // Get active members of this team (both students and captain)
+  const squadMembers = profiles.filter(p => p.team_id === team?.id && p.status !== 'inactive');
 
   // Sort squad members so the captain is first, and students are sorted by score descending
   const sortedMembers = [...squadMembers].sort((a, b) => {

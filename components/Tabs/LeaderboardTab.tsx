@@ -107,7 +107,7 @@ export function LeaderboardTab({
   };
 
   // 1. DATA PREPARATION: Current Batch Individual
-  const currentBatchProfiles = profiles.filter(p => p.batch_id === selectedBatchId);
+  const currentBatchProfiles = profiles.filter(p => p.batch_id === selectedBatchId && p.status !== 'inactive');
   const sortedIndividual = [...currentBatchProfiles].sort((a, b) => b.score - a.score);
   const topIndividual = sortedIndividual.slice(0, 3);
   const remainingIndividual = sortedIndividual.slice(3);
@@ -131,7 +131,7 @@ export function LeaderboardTab({
 
   // 3. DATA PREPARATION: All-Time Individual (神人榜) - Limit to top 50
   const sortedAllTimeIndividual = [...profiles]
-    .filter(p => p.role !== 'admin') // Exclude GMs from hall of fame
+    .filter(p => p.role !== 'admin' && p.status !== 'inactive') // Exclude GMs and inactive from hall of fame
     .sort((a, b) => b.score - a.score)
     .slice(0, 50);
 

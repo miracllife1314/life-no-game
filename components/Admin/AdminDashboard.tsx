@@ -2296,7 +2296,7 @@ export function AdminDashboard({
                 {teams
                   .filter(t => t.batch_id === teamsFilterBatchId)
                   .map(t => {
-                    const memberCount = profiles.filter(p => p.team_id === t.id && p.role === 'student' && p.batch_id === teamsFilterBatchId).length;
+                    const memberCount = profiles.filter(p => p.team_id === t.id && p.role === 'student' && p.batch_id === teamsFilterBatchId && p.status !== 'inactive').length;
                     return (
                       <div key={t.id} className="bg-slate-950 border border-slate-800 p-4 rounded-2xl space-y-3 relative light:bg-slate-50 light:border-slate-200 select-none text-left">
                         <div className="flex justify-between items-start">
