@@ -49,7 +49,7 @@ export function useTrimmedPetImage(url?: string | null): string {
         const h = Math.max(1, Math.round(img.height * sc));
         const c = document.createElement('canvas');
         c.width = w; c.height = h;
-        const ctx = c.getContext('2d', { willReadFrequently: true } as any);
+        const ctx = c.getContext('2d', { willReadFrequently: true });
         if (!ctx) return;
         ctx.drawImage(img, 0, 0, w, h);
         const data = ctx.getImageData(0, 0, w, h).data;
