@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Achievement, UserAchievement } from '@/types';
-import { Flame, Sparkles, Trophy, Award, Lock, Zap } from 'lucide-react';
+import { Flame, Sparkles, Trophy, Award, Lock, Zap, Crown, Target, Infinity, Brain, Gem } from 'lucide-react';
 
 interface AchievementsTabProps {
   achievements: Achievement[];
@@ -36,14 +36,16 @@ export function AchievementsTab({ achievements, userAchievements, studentScore }
 
     const iconClass = unlocked ? 'text-amber-400 filter drop-shadow-[0_0_5px_rgba(251,191,36,0.6)]' : 'text-slate-600';
     switch (iconName) {
-      case 'Flame':
-        return <Flame className={iconClass} size={24} />;
-      case 'Sparkles':
-        return <Sparkles className={iconClass} size={24} />;
-      case 'Trophy':
-        return <Trophy className={iconClass} size={24} />;
-      default:
-        return <Award className={iconClass} size={24} />;
+      case 'Flame': return <Flame className={iconClass} size={24} />;
+      case 'Sparkles': return <Sparkles className={iconClass} size={24} />;
+      case 'Trophy': return <Trophy className={iconClass} size={24} />;
+      case 'Zap': return <Zap className={iconClass} size={24} />;
+      case 'Crown': return <Crown className={iconClass} size={24} />;
+      case 'Target': return <Target className={iconClass} size={24} />;
+      case 'Infinity': return <Infinity className={iconClass} size={24} />;
+      case 'Brain': return <Brain className={iconClass} size={24} />;
+      case 'Gem': return <Gem className={iconClass} size={24} />;
+      default: return <Award className={iconClass} size={24} />;
     }
   };
 
