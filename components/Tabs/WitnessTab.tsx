@@ -89,7 +89,7 @@ const compressImage = (file: File): Promise<string> => {
 };
 
 export function WitnessTab({ profiles, tasks, submissions, currentUserId, onRefresh, batches, onHideWitness, onDeleteWitness }: WitnessTabProps) {
-  const [category,     setCategory]     = useState<'all' | 'current' | 'mission' | 'sharing'>('all');
+  const [category,     setCategory]     = useState<'all' | 'current' | 'mission' | 'sharing' | 'hidden'>('all');
   const [searchQuery,  setSearchQuery]  = useState('');
   const [likes,        setLikes]        = useState<Record<string, string[]>>({});
   const [comments,     setComments]     = useState<WitnessComment[]>([]);
@@ -123,24 +123,39 @@ export function WitnessTab({ profiles, tasks, submissions, currentUserId, onRefr
     return currentUser?.batch_id || (batches.find(b => b.status === 'active')?.id) || batches[0]?.id || '';
   }, [currentUser, batches]);
 
-  // All approved submissions with real proof and not hidden by captain
-  const witnessItems = useMemo(() =>
+  // All approved submissions with real proof
+  const baseItems = useMemo(() =>
     submissions
-      .filter(s =>
-        s.status === 'approved' &&
-        s.proof_text !== CAPTAIN_MANUAL &&
-        s.share_to_witness !== false &&
-        // 只顯示「主動分享」的：自訂分享貼文，或勾選了分享到見證牆的審核提交
-        (s.mission_id === 'task-custom-post' || s.share_to_witness === true) &&
-        !hiddenIds.includes(s.id)
-      )
+      .filter(s => s.status === 'approved' && s.proof_text !== CAPTAIN_MANUAL)
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()),
-    [submissions, hiddenIds]
+    [submissions]
   );
 
+  const witnessItems = useMemo(() => {
+    return baseItems.filter(s =>
+      s.share_to_witness !== false &&
+      (s.mission_id === 'task-custom-post' || s.share_to_witness === true) &&
+      !hiddenIds.includes(s.id)
+    );
+  }, [baseItems, hiddenIds]);
+
   const filtered = useMemo(() => {
-    // 1. Filter by category
-    let result = witnessItems.filter(s => {
+    let sourceItems = baseItems;
+
+    if (category === 'hidden') {
+      // Only show hidden items
+      sourceItems = sourceItems.filter(s => s.share_to_witness === false || hiddenIds.includes(s.id));
+    } else {
+      // Normal witness wall logic
+      sourceItems = sourceItems.filter(s =>
+        s.share_to_witness !== false &&
+        (s.mission_id === 'task-custom-post' || s.share_to_witness === true) &&
+        !hiddenIds.includes(s.id)
+      );
+    }
+
+    // 1. Filter by category (for non-hidden tabs)
+    let result = sourceItems.filter(s => {
       const profile = profiles.find(p => p.id === s.student_id);
       const studentBatchId = profile?.batch_id || '';
 
@@ -151,7 +166,7 @@ export function WitnessTab({ profiles, tasks, submissions, currentUserId, onRefr
       } else if (category === 'sharing') {
         return studentBatchId === currentBatchId && s.mission_id === 'task-custom-post';
       }
-      return true; // 'all'
+      return true; // 'all' or 'hidden'
     });
 
     // 2. Filter by search & team scope
@@ -185,7 +200,7 @@ export function WitnessTab({ profiles, tasks, submissions, currentUserId, onRefr
     }
 
     return result;
-  }, [witnessItems, category, currentBatchId, searchQuery, scopeFilter, sortBy, profiles, tasks, currentUser, likes]);
+  }, [baseItems, category, currentBatchId, searchQuery, scopeFilter, sortBy, profiles, tasks, currentUser, likes, hiddenIds]);
 
   // ── like toggle ───────────────────────────────────────────────────
   const handleToggleLike = (subId: string) => {
@@ -317,7 +332,8 @@ export function WitnessTab({ profiles, tasks, submissions, currentUserId, onRefr
           { id: 'all', label: '全部見證' },
           { id: 'current', label: '當期見證' },
           { id: 'mission', label: '任務見證' },
-          { id: 'sharing', label: '分享見證' }
+          { id: 'sharing', label: '分享見證' },
+          ...(currentUser?.role === 'admin' ? [{ id: 'hidden', label: '已隱藏(管理)' }] : [])
         ].map(tab => (
           <button
             key={tab.id}
@@ -567,7 +583,7 @@ export function WitnessTab({ profiles, tasks, submissions, currentUserId, onRefr
                       </div>
                       {currentUser?.role === 'admin' && (
                         <div className="flex gap-1">
-                          {onHideWitness && (
+                          {onHideWitness && category !== 'hidden' && (
                             <button
                               onClick={() => {
                                 if (window.confirm('確定要從見證牆隱藏這筆資料嗎？')) {
@@ -577,6 +593,30 @@ export function WitnessTab({ profiles, tasks, submissions, currentUserId, onRefr
                               className="text-[10px] font-bold text-slate-400 hover:text-orange-400 bg-slate-800/50 hover:bg-slate-800 px-2 py-0.5 rounded cursor-pointer transition-colors light:bg-slate-100 light:hover:bg-slate-200"
                             >
                               隱藏
+                            </button>
+                          )}
+                          {category === 'hidden' && (
+                            <button
+                              onClick={async () => {
+                                if (window.confirm('確定要復原並重新顯示這筆資料嗎？')) {
+                                  // Restore by setting share_to_witness back to true and removing from hiddenIds
+                                  try {
+                                    await supabase.from('submissions').update({ share_to_witness: true }).eq('id', s.id);
+                                    if (onRefresh) await onRefresh();
+                                    
+                                    // Remove from localStorage if it exists
+                                    const hIds = JSON.parse(localStorage.getItem('nlp_witness_hidden') || '[]');
+                                    const nextHidden = hIds.filter((hId: string) => hId !== s.id);
+                                    localStorage.setItem('nlp_witness_hidden', JSON.stringify(nextHidden));
+                                    setHiddenIds(nextHidden);
+                                  } catch (err) {
+                                    console.error(err);
+                                  }
+                                }
+                              }}
+                              className="text-[10px] font-bold text-slate-400 hover:text-emerald-400 bg-slate-800/50 hover:bg-slate-800 px-2 py-0.5 rounded cursor-pointer transition-colors light:bg-slate-100 light:hover:bg-slate-200"
+                            >
+                              復原顯示
                             </button>
                           )}
                           {onDeleteWitness && (
