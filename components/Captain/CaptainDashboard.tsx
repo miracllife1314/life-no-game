@@ -1160,6 +1160,10 @@ export function CaptainDashboard({
                       const completedTasks = memberTasks.filter(item => item.progress.isDone);
                       const uncompletedTasks = memberTasks.filter(item => {
                         if (item.progress.isDone || item.progress.pendingCount > 0) return false;
+                        
+                        // 隱藏進化任務
+                        if (item.task.category === '神獸進化' || String((item.task as any).template_id || '').startsWith('temp-evolve')) return false;
+
                         // 只顯示當時區（當前有效）的未完成任務
                         const now = new Date().getTime();
                         const st = item.task.start_time ? new Date(item.task.start_time).getTime() : (item.task.publish_time ? new Date(item.task.publish_time).getTime() : 0);
@@ -1259,7 +1263,14 @@ export function CaptainDashboard({
                                           const sub = submissions.find(s => s.id === log.submission_id);
                                           if (sub) {
                                             const t = tasks.find(t => t.id === sub.mission_id);
-                                            if (t) displayReason = `完成任務：${t.name}`;
+                                            if (t) {
+                                              let prefix = '[特殊]';
+                                              if (t.type === 'daily') prefix = '[每日]';
+                                              else if (t.type === 'weekly') prefix = '[每週]';
+                                              else if (t.type === 'limited' || t.name.includes('限時') || t.name.includes('最後一週')) prefix = '[限時]';
+                                              
+                                              displayReason = `完成任務：${prefix} ${t.name}`;
+                                            }
                                           }
                                         }
 
