@@ -2770,7 +2770,7 @@ export function AdminDashboard({
                       return (
                         <div key={course.id} className="p-3 rounded bg-slate-950 border border-amber-500/50 space-y-2">
                           <input type="text" value={editCourseName} onChange={e => setEditCourseName(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded p-1.5 text-[11px] text-white" placeholder="課程名稱" />
-                          <input type="text" value={editCourseDesc} onChange={e => setEditCourseDesc(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded p-1.5 text-[11px] text-white" placeholder="課程描述" />
+                          <textarea value={editCourseDesc} onChange={e => setEditCourseDesc(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded p-1.5 text-[11px] text-white" rows={3} placeholder="課程描述" />
                           <div className="flex gap-2">
                             <select value={editCourseBatchId} onChange={e => setEditCourseBatchId(e.target.value)} className="flex-1 bg-slate-900 border border-slate-700 rounded p-1.5 text-[11px] text-white">
                               <option value="">全體課程</option>
