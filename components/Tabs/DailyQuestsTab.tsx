@@ -1638,6 +1638,7 @@ export function DailyQuestsTab({
                 </button>
               </div>
             </form>
+            </div>
           </div>
         </div>
       )}
