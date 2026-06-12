@@ -521,10 +521,15 @@ export default function Home() {
         queryTeam = params.get('team') || '';
       }
 
-      const { data } = await supabase.auth.getUser();
-      if (data?.user) {
+      // Only use nlp_mock_user_id — we do NOT call supabase.auth.getUser()
+      // because this project uses profiles table login, not Supabase Auth accounts.
+      const mockUserId = typeof window !== 'undefined' ? localStorage.getItem('nlp_mock_user_id') : null;
+      
+      const activeUserId = mockUserId;
+
+      if (activeUserId) {
         setViewState('app');
-        const loadedProfile = await fetchData(data.user.id);
+        const loadedProfile = await fetchData(activeUserId);
         
         // If they followed an invite link while logged in, check enrollment!
         if (queryInvite && queryBatch && queryTeam) {
@@ -564,7 +569,7 @@ export default function Home() {
                 if (typeof window !== 'undefined') {
                   window.history.replaceState({}, document.title, window.location.pathname);
                 }
-                const updatedProfiles = await fetchData(data.user.id);
+                const updatedProfiles = await fetchData(activeUserId);
                 const { data: newProfiles } = await supabase.from('profiles').select('*');
                 const newEnrollment = newProfiles?.find((p: any) => p.profile_id === loadedProfile?.profile_id && p.batch_id === queryBatch);
                 if (newEnrollment) {
@@ -621,26 +626,32 @@ export default function Home() {
   // --- Auth Actions ---
   const handleLogin = async (name: string) => {
     setIsSyncing(true);
-    // Standard mock or real sign-in (email uses dummy prefix for names)
-    const email = `${name.toLowerCase()}@nlpgame.local`;
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password: 'dummy-password'
-    });
+    try {
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .or(`name.eq."${name}",phone.eq."${name}"`)
+        .limit(1)
+        .maybeSingle();
 
-    if (error) {
-      setIsSyncing(false);
-      throw new Error(error.message);
-    }
+      if (error || !profile) {
+        throw new Error('找不到該使用者，請確認名稱或手機號碼');
+      }
 
-    if (data?.user) {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('nlp_mock_user_id', profile.id);
+      }
+      
       setViewState('app');
-      const loadedProfile = await fetchData(data.user.id);
+      const loadedProfile = await fetchData(profile.id);
       if (loadedProfile && loadedProfile.role === 'admin') {
         setActiveTab('admin');
       } else {
         setActiveTab('daily');
       }
+    } catch (err: any) {
+      setIsSyncing(false);
+      throw new Error(err.message || '登入失敗');
     }
   };
 
@@ -707,6 +718,10 @@ export default function Home() {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('nlp_session');
+      localStorage.removeItem('nlp_mock_user_id');
+    }
     setCurrentUser(null);
     setCurrentTeam(null);
     setViewState('login');
@@ -719,6 +734,7 @@ export default function Home() {
     if (nextEnrollment) {
       if (typeof window !== 'undefined') {
         localStorage.setItem('nlp_session', JSON.stringify(nextEnrollment));
+        localStorage.setItem('nlp_mock_user_id', nextEnrollment.id);
       }
       await fetchData(nextEnrollment.id);
     }
@@ -739,14 +755,14 @@ export default function Home() {
     const title = task ? task.name : mission!.title;
 
     const submissionData = {
-      mission_id: taskId,
+      task_id: taskId,         // Supabase schema 用 task_id（not mission_id）
       student_id: currentUser.id,
-      proof_text: proofText || null,
+      proof_text: proofText || '免證明直接簽到',
       proof_image_url: proofImg || null,
       proof_link: proofLink || null,
       status: (requiresApproval ? 'pending' : 'approved') as SubmissionStatus,
       score_awarded: requiresApproval ? 0 : points,
-      reviewed_by: requiresApproval ? null : 'admin1',
+      reviewed_by: null,       // must be UUID or null; 'admin1' is not valid
       reviewed_at: requiresApproval ? null : new Date().toISOString(),
       created_at: new Date().toISOString()
     };
@@ -755,7 +771,16 @@ export default function Home() {
       const mockSubId = `mock-sub-${Date.now()}`;
       const newSub: Submission = {
         id: mockSubId,
-        ...submissionData,
+        mission_id: taskId,
+        student_id: currentUser.id,
+        proof_text: proofText || '免證明直接簽到',
+        proof_image_url: proofImg || null,
+        proof_link: proofLink || null,
+        status: (requiresApproval ? 'pending' : 'approved') as SubmissionStatus,
+        score_awarded: requiresApproval ? 0 : points,
+        reviewed_by: null,
+        reviewed_at: requiresApproval ? null : new Date().toISOString(),
+        created_at: new Date().toISOString(),
         profile: currentUser,
         mission: mission || undefined
       };
@@ -805,7 +830,12 @@ export default function Home() {
     }
 
     try {
-      await supabase.from('submissions').insert(submissionData);
+      const { error: insertError } = await supabase.from('submissions').insert(submissionData);
+      if (insertError) {
+        console.error('[CheckIn] submissions insert error:', insertError);
+        showToast(`❌ 打卡失敗：${insertError.message}`, 'error');
+        return;
+      }
       await fetchData();
 
       // Trigger success animations and toasts
@@ -816,9 +846,9 @@ export default function Home() {
         triggerConfetti();
         triggerScoreFloat(`+${points} 經驗！`);
       }
-    } catch (err) {
-      console.error(err);
-      showToast('❌ 打卡失敗，請重試！', 'error');
+    } catch (err: any) {
+      console.error('[CheckIn] unexpected error:', err);
+      showToast(`❌ 打卡失敗：${err?.message || '未知錯誤'}`, 'error');
     }
   };
 

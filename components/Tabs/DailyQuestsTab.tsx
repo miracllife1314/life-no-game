@@ -29,9 +29,18 @@ interface DailyQuestsTabProps {
   onSelectEvolutionLine: (studentId: string, lineKey: string) => Promise<void>;
 }
 
+function parseLocalTime(dateStr: string | undefined | null): Date {
+  if (!dateStr) return new Date();
+  // 移除 Supabase 自動附加的 UTC 時區標記，強制轉為本地時間解析
+  const localStr = dateStr.replace(/(Z|\+00:00|\+00)$/, '');
+  // 如果字串只有 yyyy-mm-dd，手動加上 T00:00:00 確保不被當作 UTC
+  const safeStr = localStr.includes('T') || localStr.includes(' ') ? localStr : `${localStr}T00:00:00`;
+  return new Date(safeStr.replace(' ', 'T'));
+}
+
 function getCountdownText(endTimeStr: string | undefined): { text: string; isUrgent: boolean; isExpired: boolean } | null {
   if (!endTimeStr) return null;
-  const endTime = new Date(endTimeStr).getTime();
+  const endTime = parseLocalTime(endTimeStr).getTime();
   const now = Date.now();
   const diff = endTime - now;
   if (diff <= 0) {
@@ -48,6 +57,35 @@ function getCountdownText(endTimeStr: string | undefined): { text: string; isUrg
   } else {
     return { text: `僅剩 ${diffHours} 小時 ${diffMins} 分`, isUrgent: true, isExpired: false };
   }
+}
+
+function isTodayLocal(date: Date, now: Date): boolean {
+  return (
+    date.getFullYear() === now.getFullYear() &&
+    date.getMonth() === now.getMonth() &&
+    date.getDate() === now.getDate()
+  );
+}
+
+function isTodayInRangeLocal(start: Date, end: Date, now: Date): boolean {
+  const dNow = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const dStart = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+  const dEnd = new Date(end.getFullYear(), end.getMonth(), end.getDate());
+  return dNow >= dStart && dNow <= dEnd;
+}
+
+function isThisWeekLocal(date: Date, now: Date): boolean {
+  const day = now.getDay();
+  const diffToMonday = day === 0 ? -6 : 1 - day;
+  const startOfWeek = new Date(now.getFullYear(), now.getMonth(), now.getDate() + diffToMonday, 0, 0, 0, 0);
+  const endOfWeek = new Date(startOfWeek.getTime() + 7 * 24 * 60 * 60 * 1000 - 1);
+  return date >= startOfWeek && date <= endOfWeek;
+}
+
+function isFutureLocal(date: Date, now: Date): boolean {
+  const dDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const dNow = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  return dDate > dNow;
 }
 
 const compressImage = (file: File): Promise<string> => {
@@ -439,44 +477,8 @@ export function DailyQuestsTab({
   const attrRapport = Math.min(100, 40 + Math.floor(activeProfile.score / 120));
   const attrReshaping = Math.min(100, 20 + Math.floor(activeProfile.score / 200));
 
-  // Task filtering logic
-  const filteredTasks = tasks.filter(t => {
-    let matchesTab = false;
-    if (activeCategory === 'daily') matchesTab = t.type === 'daily';
-    else if (activeCategory === 'weekly') matchesTab = t.type === 'weekly';
-    else if (activeCategory === 'special') matchesTab = t.type === 'temporary';
-    else if (activeCategory === 'temporary') matchesTab = t.type === 'limited';
-
-    return matchesTab;
-  });
-
   const now = new Date();
   const isUsingMissions = profile.role !== 'admin' && !!profile.batch_id;
-
-  const displayMissions = isUsingMissions
-    ? missions.filter(m => {
-        const publishTime = new Date(m.publish_at);
-        const deadlineTime = new Date(m.deadline_at);
-        const sub = submissions.find(s => s.mission_id === m.id);
-        const isCompleted = sub && (sub.status === 'approved' || sub.status === 'pending');
-        const isUncompletedExpiredShow = (m.mission_type === 'weekly' || m.mission_type === 'special' || m.mission_type === 'limited') && !isCompleted;
-
-        return m.batch_id === profile.batch_id &&
-               publishTime <= now &&
-               (deadlineTime >= now || isUncompletedExpiredShow) &&
-               (m.status === 'active' || m.status === 'scheduled');
-      })
-    : [];
-
-  const filteredMissions = displayMissions.filter(m => {
-    let matchesTab = false;
-    if (activeCategory === 'daily') matchesTab = m.mission_type === 'daily';
-    else if (activeCategory === 'weekly') matchesTab = m.mission_type === 'weekly';
-    else if (activeCategory === 'special') matchesTab = m.mission_type === 'special';
-    else if (activeCategory === 'temporary') matchesTab = m.mission_type === 'limited';
-
-    return matchesTab;
-  });
 
   const getTaskProgress = (taskId: string) => {
     let limit = 1;
@@ -511,6 +513,75 @@ export function DailyQuestsTab({
   const getTaskSubmission = (taskId: string) => {
     return submissions.find(s => s.mission_id === taskId);
   };
+
+  // Task filtering logic
+  const filteredTasks = tasks.filter(t => {
+    let matchesTab = false;
+    if (activeCategory === 'daily') matchesTab = t.type === 'daily';
+    else if (activeCategory === 'weekly') matchesTab = t.type === 'weekly';
+    else if (activeCategory === 'special') matchesTab = t.type === 'temporary';
+    else if (activeCategory === 'temporary') matchesTab = t.type === 'limited';
+
+    if (!matchesTab) return false;
+
+    const publishTime = parseLocalTime(t.publish_time);
+    const deadlineTime = parseLocalTime(t.end_time);
+    const { isDone } = getTaskProgress(t.id);
+
+    // 1. 未到 publish_at
+    if (now.getTime() < publishTime.getTime()) return false;
+
+    // 3. 超過 end_at：前台不要顯示在進行中任務
+    if (now.getTime() > deadlineTime.getTime() && !isDone) return false;
+
+    // 5. 每日任務：只顯示 publish_at 在今天的每日任務
+    if (t.type === 'daily') {
+      if (!isTodayLocal(publishTime, now)) return false;
+    } else if (t.type === 'weekly' || t.type === 'temporary' || t.type === 'special') {
+      // 6. 每週、特殊任務：只顯示今天日期落在 publish_at ~ end_at 區間內的任務
+      if (!isTodayInRangeLocal(publishTime, deadlineTime, now)) return false;
+    }
+    // 7. 限時挑戰 (limited)：現在時間落在區間內（已由 #1 和 #3 處理）
+
+    return true;
+  });
+
+  const displayMissions = isUsingMissions
+    ? missions.filter(m => {
+        const publishTime = parseLocalTime(m.publish_at);
+        const deadlineTime = parseLocalTime(m.deadline_at);
+        const sub = submissions.find(s => s.mission_id === m.id);
+        const isCompleted = sub && (sub.status === 'approved' || sub.status === 'pending');
+
+        // 1. 未到 publish_at：前台不可顯示
+        if (now.getTime() < publishTime.getTime()) return false;
+
+        // 3. 超過 end_at：前台不要顯示在進行中任務 (若已完成則保留顯示)
+        if (now.getTime() > deadlineTime.getTime() && !isCompleted) return false;
+
+        // 5. 每日任務：只顯示 publish_at 在今天的每日任務
+        if (m.mission_type === 'daily') {
+          if (!isTodayLocal(publishTime, now)) return false;
+        } else if (m.mission_type === 'weekly' || m.mission_type === 'special') {
+          // 6. 每週與特殊任務：只顯示今天日期落在 publish_at ~ end_at 區間內的任務
+          if (!isTodayInRangeLocal(publishTime, deadlineTime, now)) return false;
+        }
+        // 7. 限時挑戰 (limited)：現在時間落在區間內（已由上面的 #1 和 #3 處理）
+
+        return m.batch_id === profile.batch_id &&
+               (m.status === 'active' || m.status === 'scheduled');
+      })
+    : [];
+
+  const filteredMissions = displayMissions.filter(m => {
+    let matchesTab = false;
+    if (activeCategory === 'daily') matchesTab = m.mission_type === 'daily';
+    else if (activeCategory === 'weekly') matchesTab = m.mission_type === 'weekly';
+    else if (activeCategory === 'special') matchesTab = m.mission_type === 'special';
+    else if (activeCategory === 'temporary') matchesTab = m.mission_type === 'limited';
+
+    return matchesTab;
+  });
 
   const handleCardClick = (task: Task) => {
     const { isDone } = getTaskProgress(task.id);
@@ -549,14 +620,29 @@ export function DailyQuestsTab({
     e.preventDefault();
     if (!selectedTask) return;
 
+    // 立即關閉對話框並清空狀態，避免非同步重渲染時對話框閃爍
+    const task = selectedTask;
+    const txt = proofText;
+    const img = proofImg;
+    const lnk = proofLink;
+
+    setShowProofModal(false);
+    setSelectedTask(null);
+    setProofImg('');
+    setProofText('');
+    setProofLink('');
+
     setSubmitting(true);
     try {
-      await onCheckIn(selectedTask.id, proofText, proofImg || undefined, proofLink);
-      setShowProofModal(false);
-      setSelectedTask(null);
-      setProofImg('');
+      await onCheckIn(task.id, txt, img || undefined, lnk);
     } catch (err) {
       console.error(err);
+      // 若失敗，則還原對話框狀態
+      setSelectedTask(task);
+      setProofText(txt);
+      setProofImg(img);
+      setProofLink(lnk);
+      setShowProofModal(true);
     } finally {
       setSubmitting(false);
     }
@@ -587,8 +673,8 @@ export function DailyQuestsTab({
       return isDoneA ? 1 : -1;
     }
     
-    const timeA = new Date(a.created_at || 0).getTime();
-    const timeB = new Date(b.created_at || 0).getTime();
+    const timeA = parseLocalTime(a.created_at).getTime();
+    const timeB = parseLocalTime(b.created_at).getTime();
     return timeB - timeA;
   });
 
@@ -967,8 +1053,8 @@ export function DailyQuestsTab({
           {isUsingMissions && filteredMissions.length > 0
             ? filteredMissions.map((mission) => {
                   const nowTime = Date.now();
-                  const pubTime = new Date(mission.publish_at).getTime();
-                  const deadTime = new Date(mission.deadline_at).getTime();
+                  const pubTime = parseLocalTime(mission.publish_at).getTime();
+                  const deadTime = parseLocalTime(mission.deadline_at).getTime();
                   const { isDone, approvedCount, limit } = getTaskProgress(mission.id);
                   const status = getTaskStatus(mission.id);
 
@@ -1477,14 +1563,19 @@ export function DailyQuestsTab({
                 type="button"
                 onClick={async () => {
                   if (confirmTask) {
+                    const task = confirmTask;
+                    // 立即關閉對話框並清空狀態，避免非同步重渲染時對話框閃爍
+                    setShowConfirmModal(false);
+                    setConfirmTask(null);
                     try {
-                      await onCheckIn(confirmTask.id);
+                      await onCheckIn(task.id);
                     } catch (err) {
                       console.error(err);
+                      // 若失敗，則重新還原對話框
+                      setConfirmTask(task);
+                      setShowConfirmModal(true);
                     }
                   }
-                  setShowConfirmModal(false);
-                  setConfirmTask(null);
                 }}
                 className="flex-1 btn-action py-3 rounded-xl bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-300 hover:to-orange-400 text-slate-950 text-xs font-black shadow-[0_0_15px_rgba(245,158,11,0.4)] shimmer-btn"
               >

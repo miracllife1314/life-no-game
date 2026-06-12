@@ -13,7 +13,13 @@ const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 export const isRealSupabase = !!(supabaseUrl && supabaseUrl !== 'your-supabase-url' && supabaseKey);
 
 // Base real supabase client
-export const realSupabase = isRealSupabase ? createClient(supabaseUrl, supabaseKey) : null;
+export const realSupabase = isRealSupabase ? createClient(supabaseUrl, supabaseKey, {
+  auth: {
+    autoRefreshToken: false,
+    persistSession: false,
+    detectSessionInUrl: false,
+  }
+}) : null;
 
 // ==========================================
 // LOCAL PERSISTENCE STORAGE ENGINE (LOCAL DB)

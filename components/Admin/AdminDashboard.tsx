@@ -181,6 +181,7 @@ export function AdminDashboard({
 
   // --- Task creation State ---
   const [showTaskModal, setShowTaskModal] = useState(false);
+  const [showApplyConfirmModal, setShowApplyConfirmModal] = useState(false);
   const [taskName, setTaskName] = useState('');
   const [taskDesc, setTaskDesc] = useState('');
   const [taskType, setTaskType] = useState<TaskType>('daily');
@@ -600,7 +601,8 @@ export function AdminDashboard({
     e.preventDefault();
     if (!taskName) return;
 
-    await onCreateTask({
+    // 立即關閉對話框並清空輸入，避免非同步載入重渲染時閃爍
+    const currentTaskData = {
       name: taskName,
       description: taskDesc,
       type: taskType,
@@ -610,12 +612,12 @@ export function AdminDashboard({
       publish_time: new Date().toISOString(),
       start_time: new Date(taskStartTime).toISOString(),
       end_time: new Date(taskEndTime).toISOString(),
-      target_type: 'all',
+      target_type: 'all' as TaskTargetType,
       target_team_id: null,
       target_user_id: null,
       batch_id: taskBatchId || null,
       category: taskCategory
-    });
+    };
 
     setTaskName('');
     setTaskDesc('');
@@ -623,6 +625,19 @@ export function AdminDashboard({
     setTaskBatchId('');
     setTaskCategory('初階');
     setShowTaskModal(false);
+
+    try {
+      await onCreateTask(currentTaskData);
+    } catch (err) {
+      console.error('建立任務失敗:', err);
+      // 若失敗，則恢復狀態供使用者調整
+      setTaskName(currentTaskData.name);
+      setTaskDesc(currentTaskData.description);
+      setTaskScore(currentTaskData.score);
+      setTaskBatchId(currentTaskData.batch_id || '');
+      setTaskCategory(currentTaskData.category);
+      setShowTaskModal(true);
+    }
   };
 
   const handleAssignTeamSubmit = async (e: React.FormEvent) => {
@@ -991,8 +1006,14 @@ export function AdminDashboard({
     }));
   };
 
-  const handleSaveBatchRulesSubmit = async (e: React.FormEvent) => {
+  const handleSaveBatchRulesSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!selectedRuleBatchId) return;
+    setShowApplyConfirmModal(true);
+  };
+
+  const handleConfirmApplyRules = async () => {
+    setShowApplyConfirmModal(false);
     if (!selectedRuleBatchId) return;
     
     const rulesToSave: Omit<BatchMissionTemplate, 'id' | 'created_at' | 'updated_at'>[] = [];
@@ -1015,7 +1036,6 @@ export function AdminDashboard({
     
     if (onSaveBatchMissionTemplates) {
       await onSaveBatchMissionTemplates(selectedRuleBatchId, rulesToSave);
-      alert('期數任務設定儲存成功！');
     }
   };
 
@@ -4788,7 +4808,7 @@ export function AdminDashboard({
                 className="w-full btn-action py-3.5 rounded-xl bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white text-xs font-black shadow-md shadow-red-500/20 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 <Save size={16} />
-                儲存此期數任務設定
+                套用任務
               </button>
             </form>
           ) : (
@@ -4909,6 +4929,47 @@ export function AdminDashboard({
               請在右上角選取一個課程期數以載入排程預覽。
             </div>
           )}
+        </div>
+      )}
+
+      {/* Apply Batch Mission Rules Confirm Modal */}
+      {showApplyConfirmModal && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="glass-panel w-full max-w-md p-6 rounded-3xl border border-white/10 shadow-2xl relative animate-in zoom-in-95 duration-200 text-left light:bg-white light:border-slate-200">
+            <div className="flex flex-col items-center text-center space-y-4 py-4 select-none">
+              <div className="w-16 h-16 rounded-full bg-red-500/10 border border-red-500/30 flex items-center justify-center text-red-500 animate-bounce">
+                <AlertCircle size={32} />
+              </div>
+              
+              <div className="space-y-2">
+                <h3 className="text-lg font-black text-white light:text-slate-900">
+                  確認套用任務發布規則？
+                </h3>
+                <p className="text-sm text-slate-300 light:text-slate-600 leading-relaxed font-medium">
+                  確定要套用所選任務至本期嗎？<br />
+                  套用後將建立本期任務資料。
+                </p>
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-4 select-none">
+              <button
+                type="button"
+                onClick={() => setShowApplyConfirmModal(false)}
+                className="flex-1 btn-action py-3 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-white text-xs font-bold light:bg-slate-100 light:border-slate-200 light:text-slate-600 light:hover:bg-slate-200"
+              >
+                取消
+              </button>
+              <button
+                type="button"
+                disabled={isSyncing}
+                onClick={handleConfirmApplyRules}
+                className="flex-1 btn-action py-3 rounded-xl bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white text-xs font-black shadow-md shadow-red-500/20 transition-all cursor-pointer disabled:opacity-50"
+              >
+                {isSyncing ? '套用中...' : '確認'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
