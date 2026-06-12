@@ -41,16 +41,27 @@ export function Navigation({ activeTab, setActiveTab, userRole }: NavigationProp
   });
 
   useEffect(() => {
+    const updateCapsule = () => {
+      const activeBtn = itemRefs.current[activeTab];
+      const container = containerRef.current;
+      if (activeBtn && container) {
+        const left = activeBtn.offsetLeft;
+        const width = activeBtn.offsetWidth;
+        setCapsuleStyle({ left, width, opacity: 1 });
+      }
+    };
+
+    updateCapsule();
+
+    // Re-calculate on window resize or font load
+    window.addEventListener('resize', updateCapsule);
+    // Smoothly scroll tab into view if overflowing on narrower screens
     const activeBtn = itemRefs.current[activeTab];
-    const container = containerRef.current;
-    if (activeBtn && container) {
-      const left = activeBtn.offsetLeft;
-      const width = activeBtn.offsetWidth;
-      setCapsuleStyle({ left, width, opacity: 1 });
-      
-      // Smoothly scroll tab into view if overflowing on narrower screens
+    if (activeBtn) {
       activeBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
     }
+
+    return () => window.removeEventListener('resize', updateCapsule);
   }, [activeTab]);
 
   // Complete list of menu items (used in Desktop)
@@ -86,8 +97,8 @@ export function Navigation({ activeTab, setActiveTab, userRole }: NavigationProp
   return (
     <>
       {/* ── Desktop Horizontal Navigation Tab Bar ──────────────────────── */}
-      <nav className="hidden md:block w-full border-b border-white/5 bg-slate-950/40 backdrop-blur-md overflow-x-auto py-3 px-4 select-none scrollbar-none light:bg-white/40 light:border-slate-200">
-        <div ref={containerRef} className="max-w-7xl mx-auto flex items-center justify-center gap-2 relative">
+      <nav className="hidden md:block w-full border-b border-white/5 bg-slate-950/40 backdrop-blur-md overflow-x-auto py-3 select-none scrollbar-none light:bg-white/40 light:border-slate-200">
+        <div ref={containerRef} className="w-max mx-auto flex items-center gap-2 relative px-4">
           
           {/* Dynamic sliding capsule background */}
           <div 
