@@ -35,6 +35,14 @@ function parseLocalTime(dateStr: string | undefined | null): Date {
   return parseTaipei(dateStr);
 }
 
+// 是否為「進化/升級任務」（這類任務強制要上傳照片）
+function isEvolutionTask(t: any): boolean {
+  return !!t && (
+    t.category === '神獸進化' ||
+    String(t.template_id || '').startsWith('temp-evolve')
+  );
+}
+
 function getCountdownText(endTimeStr: string | undefined): { text: string; isUrgent: boolean; isExpired: boolean } | null {
   if (!endTimeStr) return null;
   const endTime = parseLocalTime(endTimeStr).getTime();
@@ -616,6 +624,12 @@ export function DailyQuestsTab({
   const handleModalSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedTask) return;
+
+    // 進化/升級任務：強制要上傳照片
+    if (isEvolutionTask(selectedTask) && !proofImg) {
+      showToast?.('進化任務必須上傳一張修行照片才能提交 📸', 'error');
+      return;
+    }
 
     // 立即關閉對話框並清空狀態，避免非同步重渲染時對話框閃爍
     const task = selectedTask;
@@ -1426,8 +1440,12 @@ export function DailyQuestsTab({
 
               {/* 📷 選擇圖片 / 抓相簿 */}
               <div>
-                <label className="block text-xs text-slate-400 font-bold mb-2">
-                  上傳修行圖片 / 對話截圖 (選填)
+                <label className="block text-xs font-bold mb-2">
+                  {isEvolutionTask(selectedTask) ? (
+                    <span className="text-amber-500">上傳修行圖片 / 對話截圖（進化任務必附）📸</span>
+                  ) : (
+                    <span className="text-slate-400">上傳修行圖片 / 對話截圖 (選填)</span>
+                  )}
                 </label>
                 
                 {proofImg ? (
@@ -1520,11 +1538,11 @@ export function DailyQuestsTab({
                 </button>
                 <button
                   type="submit"
-                  disabled={submitting}
-                  className="flex-1 btn-action py-3 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-black flex items-center justify-center gap-1 shimmer-btn"
+                  disabled={submitting || (isEvolutionTask(selectedTask) && !proofImg)}
+                  className="flex-1 btn-action py-3 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-black flex items-center justify-center gap-1 shimmer-btn disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Send size={14} />
-                  {submitting ? '提交中...' : '提交證明'}
+                  {submitting ? '提交中...' : (isEvolutionTask(selectedTask) && !proofImg ? '請先上傳照片' : '提交證明')}
                 </button>
               </div>
             </form>
