@@ -4,18 +4,39 @@ import React, { useState, useRef } from 'react';
 import { 
   Profile, Team, Task, Submission, 
   Course, Achievement, Announcement, UserRole, TaskType, TaskTargetType,
-  Pet, UserPet, PetLine, PetStage, PetEvolutionLog, Card, Deck, DeckCard, UserDeck, Batch, MissionTemplate, BatchMissionTemplate, CaptainCandidate
+  Pet, UserPet, PetLine, PetStage, PetEvolutionLog, Card, Deck, DeckCard, UserDeck, Batch, MissionTemplate, BatchMissionTemplate, CaptainCandidate, StudentNote
 } from '@/types';
 import { 
   ShieldCheck, FileCheck, Calendar, Trophy, 
   UserPlus, Sliders, Check, X, Plus, Trash2, Edit2,
   TrendingUp, Megaphone, HelpCircle, Save,
-  Sparkles, Layers, BookOpen, Upload, Image as ImageIcon, AlertCircle, Shield
+  Sparkles, Layers, BookOpen, Upload, Image as ImageIcon, AlertCircle, Shield, Settings
 } from 'lucide-react';
 import { supabase, isRealSupabase } from '@/lib/supabase';
 import { parsePetOffset, trimCenterSquare } from '@/lib/petImage';
 
 export const MISSION_CATEGORIES = ['初階', '進階', 'VIP', '期數任務'];
+
+const QUEST_ROLES_DEFS = [
+  { id: 'role-lantern', name: '提燈人', duties: ['協助引導隊員打卡', '記錄分享會要點'] },
+  { id: 'role-dawn', name: '破曉行者', duties: ['帶頭進行每日打卡', '每日分享轉念心法'] },
+  { id: 'role-guardian', name: '金剛護法', duties: ['維護學習紀律', '協助解答技術問題'] }
+];
+
+const DEFAULT_CHARACTERS: Record<string, string> = {
+  '劉定洋': '如來佛祖(大隊長)',
+  '張品嬋': '嫦娥(抱抱)',
+  '胡俊宇': '觀音菩薩(副隊長)',
+  '莊俊琦': '哪吒(衝衝)',
+  '許特龍': '豬八戒(樂樂)',
+  '郭炫妙': '沙悟淨(踏實)',
+  '沈又希': '提燈人(小隊長)',
+  '林玉庭': '降龍羅漢(自律)',
+  '陳振揚': '伏虎羅漢(敏銳)',
+  '曾浩程': '托塔天王(大氣)',
+  '蕭意儒': '麻姑獻壽(親和)',
+  '鄭群譯': '二郎神(透視)',
+};
 
 export const ANNOUNCEMENT_TEMPLATES = [
   {
@@ -124,6 +145,9 @@ interface AdminDashboardProps {
   onAddProfile?: (profileData: { name: string; phone: string; role: UserRole; batchId: string; teamId: string; divisionName?: string | null; directorId?: string | null }) => Promise<void>;
   onQuickAssignCaptain?: (batchId: string, captainProfileId: string, teamId: string, directorId: string | null) => Promise<void>;
   isSyncing: boolean;
+  notes?: StudentNote[];
+  onSaveNote?: (studentId: string, noteText: string) => Promise<void>;
+  currentUserId?: string;
 }
 
 export function AdminDashboard({
@@ -181,7 +205,10 @@ export function AdminDashboard({
   onGenerateMissions,
   onAddProfile,
   onQuickAssignCaptain,
-  isSyncing
+  isSyncing,
+  notes = [],
+  onSaveNote,
+  currentUserId
 }: AdminDashboardProps) {
   const [adminTab, setAdminTab] = useState<'reviews' | 'tasks' | 'teams' | 'adjust' | 'others' | 'pets' | 'decks' | 'batches' | 'mission_templates' | 'batch_rules' | 'schedule_preview' | 'captain_candidates'>('reviews');
 
@@ -243,10 +270,77 @@ export function AdminDashboard({
   const [quickCaptainId, setQuickCaptainId] = useState('');
   const [quickTeamId, setQuickTeamId] = useState('');
   const [quickDirectorId, setQuickDirectorId] = useState('');
-  const [assignRole, setAssignRole] = useState<UserRole>('student');
-  const [assignDivisionName, setAssignDivisionName] = useState('');
-  const [assignDirectorId, setAssignDirectorId] = useState('');
   const [assignStatus, setAssignStatus] = useState<'active' | 'ended' | 'inactive'>('active');
+
+  // --- Role Assignment & Notes State ---
+  const [adminNoteText, setAdminNoteText] = useState('');
+  const [squadRolesMap, setSquadRolesMap] = useState<Record<string, string[]>>({});
+
+  // When assignStudentId changes, load note and roles
+  React.useEffect(() => {
+    if (assignStudentId) {
+      const student = profiles.find(p => p.id === assignStudentId);
+      // Load Note
+      if (student && currentUserId) {
+        const note = notes.find(n => n.student_id === assignStudentId && n.captain_id === currentUserId)?.note || '';
+        setAdminNoteText(note);
+      } else {
+        setAdminNoteText('');
+      }
+
+      // Load Roles from localStorage
+      if (student && student.team_id) {
+        const key = `nlp_captain_settings_${student.team_id}`;
+        const stored = localStorage.getItem(key);
+        if (stored) {
+          try {
+            const parsed = JSON.parse(stored);
+            if (parsed.squadRoles) {
+              setSquadRolesMap(parsed.squadRoles);
+            } else {
+              setSquadRolesMap({});
+            }
+          } catch (e) {
+            setSquadRolesMap({});
+          }
+        } else {
+          setSquadRolesMap({});
+        }
+      } else {
+        setSquadRolesMap({});
+      }
+    }
+  }, [assignStudentId, profiles, notes, currentUserId]);
+
+  const handleAdminNoteBlur = async () => {
+    if (!assignStudentId || !onSaveNote) return;
+    try {
+      await onSaveNote(assignStudentId, adminNoteText);
+    } catch (err) {
+      console.error('Error saving note:', err);
+    }
+  };
+
+  const handleAdminRoleChange = (roleId: string) => {
+    if (!assignStudentId) return;
+    const student = profiles.find(p => p.id === assignStudentId);
+    if (!student || !student.team_id) return;
+    
+    const nextSquadRoles = { ...squadRolesMap };
+    if (roleId) {
+      nextSquadRoles[assignStudentId] = [roleId];
+    } else {
+      delete nextSquadRoles[assignStudentId];
+    }
+    setSquadRolesMap(nextSquadRoles);
+    
+    // Save to localStorage immediately
+    const key = `nlp_captain_settings_${student.team_id}`;
+    const stored = localStorage.getItem(key);
+    const parsed = stored ? JSON.parse(stored) : {};
+    parsed.squadRoles = nextSquadRoles;
+    localStorage.setItem(key, JSON.stringify(parsed));
+  };
 
   const [editingAnnouncement, setEditingAnnouncement] = useState<Announcement | null>(null);
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
@@ -2093,6 +2187,55 @@ export function AdminDashboard({
                 </button>
               </form>
             </section>
+
+            {assignStudentId && (
+              <section className="glass-panel p-6 rounded-3xl border border-white/5 space-y-4 light:bg-white light:border-slate-200">
+                <h3 className="font-black text-white text-base flex items-center gap-2 select-none light:text-slate-900">
+                  <Settings size={18} className="text-amber-500" />
+                  小隊成員備註與職責指派
+                </h3>
+                <div className="space-y-4 animate-in fade-in duration-200">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block">
+                      編輯角色與備註（如：嫦娥(抱抱)）
+                    </label>
+                    <input
+                      type="text"
+                      value={adminNoteText}
+                      placeholder={DEFAULT_CHARACTERS[profiles.find(p => p.id === assignStudentId)?.name || ''] || "例如：如來佛祖(大隊長)"}
+                      onBlur={handleAdminNoteBlur}
+                      onChange={(e) => setAdminNoteText(e.target.value)}
+                      className="w-full text-xs bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-300 outline-none focus:border-amber-500 transition-all light:bg-slate-50 light:border-slate-300 light:text-slate-800"
+                    />
+                    <p className="text-[9px] text-slate-500 italic">備註輸入後移開焦點（Blur）將自動同步與儲存</p>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block">
+                      指派小組職責 {assignRole === 'captain' && <span className="text-amber-500">(小隊長為系統預設角色)</span>}
+                    </label>
+                    {assignRole === 'captain' ? (
+                      <div className="w-full text-xs bg-slate-950/40 border border-white/5 rounded-xl px-3 py-2.5 text-slate-500 font-bold select-none light:bg-slate-100 light:border-slate-250">
+                        👑 系統預設：小隊長
+                      </div>
+                    ) : (
+                      <select
+                        value={squadRolesMap[assignStudentId]?.[0] || ''}
+                        onChange={(e) => handleAdminRoleChange(e.target.value)}
+                        className="w-full text-xs bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-300 font-bold outline-none focus:border-teal-500 transition-all light:bg-slate-50 light:border-slate-300 light:text-slate-800"
+                      >
+                        <option value="">未分配職責</option>
+                        {QUEST_ROLES_DEFS.map(role => (
+                          <option key={role.id} value={role.id}>
+                            🛡️ {role.name} ({role.duties.join(' · ')})
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
+                </div>
+              </section>
+            )}
           </div>
 
           {/* 小隊與小隊長指派控制台 */}

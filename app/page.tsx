@@ -2438,6 +2438,9 @@ export default function Home() {
             onUpdateAnnouncement={handleUpdateAnnouncement}
             onDeleteAnnouncement={handleDeleteAnnouncement}
             onCreateCourse={handleCreateCourse}
+            notes={notes}
+            onSaveNote={handleSaveNote}
+            currentUserId={currentUser?.id}
             onUpdateCourse={handleUpdateCourse}
             onDeleteCourse={handleDeleteCourse}
             onCreateAchievement={handleCreateAchievement}
