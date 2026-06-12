@@ -537,7 +537,7 @@ export function DailyQuestsTab({
     // 5. 每日任務：只顯示 publish_at 在今天的每日任務
     if (t.type === 'daily') {
       if (!isTodayLocal(publishTime, now)) return false;
-    } else if (t.type === 'weekly' || t.type === 'temporary' || t.type === 'special') {
+    } else if (t.type === 'weekly' || t.type === 'temporary') {
       // 6. 每週、特殊任務：只顯示今天日期落在 publish_at ~ end_at 區間內的任務
       if (!isTodayInRangeLocal(publishTime, deadlineTime, now)) return false;
     }
