@@ -276,13 +276,15 @@ export function AdminDashboard({
   const [adminNoteText, setAdminNoteText] = useState('');
   const [squadRolesMap, setSquadRolesMap] = useState<Record<string, string[]>>({});
 
-  // When assignStudentId changes, load note and roles
+  const [roleSettingStudentId, setRoleSettingStudentId] = useState('');
+
+  // When roleSettingStudentId changes, load note and roles
   React.useEffect(() => {
-    if (assignStudentId) {
-      const student = profiles.find(p => p.id === assignStudentId);
+    if (roleSettingStudentId) {
+      const student = profiles.find(p => p.id === roleSettingStudentId);
       // Load Note
       if (student && currentUserId) {
-        const note = notes.find(n => n.student_id === assignStudentId && n.captain_id === currentUserId)?.note || '';
+        const note = notes.find(n => n.student_id === roleSettingStudentId && n.captain_id === currentUserId)?.note || '';
         setAdminNoteText(note);
       } else {
         setAdminNoteText('');
@@ -310,27 +312,27 @@ export function AdminDashboard({
         setSquadRolesMap({});
       }
     }
-  }, [assignStudentId, profiles, notes, currentUserId]);
+  }, [roleSettingStudentId, profiles, notes, currentUserId]);
 
   const handleAdminNoteBlur = async () => {
-    if (!assignStudentId || !onSaveNote) return;
+    if (!roleSettingStudentId || !onSaveNote) return;
     try {
-      await onSaveNote(assignStudentId, adminNoteText);
+      await onSaveNote(roleSettingStudentId, adminNoteText);
     } catch (err) {
       console.error('Error saving note:', err);
     }
   };
 
   const handleAdminRoleChange = (roleId: string) => {
-    if (!assignStudentId) return;
-    const student = profiles.find(p => p.id === assignStudentId);
+    if (!roleSettingStudentId) return;
+    const student = profiles.find(p => p.id === roleSettingStudentId);
     if (!student || !student.team_id) return;
     
     const nextSquadRoles = { ...squadRolesMap };
     if (roleId) {
-      nextSquadRoles[assignStudentId] = [roleId];
+      nextSquadRoles[roleSettingStudentId] = [roleId];
     } else {
-      delete nextSquadRoles[assignStudentId];
+      delete nextSquadRoles[roleSettingStudentId];
     }
     setSquadRolesMap(nextSquadRoles);
     
@@ -2189,54 +2191,80 @@ export function AdminDashboard({
               </form>
             </section>
 
-            {assignStudentId && (
-              <section className="glass-panel p-6 rounded-3xl border border-white/5 space-y-4 light:bg-white light:border-slate-200">
-                <h3 className="font-black text-white text-base flex items-center gap-2 select-none light:text-slate-900">
-                  <Settings size={18} className="text-amber-500" />
-                  小隊成員備註與職責指派
-                </h3>
-                <div className="space-y-4 animate-in fade-in duration-200">
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block">
-                      編輯角色與備註（如：嫦娥(抱抱)）
-                    </label>
-                    <input
-                      type="text"
-                      value={adminNoteText}
-                      placeholder={DEFAULT_CHARACTERS[profiles.find(p => p.id === assignStudentId)?.name || ''] || "例如：如來佛祖(大隊長)"}
-                      onBlur={handleAdminNoteBlur}
-                      onChange={(e) => setAdminNoteText(e.target.value)}
-                      className="w-full text-xs bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-300 outline-none focus:border-amber-500 transition-all light:bg-slate-50 light:border-slate-300 light:text-slate-800"
-                    />
-                    <p className="text-[9px] text-slate-500 italic">備註輸入後移開焦點（Blur）將自動同步與儲存</p>
-                  </div>
+            <section className="glass-panel p-6 rounded-3xl border border-white/5 space-y-4 light:bg-white light:border-slate-200">
+              <h3 className="font-black text-white text-base flex items-center gap-2 select-none light:text-slate-900">
+                <Settings size={18} className="text-amber-500" />
+                小隊成員備註與職責指派
+              </h3>
 
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block">
-                      指派小組職責 {assignRole === 'captain' && <span className="text-amber-500">(小隊長為系統預設角色)</span>}
-                    </label>
-                    {assignRole === 'captain' ? (
-                      <div className="w-full text-xs bg-slate-950/40 border border-white/5 rounded-xl px-3 py-2.5 text-slate-500 font-bold select-none light:bg-slate-100 light:border-slate-250">
-                        👑 系統預設：小隊長
-                      </div>
-                    ) : (
-                      <select
-                        value={squadRolesMap[assignStudentId]?.[0] || ''}
-                        onChange={(e) => handleAdminRoleChange(e.target.value)}
-                        className="w-full text-xs bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-300 font-bold outline-none focus:border-teal-500 transition-all light:bg-slate-50 light:border-slate-300 light:text-slate-800"
-                      >
-                        <option value="">未分配職責</option>
-                        {QUEST_ROLES_DEFS.map(role => (
-                          <option key={role.id} value={role.id}>
-                            🛡️ {role.name} ({role.duties.join(' · ')})
-                          </option>
-                        ))}
-                      </select>
-                    )}
-                  </div>
+              <div className="space-y-4">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block">
+                    選擇修行學員
+                  </label>
+                  <select
+                    value={roleSettingStudentId}
+                    onChange={(e) => setRoleSettingStudentId(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white outline-none focus:border-amber-500 transition-all light:bg-slate-50 light:border-slate-300 light:text-slate-800"
+                  >
+                    <option value="">請選擇學員...</option>
+                    {profiles.map(p => (
+                      <option key={p.id} value={p.id}>
+                        {p.name} {p.role === 'captain' ? '(小隊長)' : p.role === 'admin' ? '(大隊長)' : ''}
+                      </option>
+                    ))}
+                  </select>
                 </div>
-              </section>
-            )}
+
+                {roleSettingStudentId && (() => {
+                  const student = profiles.find(p => p.id === roleSettingStudentId);
+                  const isCaptain = student?.role === 'captain';
+
+                  return (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-white/5 light:border-slate-200 animate-in fade-in duration-200">
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block">
+                          編輯角色與備註（如：嫦娥(抱抱)）
+                        </label>
+                        <input
+                          type="text"
+                          value={adminNoteText}
+                          placeholder={DEFAULT_CHARACTERS[student?.name || ''] || "例如：如來佛祖(大隊長)"}
+                          onBlur={handleAdminNoteBlur}
+                          onChange={(e) => setAdminNoteText(e.target.value)}
+                          className="w-full text-xs bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-300 outline-none focus:border-amber-500 transition-all light:bg-slate-50 light:border-slate-300 light:text-slate-800"
+                        />
+                        <p className="text-[9px] text-slate-500 italic">備註輸入後移開焦點（Blur）將自動同步與儲存</p>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block">
+                          指派小組職責 {isCaptain && <span className="text-amber-500">(小隊長為系統預設角色)</span>}
+                        </label>
+                        {isCaptain ? (
+                          <div className="w-full text-xs bg-slate-950/40 border border-white/5 rounded-xl px-3 py-2.5 text-slate-500 font-bold select-none light:bg-slate-100 light:border-slate-250">
+                            👑 系統預設：小隊長
+                          </div>
+                        ) : (
+                          <select
+                            value={squadRolesMap[roleSettingStudentId]?.[0] || ''}
+                            onChange={(e) => handleAdminRoleChange(e.target.value)}
+                            className="w-full text-xs bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-300 font-bold outline-none focus:border-teal-500 transition-all light:bg-slate-50 light:border-slate-300 light:text-slate-800"
+                          >
+                            <option value="">未分配職責</option>
+                            {QUEST_ROLES_DEFS.map(role => (
+                              <option key={role.id} value={role.id}>
+                                🛡️ {role.name} ({role.duties.join(' · ')})
+                              </option>
+                            ))}
+                          </select>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+            </section>
           </div>
 
           {/* 小隊與小隊長指派控制台 */}
