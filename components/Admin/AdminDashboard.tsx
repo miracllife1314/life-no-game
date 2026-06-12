@@ -418,7 +418,7 @@ export function AdminDashboard({
 
   // --- Score adjust State ---
   const [adjustStudentId, setAdjustStudentId] = useState('');
-  const [adjustAmount, setAdjustAmount] = useState(100);
+  const [adjustAmount, setAdjustAmount] = useState<string>('100');
   const [adjustReason, setAdjustReason] = useState('');
   const [adjustMessage, setAdjustMessage] = useState('');
 
@@ -880,10 +880,11 @@ export function AdminDashboard({
   const handleAdjustScoreSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!adjustStudentId || !adjustReason) return;
-    await onManualAdjustScore(adjustStudentId, Number(adjustAmount), adjustReason);
+    const amountNum = Number(adjustAmount);
+    await onManualAdjustScore(adjustStudentId, amountNum, adjustReason);
     
     const studentName = profiles.find(p => p.id === adjustStudentId)?.name || '學員';
-    setAdjustMessage(`🎉 成功對 ${studentName} 調整分數：${adjustAmount > 0 ? '+' : ''}${adjustAmount}`);
+    setAdjustMessage(`🎉 成功對 ${studentName} 調整分數：${amountNum > 0 ? '+' : ''}${amountNum}`);
     setAdjustStudentId('');
     setAdjustReason('');
     setTimeout(() => setAdjustMessage(''), 3000);
@@ -2501,7 +2502,7 @@ export function AdminDashboard({
                   required
                   type="number"
                   value={adjustAmount}
-                  onChange={e => setAdjustAmount(Number(e.target.value))}
+                  onChange={e => setAdjustAmount(e.target.value)}
                   placeholder="例如：500 或 -200"
                   className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm text-white outline-none"
                 />
