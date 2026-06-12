@@ -327,7 +327,7 @@ export function WitnessTab({ profiles, tasks, submissions, currentUserId, onRefr
       </div>
 
       {/* ── Category Switcher Tabs ───────────────────────────────────── */}
-      <div className="flex bg-slate-900/60 p-1 rounded-2xl border border-white/5 gap-1 select-none light:bg-slate-100 light:border-slate-200">
+      <div className="flex flex-wrap bg-slate-900/60 p-1 rounded-2xl border border-white/5 gap-1 select-none light:bg-slate-100 light:border-slate-200">
         {[
           { id: 'all', label: '全部見證' },
           { id: 'current', label: '當期見證' },
@@ -622,7 +622,11 @@ export function WitnessTab({ profiles, tasks, submissions, currentUserId, onRefr
                           {onDeleteWitness && (
                             <button
                               onClick={() => {
-                                if (window.confirm('確定要永久刪除這筆資料嗎？(包含扣除經驗值，刪除後無法恢復)')) {
+                                const isPost = s.mission_id === 'task-custom-post';
+                                const msg = isPost
+                                  ? '確定要永久刪除這則分享貼文嗎？\n（不影響任何任務分數，刪除後無法恢復）'
+                                  : '這是任務打卡，將只從見證牆移除。\n任務完成與分數都會保留，確定嗎？';
+                                if (window.confirm(msg)) {
                                   onDeleteWitness(s.id);
                                 }
                               }}
