@@ -31,37 +31,12 @@ export function Navigation({ activeTab, setActiveTab, userRole }: NavigationProp
   const showCaptain = userRole === 'captain' || userRole === 'admin';
   const showAdmin = userRole === 'admin';
 
-  // --- Dynamic Sliding Capsule Refs & State ---
-  const containerRef = useRef<HTMLDivElement>(null);
-  const itemRefs = useRef<Record<string, HTMLButtonElement | null>>({});
-  const [capsuleStyle, setCapsuleStyle] = useState<{ left: number; width: number; opacity: number }>({
-    left: 0,
-    width: 0,
-    opacity: 0
-  });
-
+  // Simply scroll the active tab into view if needed
   useEffect(() => {
-    const updateCapsule = () => {
-      const activeBtn = itemRefs.current[activeTab];
-      const container = containerRef.current;
-      if (activeBtn && container) {
-        const left = activeBtn.offsetLeft;
-        const width = activeBtn.offsetWidth;
-        setCapsuleStyle({ left, width, opacity: 1 });
-      }
-    };
-
-    updateCapsule();
-
-    // Re-calculate on window resize or font load
-    window.addEventListener('resize', updateCapsule);
-    // Smoothly scroll tab into view if overflowing on narrower screens
-    const activeBtn = itemRefs.current[activeTab];
+    const activeBtn = document.getElementById(`nav-tab-${activeTab}`);
     if (activeBtn) {
       activeBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
     }
-
-    return () => window.removeEventListener('resize', updateCapsule);
   }, [activeTab]);
 
   // Complete list of menu items (used in Desktop)
@@ -98,23 +73,8 @@ export function Navigation({ activeTab, setActiveTab, userRole }: NavigationProp
     <>
       {/* ── Desktop Horizontal Navigation Tab Bar ──────────────────────── */}
       <nav className="hidden md:block w-full border-b border-white/5 bg-slate-950/40 backdrop-blur-md overflow-x-auto py-3 select-none scrollbar-none light:bg-white/40 light:border-slate-200">
-        <div ref={containerRef} className="w-max mx-auto flex items-center gap-2 relative px-4">
+        <div className="w-max mx-auto flex items-center gap-2 relative px-4">
           
-          {/* Dynamic sliding capsule background */}
-          <div 
-            className={`absolute top-0 bottom-0 rounded-2xl transition-all duration-300 ease-out pointer-events-none ${
-              activeTab === 'witness'
-                ? 'bg-purple-500 shadow-lg shadow-purple-500/25'
-                : 'bg-amber-500 shadow-lg shadow-amber-500/25'
-            }`}
-            style={{
-              left: `${capsuleStyle.left}px`,
-              width: `${capsuleStyle.width}px`,
-              opacity: capsuleStyle.opacity,
-              zIndex: 0
-            }}
-          />
-
           {menuItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeTab === item.key;
@@ -122,13 +82,13 @@ export function Navigation({ activeTab, setActiveTab, userRole }: NavigationProp
             return (
               <button
                 key={item.key}
-                ref={(el) => { itemRefs.current[item.key] = el; }}
+                id={`nav-tab-${item.key}`}
                 onClick={() => setActiveTab(item.key)}
                 className={`shrink-0 flex flex-col items-center gap-1 px-4 py-3 rounded-2xl text-xs font-black transition-all duration-300 cursor-pointer relative z-10 scale-100 ${
                   isActive
                     ? item.key === 'witness'
-                      ? 'text-white'
-                      : 'text-slate-950'
+                      ? 'bg-purple-500 shadow-lg shadow-purple-500/25 text-white'
+                      : 'bg-amber-500 shadow-lg shadow-amber-500/25 text-slate-950'
                     : 'bg-slate-900/60 border border-white/5 text-slate-400 hover:bg-slate-800/80 hover:text-slate-100 light:bg-slate-100 light:border-slate-300/50 light:text-slate-500 light:hover:bg-slate-200 light:hover:text-slate-900'
                 }`}
               >
