@@ -545,20 +545,22 @@ export default function Home() {
   }, []);
 
   // --- Auth Actions ---
-  const handleLogin = async (name: string) => {
+  const handleLogin = async (name: string, phone: string) => {
     setIsSyncing(true);
     try {
-      // PostgREST .or() 的值不可包雙引號（會被當成字面字元而比對不到）
-      const safe = name.replace(/[(),"]/g, ' ').trim();
+      // 需「姓名」與「手機號碼」兩者都吻合才能登入
+      const safeName = (name || '').trim();
+      const safePhone = (phone || '').trim();
       const { data: profile, error } = await supabase
         .from('profiles')
         .select('*')
-        .or(`name.eq.${safe},phone.eq.${safe}`)
+        .eq('name', safeName)
+        .eq('phone', safePhone)
         .limit(1)
         .maybeSingle();
 
       if (error || !profile) {
-        throw new Error('找不到該使用者，請確認名稱或手機號碼');
+        throw new Error('姓名與手機號碼不符，請再確認後重試');
       }
 
       if (typeof window !== 'undefined') {

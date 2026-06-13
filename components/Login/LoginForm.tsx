@@ -4,24 +4,28 @@ import React, { useState } from 'react';
 import { User, LogIn, ChevronRight, UserPlus } from 'lucide-react';
 
 interface LoginFormProps {
-  onLogin: (name: string) => Promise<void>;
+  onLogin: (name: string, phone: string) => Promise<void>;
   onGoToRegister: () => void;
   isSyncing: boolean;
 }
 
 export function LoginForm({ onLogin, onGoToRegister, isSyncing }: LoginFormProps) {
   const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) return;
+    if (!name.trim() || !phone.trim()) {
+      setErrorMsg('請輸入姓名與手機號碼');
+      return;
+    }
 
     setErrorMsg(null);
     try {
-      await onLogin(name.trim());
+      await onLogin(name.trim(), phone.trim());
     } catch (err: any) {
-      setErrorMsg(err.message || '登入失敗，請確認名稱。');
+      setErrorMsg(err.message || '登入失敗，請確認姓名與手機號碼。');
     }
   };
 
@@ -55,14 +59,30 @@ export function LoginForm({ onLogin, onGoToRegister, isSyncing }: LoginFormProps
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <label className="block text-xs text-slate-400 font-bold uppercase tracking-wider mb-2">
-                手機號碼 / 姓名
+                姓名
               </label>
               <input
                 required
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="請輸入您的手機號碼或姓名"
+                placeholder="請輸入您的姓名"
+                style={{ backgroundColor: '#020617', color: '#ffffff', WebkitTextFillColor: '#ffffff' }}
+                className="w-full border border-slate-800 rounded-2xl p-4 text-center text-lg font-bold outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-all placeholder:text-slate-600"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs text-slate-400 font-bold uppercase tracking-wider mb-2">
+                手機號碼
+              </label>
+              <input
+                required
+                type="tel"
+                inputMode="numeric"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="請輸入您的手機號碼"
                 style={{ backgroundColor: '#020617', color: '#ffffff', WebkitTextFillColor: '#ffffff' }}
                 className="w-full border border-slate-800 rounded-2xl p-4 text-center text-lg font-bold outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-all placeholder:text-slate-600"
               />
