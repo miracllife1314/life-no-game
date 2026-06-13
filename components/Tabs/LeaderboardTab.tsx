@@ -666,7 +666,7 @@ export function LeaderboardTab({
                             </span>
                           </td>
                           <td className="p-3 font-bold text-slate-300 light:text-slate-700">{getBatchName(team.batch_id)}</td>
-                          <td className="p-3 font-bold text-white light:text-slate-900">{getTeamDisplayName(team)}</td>
+                          <td className="p-3 font-bold text-white light:text-slate-900">{getSubTeamNameOnly(team.name, getBatchName(team.batch_id))}</td>
                           <td className="p-3 text-slate-400 font-bold">{captainName}</td>
                           <td className="p-3 text-center font-bold text-indigo-400">LV.{team.totalLevel}</td>
                           <td className="p-3 text-right font-black text-amber-500 font-mono">{team.total_score.toLocaleString()} XP</td>
