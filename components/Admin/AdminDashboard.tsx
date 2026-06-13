@@ -853,6 +853,7 @@ export function AdminDashboard({
   const [editCourseBatchId, setEditCourseBatchId] = useState('');
   const [editCourseRegisterUrl, setEditCourseRegisterUrl] = useState('');
   const [editCourseSortOrder, setEditCourseSortOrder] = useState(0);
+  const [copiedInviteId, setCopiedInviteId] = useState<string | null>(null);
   const handleStartEditCourse = (course: Course) => {
     setEditingCourseId(course.id);
     setEditCourseName(course.name);
@@ -1331,7 +1332,14 @@ export function AdminDashboard({
     });
     
     if (onSaveBatchMissionTemplates) {
-      await onSaveBatchMissionTemplates(selectedRuleBatchId, rulesToSave);
+      try {
+        await onSaveBatchMissionTemplates(selectedRuleBatchId, rulesToSave);
+        alert(`✅ 已套用 ${rulesToSave.length} 個任務模板到此梯次，並依排程產生對應任務。`);
+      } catch (err: any) {
+        alert(`❌ 套用失敗：${err?.message || '請稍後再試'}`);
+      }
+    } else {
+      alert('⚠️ 找不到套用功能，請重新整理後再試。');
     }
   };
 
@@ -2421,6 +2429,19 @@ export function AdminDashboard({
                         </div>
 
                         <div className="flex flex-col gap-2 pt-2 border-t border-white/5 light:border-slate-200">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const url = `${process.env.NEXT_PUBLIC_APP_URL || window.location.origin}/?invite=${t.invite_code || ''}&batch=${t.batch_id || ''}&team=${t.id || ''}`;
+                              navigator.clipboard?.writeText(url).then(() => {
+                                setCopiedInviteId(t.id);
+                                setTimeout(() => setCopiedInviteId(null), 2000);
+                              }).catch(() => { window.prompt('複製此邀請連結：', url); });
+                            }}
+                            className={`w-full btn-action flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-[11px] font-black transition-all cursor-pointer ${copiedInviteId === t.id ? 'bg-emerald-600 text-white' : 'bg-amber-500/15 text-amber-400 hover:bg-amber-500/25 border border-amber-500/20'}`}
+                          >
+                            {copiedInviteId === t.id ? '✓ 已複製邀請連結' : '🔗 複製邀請連結'}
+                          </button>
                           <div className="flex items-center gap-1.5 flex-wrap">
                             <span className="text-[10px] text-slate-400 font-bold select-none light:text-slate-500">
                               👤 小隊長:
@@ -2650,6 +2671,7 @@ export function AdminDashboard({
                   <input
                     required
                     type="number"
+                    onFocus={(e) => e.target.select()}
                     value={adjustAmount}
                     onChange={e => setAdjustAmount(e.target.value)}
                     placeholder="例如：500 或 -200"
@@ -3336,6 +3358,7 @@ export function AdminDashboard({
               <input
                 required
                 type="number"
+                onFocus={(e) => e.target.select()}
                 value={achValue}
                 onChange={e => setAchValue(Number(e.target.value))}
                 placeholder="所需經驗分數門檻"
@@ -3421,6 +3444,7 @@ export function AdminDashboard({
                           />
                           <input
                             type="number"
+                            onFocus={(e) => e.target.select()}
                             value={editAchValue}
                             onChange={e => setEditAchValue(Number(e.target.value))}
                             className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-white outline-none"
@@ -3731,6 +3755,7 @@ export function AdminDashboard({
                           <input
                             required
                             type="number"
+                            onFocus={(e) => e.target.select()}
                             min={0}
                             max={99}
                             value={editMinLevel}
@@ -3743,6 +3768,7 @@ export function AdminDashboard({
                           <input
                             required
                             type="number"
+                            onFocus={(e) => e.target.select()}
                             min={0}
                             max={99}
                             value={editMaxLevel}
@@ -4185,6 +4211,7 @@ export function AdminDashboard({
                       <input
                         required
                         type="number"
+                        onFocus={(e) => e.target.select()}
                         min={1}
                         max={99}
                         value={editLineUnlockLevel}
@@ -4269,6 +4296,7 @@ export function AdminDashboard({
                             <input
                               required
                               type="number"
+                              onFocus={(e) => e.target.select()}
                               min={0}
                               value={editLineTaskPoints}
                               onChange={e => setEditLineTaskPoints(Number(e.target.value))}
@@ -4295,6 +4323,7 @@ export function AdminDashboard({
                             <input
                               required
                               type="number"
+                              onFocus={(e) => e.target.select()}
                               min={1}
                               value={editLineTaskMaxCompletions}
                               onChange={e => setEditLineTaskMaxCompletions(Number(e.target.value))}
@@ -4322,6 +4351,7 @@ export function AdminDashboard({
                       <input
                         required
                         type="number"
+                        onFocus={(e) => e.target.select()}
                         min={1}
                         value={editLineSortOrder}
                         onChange={e => setEditLineSortOrder(parseInt(e.target.value, 10) || 1)}
@@ -5077,6 +5107,7 @@ export function AdminDashboard({
                 <input
                   required
                   type="number"
+                  onFocus={(e) => e.target.select()}
                   min="1"
                   max="20"
                   value={newBatchTeamCount}
@@ -5148,6 +5179,7 @@ export function AdminDashboard({
                             <td className="p-2 text-center">
                               <input
                                 type="number"
+                                onFocus={(e) => e.target.select()}
                                 min="1"
                                 max="20"
                                 value={editBatchTeamCount}
@@ -6290,6 +6322,7 @@ export function AdminDashboard({
                     <input
                       required
                       type="number"
+                      onFocus={(e) => e.target.select()}
                       value={taskScore}
                       onChange={e => setTaskScore(Number(e.target.value))}
                       className="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl py-2 px-2 text-[11px] outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 transition-all light:bg-slate-50 light:border-slate-200 light:text-slate-900"

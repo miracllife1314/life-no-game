@@ -895,6 +895,7 @@ export function CaptainDashboard({
                   </label>
                   <input
                     type="number"
+                    onFocus={(e) => e.target.select()}
                     min="1"
                     max="100"
                     value={team.max_members || 10}
