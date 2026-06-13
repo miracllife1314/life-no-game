@@ -2563,13 +2563,14 @@ export function AdminDashboard({
               </div>
             </div>
 
-            <div className="bg-slate-950/60 border border-white/5 rounded-2xl overflow-hidden light:bg-slate-50 light:border-slate-300">
-              <table className="w-full text-left text-xs border-collapse">
+            <div className="bg-slate-950/60 border border-white/5 rounded-2xl overflow-x-auto light:bg-slate-50 light:border-slate-300">
+              <table className="w-full text-left text-xs border-collapse [&_th]:whitespace-nowrap [&_td]:whitespace-nowrap">
                 <thead>
                   <tr className="border-b border-white/5 text-slate-300 font-bold uppercase light:border-slate-200 select-none">
-                    <th className="p-3">姓名</th>
+                    <th className="p-3 sticky left-0 z-10 bg-slate-950 light:bg-slate-50">姓名</th>
                     <th className="p-3">手機</th>
                     <th className="p-3">角色</th>
+                    <th className="p-3">所屬大隊長</th>
                     <th className="p-3">所屬班次</th>
                     <th className="p-3">所屬分隊</th>
                     <th className="p-3">狀態</th>
@@ -2584,15 +2585,18 @@ export function AdminDashboard({
                       const team = teams.find(t => t.id === p.team_id);
                       const batch = batches.find(b => b.id === p.batch_id);
                       return (
-                        <tr key={p.id}>
-                          <td className="p-3 font-bold text-white">{p.name}</td>
+                        <tr key={p.id} className="bg-slate-950/60 light:bg-slate-50">
+                          <td className="p-3 font-bold text-white sticky left-0 z-10 bg-slate-950 light:bg-slate-50 light:text-slate-900">{p.name}</td>
                           <td className="p-3 text-slate-200 light:text-slate-800 font-mono">{p.phone || '—'}</td>
                           <td className="p-3 text-slate-200 light:text-slate-800 select-none">
+                            {p.role === 'admin' ? '🔴 大隊長' : p.role === 'captain' ? '🟡 小隊長' : '🟢 學員'}
+                          </td>
+                          <td className="p-3 text-slate-400 light:text-slate-600 select-none">
                             {p.role === 'admin'
-                              ? `🔴 大隊長 ${p.division_name ? `(${p.division_name})` : ''}`
+                              ? (p.division_name || '—')
                               : p.role === 'captain'
-                              ? `🟡 小隊長 ${p.director_id ? `(大隊長: ${profiles.find(leader => leader.id === p.director_id)?.name || '未填寫'})` : ''}`
-                              : '🟢 學員'}
+                              ? (p.director_id ? (profiles.find(leader => leader.id === p.director_id)?.name || '未填寫') : '—')
+                              : '—'}
                           </td>
                           <td className="p-3 text-slate-200 light:text-slate-800 select-none">{batch ? batch.name : '—'}</td>
                           <td className="p-3 text-slate-200 light:text-slate-800 select-none font-bold">
