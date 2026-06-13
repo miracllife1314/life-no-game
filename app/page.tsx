@@ -563,13 +563,11 @@ export default function Home() {
         throw new Error('姓名與手機號碼不符，請再確認後重試');
       }
 
+      // 記住登入身分（下次自動登入），不再整頁重整，直接進入 App
       if (typeof window !== 'undefined') {
         localStorage.setItem('nlp_mock_user_id', profile.id);
-        // User requested a hard refresh exactly upon login
-        window.location.reload();
-        return;
       }
-      
+
       setViewState('app');
       const loadedProfile = await fetchData(profile.id);
       if (loadedProfile && loadedProfile.role === 'admin') {
