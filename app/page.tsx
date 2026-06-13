@@ -1903,7 +1903,7 @@ export default function Home() {
           status: 'active',
           review_type: template.review_type,
           category: template.category || '神獸進化',
-          max_completions: template.max_completions || 1
+          max_completions: template.max_completions ?? 1
         });
         successCount++;
       });
@@ -2211,7 +2211,7 @@ export default function Home() {
               category: template.category || '神獸進化',
               created_at: new Date().toISOString(),
               updated_at: new Date().toISOString(),
-              max_completions: template.max_completions || 1
+              max_completions: template.max_completions ?? 1
             };
             
             await supabase.from('missions').insert(newMission);

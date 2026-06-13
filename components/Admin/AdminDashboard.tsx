@@ -4197,7 +4197,7 @@ export function AdminDashboard({
                             setEditLineTaskDesc(matched?.description || '');
                             setEditLineTaskPoints(matched?.points || 500);
                             setEditLineTaskReviewType(matched?.review_type || 'leader');
-                            setEditLineTaskMaxCompletions(matched?.max_completions || 1);
+                            setEditLineTaskMaxCompletions(matched?.max_completions ?? 1);
                             setEditLineTaskActive(matched?.is_active !== false);
                           } else {
                             setEditLineTaskTitle('');
@@ -4425,7 +4425,7 @@ export function AdminDashboard({
                                 setEditLineTaskDesc(matchedTemplate?.description || '');
                                 setEditLineTaskPoints(matchedTemplate?.points || 500);
                                 setEditLineTaskReviewType(matchedTemplate?.review_type || 'leader');
-                                setEditLineTaskMaxCompletions(matchedTemplate?.max_completions || 1);
+                                setEditLineTaskMaxCompletions(matchedTemplate?.max_completions ?? 1);
                                 setEditLineTaskActive(matchedTemplate?.is_active !== false);
                               }}
                               className="btn-action px-2.5 py-1 bg-red-500/10 border border-red-500/20 text-[10px] text-red-400 font-black rounded-lg hover:bg-red-500/20"
@@ -5866,7 +5866,7 @@ export function AdminDashboard({
                                   )}
                                   
                                   {template.mission_type === 'special' && (
-                                    <span className="text-slate-500 font-bold select-none">無需額外設定 (比賽期間內限做 {template.max_completions || 1} 次)</span>
+                                    <span className="text-slate-500 font-bold select-none">無需額外設定 ({template.max_completions === 0 ? '比賽期間內無限次' : `比賽期間內限做 ${template.max_completions ?? 1} 次`})</span>
                                   )}
                                   
                                   {template.mission_type === 'weekly' && (
