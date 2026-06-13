@@ -50,12 +50,27 @@ begin
   insert into public.score_logs (student_id, amount, reason, submission_id, created_by)
   values (p_student_id, p_amount, p_reason, p_submission_id, p_created_by);
 
-  -- 2d. 寵物經驗 / 等級（每 500 exp 升 1 級，對齊原本前端邏輯）
-  update public.user_pets
-     set total_exp  = greatest(0, coalesce(total_exp, 0) + p_amount),
-         level      = floor(greatest(0, coalesce(total_exp, 0) + p_amount) / 500.0),
-         updated_at = now()
-   where student_id = p_student_id;
+  -- 2d. 寵物經驗 / 等級（每 500 exp 升 1 級，對齊原本前端邏輯；防禦性自動補建）
+  if exists (select 1 from public.user_pets where student_id = p_student_id) then
+    update public.user_pets
+       set total_exp  = greatest(0, coalesce(total_exp, 0) + p_amount),
+           level      = floor(greatest(0, coalesce(total_exp, 0) + p_amount) / 500.0),
+           updated_at = now()
+     where student_id = p_student_id;
+  else
+    insert into public.user_pets (
+      student_id, total_exp, level, current_stage_index, has_pending_evolution, created_at, updated_at
+    )
+    values (
+      p_student_id, 
+      greatest(0, p_amount), 
+      floor(greatest(0, p_amount) / 500.0), 
+      1, 
+      false, 
+      now(), 
+      now()
+    );
+  end if;
 
   -- 2e. 依總分自動解鎖成就（total_score 類型）
   insert into public.user_achievements (student_id, achievement_id, unlocked_at)

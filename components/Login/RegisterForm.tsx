@@ -108,8 +108,9 @@ export function RegisterForm({
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="輸入您的真實姓名"
-                className="w-full bg-slate-950/80 border border-slate-800 rounded-2xl p-4 text-white text-center text-lg font-bold outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all placeholder:text-slate-600"
+                placeholder="例如：王小明"
+                style={{ backgroundColor: '#020617', color: '#ffffff', WebkitTextFillColor: '#ffffff' }}
+                className="w-full border border-slate-800 rounded-2xl p-4 text-center text-lg font-bold outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all placeholder:text-slate-600"
               />
             </div>
 
@@ -122,8 +123,9 @@ export function RegisterForm({
                 type="tel"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                placeholder="請輸入註冊手機號碼"
-                className="w-full bg-slate-950/80 border border-slate-800 rounded-2xl p-4 text-white text-center text-lg font-bold outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all placeholder:text-slate-600"
+                placeholder="0912345678"
+                style={{ backgroundColor: '#020617', color: '#ffffff', WebkitTextFillColor: '#ffffff' }}
+                className="w-full border border-slate-800 rounded-2xl p-4 text-center text-lg font-bold outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all placeholder:text-slate-600"
               />
             </div>
 

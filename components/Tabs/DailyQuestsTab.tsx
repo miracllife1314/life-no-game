@@ -120,7 +120,7 @@ const compressImage = (file: File): Promise<string> => {
       img.src = event.target?.result as string;
       img.onload = () => {
         const canvas = document.createElement('canvas');
-        const MAX_SIZE = 1024;
+        const MAX_SIZE = 800;
         let width = img.width;
         let height = img.height;
 
@@ -144,8 +144,8 @@ const compressImage = (file: File): Promise<string> => {
         }
 
         ctx.drawImage(img, 0, 0, width, height);
-        // High quality WebP for sharp DPI screen preview
-        const compressedBase64 = canvas.toDataURL('image/webp', 0.9);
+        // Optimized WebP quality (0.7) for significantly smaller upload file sizes (20KB-40KB)
+        const compressedBase64 = canvas.toDataURL('image/webp', 0.7);
         resolve(compressedBase64);
       };
       img.onerror = (err) => reject(err);
