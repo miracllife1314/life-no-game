@@ -277,12 +277,14 @@ export default function Home() {
       if (batchesList) setBatches(batchesList);
       if (templatesList) setMissionTemplates(templatesList);
       if (rulesList) setBatchMissionTemplates(rulesList);
+      let mappedProfiles: any[] = [];
       if (profilesList) {
-        const mappedProfiles = profilesList.map((p: any) => {
+        mappedProfiles = profilesList.map((p: any) => {
+          const profile_id = p.profile_id || p.id;
           if (p.role !== 'admin' && !p.batch_id) {
-            return { ...p, batch_id: 'batch-50' };
+            return { ...p, batch_id: 'batch-50', profile_id };
           }
-          return p;
+          return { ...p, profile_id };
         });
         setProfiles(mappedProfiles);
 
@@ -307,7 +309,7 @@ export default function Home() {
       const finalMissions = missionsList || [];
 
       // ---- 在 JS 端補上巢狀關聯（真實 PostgREST 不會自動 embed）----
-      const profArr: any[] = profilesList || [];
+      const profArr: any[] = mappedProfiles;
       const attachUserPet = (up: any) => {
         const stage = petStagesList?.find(
           (s: any) => s.line_key === up.pet_line && s.stage_index === up.current_stage_index
