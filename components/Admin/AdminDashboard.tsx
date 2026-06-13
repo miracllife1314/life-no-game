@@ -15,7 +15,7 @@ import {
 import { supabase, isRealSupabase } from '@/lib/supabase';
 import { parsePetOffset, trimCenterSquare } from '@/lib/petImage';
 
-export const MISSION_CATEGORIES = ['初階', '進階', 'VIP', '期數任務'];
+export const MISSION_CATEGORIES = ['初階', '進階', 'VIP', '期數任務', '神獸進化'];
 
 const QUEST_ROLES_DEFS = [
   { id: 'role-lantern', name: '提燈人', duties: ['協助引導隊員打卡', '記錄分享會要點'] },
@@ -1127,7 +1127,12 @@ export function AdminDashboard({
   const [missionCategories, setMissionCategories] = useState<string[]>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('nlp_mission_categories');
-      return saved ? JSON.parse(saved) : MISSION_CATEGORIES;
+      const cats = saved ? JSON.parse(saved) : MISSION_CATEGORIES;
+      if (!cats.includes('神獸進化')) {
+        cats.push('神獸進化');
+        localStorage.setItem('nlp_mission_categories', JSON.stringify(cats));
+      }
+      return cats;
     }
     return MISSION_CATEGORIES;
   });
@@ -5453,7 +5458,12 @@ export function AdminDashboard({
                   </thead>
                   <tbody className="divide-y divide-white/5 light:divide-slate-200">
                     {missionTemplates
-                       .filter(t => templateFilterCategory === '全部' || t.category === templateFilterCategory)
+                       .filter(t => {
+                         if (templateFilterCategory === '全部') {
+                           return t.category !== '神獸進化';
+                         }
+                         return t.category === templateFilterCategory;
+                       })
                        .map(template => {
                          const isEditing = editingTemplateId === template.id;
                          return (
@@ -5752,7 +5762,11 @@ export function AdminDashboard({
                     </thead>
                     <tbody className="divide-y divide-white/5 light:divide-slate-200">
                       {missionTemplates
-                        .filter(t => t.is_active && (rulesFilterCategory === '全部' || t.category === rulesFilterCategory))
+                        .filter(t => t.is_active && (
+                          rulesFilterCategory === '全部'
+                            ? t.category !== '神獸進化'
+                            : t.category === rulesFilterCategory
+                        ))
                         .map(template => {
                         const localRule = localRules[template.id] || {
                           is_applied: false,
