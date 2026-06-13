@@ -1818,9 +1818,13 @@ export function AdminDashboard({
               建立新任務
             </button>
           </div>
-
           <div className="divide-y divide-white/5 max-h-96 overflow-y-auto light:divide-slate-200">
-            {[...tasks].sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()).map(task => (
+            {[...tasks].sort((a, b) => {
+              const order = { daily: 1, weekly: 2, temporary: 3, limited: 4 };
+              const typeDiff = (order[a.type] || 5) - (order[b.type] || 5);
+              if (typeDiff !== 0) return typeDiff;
+              return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
+            }).map(task => (
               <div key={task.id} className="py-4 flex justify-between items-center gap-4 first:pt-0 last:pb-0">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 select-none">
@@ -5494,6 +5498,10 @@ export function AdminDashboard({
                          }
                          return t.category === templateFilterCategory;
                        })
+                       .sort((a, b) => {
+                         const order = { daily: 1, weekly: 2, special: 3, limited: 4 };
+                         return (order[a.mission_type] || 5) - (order[b.mission_type] || 5);
+                       })
                        .map(template => {
                          const isEditing = editingTemplateId === template.id;
                          return (
@@ -5797,6 +5805,10 @@ export function AdminDashboard({
                             ? t.category !== '神獸進化'
                             : t.category === rulesFilterCategory
                         ))
+                        .sort((a, b) => {
+                          const order = { daily: 1, weekly: 2, special: 3, limited: 4 };
+                          return (order[a.mission_type] || 5) - (order[b.mission_type] || 5);
+                        })
                         .map(template => {
                         const localRule = localRules[template.id] || {
                           is_applied: false,

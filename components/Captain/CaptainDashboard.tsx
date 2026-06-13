@@ -1159,6 +1159,9 @@ export function CaptainDashboard({
                         const status = getMemberTaskStatus(member.id, task.id);
                         const sub = submissions.find(s => s.mission_id === task.id && s.student_id === member.id);
                         return { task, status, sub, progress };
+                      }).sort((a, b) => {
+                        const order = { daily: 1, weekly: 2, temporary: 3, limited: 4 };
+                        return (order[a.task.type] || 5) - (order[b.task.type] || 5);
                       });
 
                       const pendingTasks = memberTasks.filter(item => item.progress.pendingCount > 0);
