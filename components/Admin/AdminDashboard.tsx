@@ -2595,12 +2595,14 @@ export function AdminDashboard({
                               : '🟢 學員'}
                           </td>
                           <td className="p-3 text-slate-200 light:text-slate-800 select-none">{batch ? batch.name : '—'}</td>
-                          <td className="p-3 text-slate-200 light:text-slate-800 select-none">
+                          <td className="p-3 text-slate-200 light:text-slate-800 select-none font-bold">
                             {team ? (
                               (() => {
-                                const cap = profiles.find(prof => prof.profile_id === team.captain_id && prof.batch_id === team.batch_id);
-                                const teamLabel = team.custom_name ? `${team.name} (${team.custom_name})` : team.name;
-                                return cap ? `${teamLabel} (小隊長: ${cap.name})` : `${teamLabel} (無小隊長)`;
+                                // 只顯示「第X隊」：去掉期數前綴、不顯示組別與小隊長
+                                const short = batch && team.name.startsWith(batch.name)
+                                  ? team.name.replace(batch.name, '').trim()
+                                  : (team.name.replace(/NLP.*?期/i, '').trim() || team.name);
+                                return short;
                               })()
                             ) : '—'}
                           </td>
