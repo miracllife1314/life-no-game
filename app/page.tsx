@@ -1706,32 +1706,66 @@ export default function Home() {
           };
           const firstMonday = getMondayOfWeek(batch.start_date);
           const weekOffset = rule.week_offset !== null ? rule.week_offset : 1;
+          const dayOffset = rule.day_offset !== null ? rule.day_offset : 1;
           
-          const publishDate = new Date(firstMonday);
-          publishDate.setUTCDate(firstMonday.getUTCDate() + (weekOffset - 1) * 7);
-          
-          const deadlineDate = new Date(publishDate);
-          deadlineDate.setUTCDate(publishDate.getUTCDate() + 6);
-          
-          const pubStr = publishDate.toISOString().substring(0, 10);
-          const deadStr = deadlineDate.toISOString().substring(0, 10);
-          
-          previews.push({
-            batch_id: batchId,
-            template_id: rule.template_id,
-            title,
-            description: desc,
-            mission_type: type,
-            points,
-            publish_at: `${pubStr} 00:00:00`,
-            deadline_at: `${deadStr} 23:59:59`,
-            status: 'scheduled',
-            review_type: reviewType,
-            category: category,
-            max_completions: maxCompletions,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          });
+          if (weekOffset === 0) {
+            const lastMonday = getMondayOfWeek(batch.end_date);
+            const totalWeeks = Math.round((lastMonday.getTime() - firstMonday.getTime()) / (7 * 24 * 60 * 60 * 1000)) + 1;
+            
+            for (let w = 1; w <= totalWeeks; w++) {
+              const publishDate = new Date(firstMonday);
+              publishDate.setUTCDate(firstMonday.getUTCDate() + (w - 1) * 7 + (dayOffset - 1));
+              
+              const deadlineDate = new Date(publishDate);
+              deadlineDate.setUTCDate(publishDate.getUTCDate() + 6);
+              
+              const pubStr = publishDate.toISOString().substring(0, 10);
+              const deadStr = deadlineDate.toISOString().substring(0, 10);
+              
+              previews.push({
+                batch_id: batchId,
+                template_id: rule.template_id,
+                title,
+                description: desc,
+                mission_type: type,
+                points,
+                publish_at: `${pubStr} 00:00:00`,
+                deadline_at: `${deadStr} 23:59:59`,
+                status: 'scheduled',
+                review_type: reviewType,
+                category: category,
+                max_completions: maxCompletions,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+              });
+            }
+          } else {
+            const publishDate = new Date(firstMonday);
+            publishDate.setUTCDate(firstMonday.getUTCDate() + (weekOffset - 1) * 7 + (dayOffset - 1));
+            
+            const deadlineDate = new Date(publishDate);
+            deadlineDate.setUTCDate(publishDate.getUTCDate() + 6);
+            
+            const pubStr = publishDate.toISOString().substring(0, 10);
+            const deadStr = deadlineDate.toISOString().substring(0, 10);
+            
+            previews.push({
+              batch_id: batchId,
+              template_id: rule.template_id,
+              title,
+              description: desc,
+              mission_type: type,
+              points,
+              publish_at: `${pubStr} 00:00:00`,
+              deadline_at: `${deadStr} 23:59:59`,
+              status: 'scheduled',
+              review_type: reviewType,
+              category: category,
+              max_completions: maxCompletions,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            });
+          }
         } else if (type === 'special') {
           const dayStr = startDate.toISOString().substring(0, 10);
           previews.push({

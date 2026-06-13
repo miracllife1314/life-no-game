@@ -1271,9 +1271,9 @@ export function AdminDashboard({
       const existingRule = cohortRules.find(r => r.template_id === template.id);
       initialLocalRules[template.id] = {
         is_applied: !!existingRule,
-        week_offset: existingRule ? existingRule.week_offset : 1,
-        day_offset: existingRule ? existingRule.day_offset : 1,
-        duration_days: existingRule ? existingRule.duration_days : 1,
+        week_offset: existingRule && existingRule.week_offset !== null ? existingRule.week_offset : 1,
+        day_offset: existingRule && existingRule.day_offset !== null ? existingRule.day_offset : 1,
+        duration_days: existingRule && existingRule.duration_days !== null ? existingRule.duration_days : 1,
         is_enabled: existingRule ? existingRule.is_enabled : true
       };
     });
@@ -1310,9 +1310,9 @@ export function AdminDashboard({
         rulesToSave.push({
           batch_id: selectedRuleBatchId,
           template_id: templateId,
-          week_offset: template.mission_type === 'weekly' ? Number(rule.week_offset) : null,
-          day_offset: template.mission_type === 'limited' ? Number(rule.day_offset) : null,
-          duration_days: template.mission_type === 'limited' ? Number(rule.duration_days) : null,
+          week_offset: template.mission_type === 'weekly' ? Number(rule.week_offset ?? 1) : null,
+          day_offset: (template.mission_type === 'limited' || template.mission_type === 'weekly') ? Number(rule.day_offset ?? 1) : null,
+          duration_days: template.mission_type === 'limited' ? Number(rule.duration_days ?? 1) : (template.mission_type === 'weekly' ? 7 : null),
           is_enabled: rule.is_enabled
         });
       }
@@ -1393,28 +1393,58 @@ export function AdminDashboard({
         };
         const firstMonday = getMondayOfWeek(batch.start_date);
         const weekOffset = rule.week_offset !== null ? rule.week_offset : 1;
+        const dayOffset = rule.day_offset !== null ? rule.day_offset : 1;
         
-        const publishDate = new Date(firstMonday);
-        publishDate.setUTCDate(firstMonday.getUTCDate() + (weekOffset - 1) * 7);
-        
-        const deadlineDate = new Date(publishDate);
-        deadlineDate.setUTCDate(publishDate.getUTCDate() + 6);
-        
-        const pubStr = publishDate.toISOString().substring(0, 10);
-        const deadStr = deadlineDate.toISOString().substring(0, 10);
-        
-        previews.push({
-          date: pubStr,
-          title,
-          type,
-          points,
-          publishAt: `${pubStr} 00:00:00`,
-          deadlineAt: `${deadStr} 23:59:59`,
-          templateId: rule.template_id,
-          description: template.description,
-          reviewType: template.review_type,
-          category: category
-        });
+        if (weekOffset === 0) {
+          const lastMonday = getMondayOfWeek(batch.end_date);
+          const totalWeeks = Math.round((lastMonday.getTime() - firstMonday.getTime()) / (7 * 24 * 60 * 60 * 1000)) + 1;
+          
+          for (let w = 1; w <= totalWeeks; w++) {
+            const publishDate = new Date(firstMonday);
+            publishDate.setUTCDate(firstMonday.getUTCDate() + (w - 1) * 7 + (dayOffset - 1));
+            
+            const deadlineDate = new Date(publishDate);
+            deadlineDate.setUTCDate(publishDate.getUTCDate() + 6);
+            
+            const pubStr = publishDate.toISOString().substring(0, 10);
+            const deadStr = deadlineDate.toISOString().substring(0, 10);
+            
+            previews.push({
+              date: pubStr,
+              title,
+              type,
+              points,
+              publishAt: `${pubStr} 00:00:00`,
+              deadlineAt: `${deadStr} 23:59:59`,
+              templateId: rule.template_id,
+              description: template.description,
+              reviewType: template.review_type,
+              category: category
+            });
+          }
+        } else {
+          const publishDate = new Date(firstMonday);
+          publishDate.setUTCDate(firstMonday.getUTCDate() + (weekOffset - 1) * 7 + (dayOffset - 1));
+          
+          const deadlineDate = new Date(publishDate);
+          deadlineDate.setUTCDate(publishDate.getUTCDate() + 6);
+          
+          const pubStr = publishDate.toISOString().substring(0, 10);
+          const deadStr = deadlineDate.toISOString().substring(0, 10);
+          
+          previews.push({
+            date: pubStr,
+            title,
+            type,
+            points,
+            publishAt: `${pubStr} 00:00:00`,
+            deadlineAt: `${deadStr} 23:59:59`,
+            templateId: rule.template_id,
+            description: template.description,
+            reviewType: template.review_type,
+            category: category
+          });
+        }
       } else if (type === 'special') {
         const dayStr = startDate.toISOString().substring(0, 10);
         previews.push({
@@ -5828,18 +5858,64 @@ export function AdminDashboard({
                                   )}
                                   
                                   {template.mission_type === 'weekly' && (
-                                    <div className="flex items-center gap-2">
-                                       <span className="text-slate-400 light:text-slate-600 font-bold">於活動第</span>
-                                      <select
-                                        value={localRule.week_offset ?? 1}
-                                        onChange={e => updateLocalRuleField(template.id, 'week_offset', Number(e.target.value))}
-                                        className="bg-slate-950 border border-slate-800 text-white rounded-lg p-2 text-xs outline-none focus:border-red-500 light:bg-slate-50 light:border-slate-200 light:text-slate-900 font-bold"
-                                      >
-                                        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(w => (
-                                          <option key={w} value={w}>{w}</option>
-                                        ))}
-                                      </select>
-                                      <span className="text-slate-400 light:text-slate-600 font-bold">週的禮拜一上架，當週結束關閉</span>
+                                    <div className="flex flex-wrap items-center gap-3">
+                                      <div className="flex items-center gap-1.5">
+                                        <span className="text-slate-400 light:text-slate-600 font-bold">重複類型:</span>
+                                        <select
+                                          value={(localRule.week_offset ?? 1) === 0 ? 'recurring' : 'single'}
+                                          onChange={e => {
+                                            const val = e.target.value === 'recurring' ? 0 : 1;
+                                            updateLocalRuleField(template.id, 'week_offset', val);
+                                          }}
+                                          className="bg-slate-950 border border-slate-800 text-white rounded-lg p-2 text-xs outline-none focus:border-red-500 light:bg-slate-50 light:border-slate-200 light:text-slate-900 font-bold"
+                                        >
+                                          <option value="recurring">每週重複</option>
+                                          <option value="single">特定單週</option>
+                                        </select>
+                                      </div>
+
+                                      {(localRule.week_offset ?? 1) > 0 && (
+                                        <div className="flex items-center gap-1.5 animate-in fade-in duration-200">
+                                          <span className="text-slate-400 light:text-slate-600 font-bold">第</span>
+                                          <select
+                                            value={localRule.week_offset ?? 1}
+                                            onChange={e => updateLocalRuleField(template.id, 'week_offset', Number(e.target.value))}
+                                            className="bg-slate-950 border border-slate-800 text-white rounded-lg p-2 text-xs outline-none focus:border-red-500 light:bg-slate-50 light:border-slate-200 light:text-slate-900 font-bold"
+                                          >
+                                            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(w => (
+                                              <option key={w} value={w}>{w}</option>
+                                            ))}
+                                          </select>
+                                          <span className="text-slate-400 light:text-slate-600 font-bold">週</span>
+                                        </div>
+                                      )}
+
+                                      <div className="flex items-center gap-1.5">
+                                        <span className="text-slate-400 light:text-slate-600 font-bold">上架日:</span>
+                                        <select
+                                          value={localRule.day_offset ?? 1}
+                                          onChange={e => updateLocalRuleField(template.id, 'day_offset', Number(e.target.value))}
+                                          className="bg-slate-950 border border-slate-800 text-white rounded-lg p-2 text-xs outline-none focus:border-red-500 light:bg-slate-50 light:border-slate-200 light:text-slate-900 font-bold"
+                                        >
+                                          {[
+                                            { v: 1, l: '星期一' },
+                                            { v: 2, l: '星期二' },
+                                            { v: 3, l: '星期三' },
+                                            { v: 4, l: '星期四' },
+                                            { v: 5, l: '星期五' },
+                                            { v: 6, l: '星期六' },
+                                            { v: 7, l: '星期日' }
+                                          ].map(day => (
+                                            <option key={day.v} value={day.v}>{day.l}</option>
+                                          ))}
+                                        </select>
+                                      </div>
+
+                                      <span className="text-[10px] text-slate-500 font-bold select-none shrink-0 bg-slate-900/60 light:bg-slate-200/50 px-2 py-1 rounded border border-white/5 light:border-slate-300/60">
+                                        ⏱️ {(localRule.week_offset ?? 1) === 0 ? '每週' : `第 ${localRule.week_offset ?? 1} 週`}
+                                        {['星期一', '星期二', '星期三', '星期四', '星期五', '星期六', '星期日'][(localRule.day_offset ?? 1) - 1]}上架
+                                        ，下週{['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'][(localRule.day_offset ?? 1) - 1]}晚上 23:59 截止關閉
+                                      </span>
                                     </div>
                                   )}
                                   
