@@ -322,8 +322,8 @@ export function CaptainDashboard({
   const [editingNoteText, setEditingNoteText] = useState('');
 
   // Local settings for mock features (squad name, weekly quest draw, quest roles)
-  const [teamDisplayName, setTeamDisplayName] = useState(team?.custom_name || team?.name || '樂樂嘻遊隊');
-  const [teamSlogan, setTeamSlogan] = useState('樂樂嘻遊，五運順流');
+  const [teamDisplayName, setTeamDisplayName] = useState(team?.custom_name || team?.name || '');
+  const [teamSlogan, setTeamSlogan] = useState('');
   const [editingName, setEditingName] = useState(false);
   const [nameInput, setNameInput] = useState('');
   const [sloganInput, setSloganInput] = useState('');
@@ -456,7 +456,7 @@ export function CaptainDashboard({
   // Squad Display Name Edit
   const handleSaveName = () => {
     if (!nameInput.trim()) return;
-    const finalSlogan = sloganInput.trim() || '樂樂嘻遊，五運順流';
+    const finalSlogan = sloganInput.trim() || '';
     setTeamDisplayName(nameInput.trim());
     setTeamSlogan(finalSlogan);
     saveLocalSettings({ 
@@ -665,7 +665,7 @@ export function CaptainDashboard({
               <Shield size={20} className="text-amber-500 fill-amber-500/10" />
             </div>
 
-            <p className="text-sm text-slate-400 italic font-medium">{teamSlogan}</p>
+            {teamSlogan && <p className="text-sm text-slate-400 italic font-medium">{teamSlogan}</p>}
             <p className="text-xs text-slate-500 font-bold flex flex-wrap gap-x-2 gap-y-1 items-center">
               <span>期數：<span className="text-amber-500">{batchName}</span></span>
               {directorProfile && (
