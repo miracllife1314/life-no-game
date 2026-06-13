@@ -5866,7 +5866,7 @@ export function AdminDashboard({
                                   )}
                                   
                                   {template.mission_type === 'special' && (
-                                    <span className="text-slate-500 font-bold select-none">無需額外設定 (比賽期間內限做一次)</span>
+                                    <span className="text-slate-500 font-bold select-none">無需額外設定 (比賽期間內限做 {template.max_completions || 1} 次)</span>
                                   )}
                                   
                                   {template.mission_type === 'weekly' && (
@@ -5941,7 +5941,7 @@ export function AdminDashboard({
                                           min={1}
                                           value={localRule.day_offset ?? 1}
                                           onChange={e => updateLocalRuleField(template.id, 'day_offset', Number(e.target.value))}
-                                          className="w-16 shrink-0 bg-slate-950 border border-slate-800 text-white rounded-lg p-2 text-xs text-center outline-none focus:border-red-500 light:bg-slate-50 light:border-slate-200 light:text-slate-900 font-mono"
+                                          className="w-16 shrink-0 bg-slate-950 border border-slate-800 text-white rounded-lg p-2 text-xs text-center outline-none focus:border-red-500 light:bg-slate-50 light:border-slate-200 light:text-slate-900 font-mono font-bold"
                                         />
                                         <span className="text-slate-400 light:text-slate-600 font-bold">天發布</span>
                                       </div>
@@ -5954,10 +5954,14 @@ export function AdminDashboard({
                                           min={1}
                                           value={localRule.duration_days ?? 1}
                                           onChange={e => updateLocalRuleField(template.id, 'duration_days', Number(e.target.value))}
-                                          className="w-16 shrink-0 bg-slate-950 border border-slate-800 text-white rounded-lg p-2 text-xs text-center outline-none focus:border-red-500 light:bg-slate-50 light:border-slate-200 light:text-slate-900 font-mono"
+                                          className="w-16 shrink-0 bg-slate-950 border border-slate-800 text-white rounded-lg p-2 text-xs text-center outline-none focus:border-red-500 light:bg-slate-50 light:border-slate-200 light:text-slate-900 font-mono font-bold"
                                         />
                                         <span className="text-slate-400 light:text-slate-600 font-bold">天</span>
                                       </div>
+
+                                      <span className="text-[10px] text-slate-500 font-bold bg-slate-900/60 light:bg-slate-200/50 px-2.5 py-1 rounded border border-white/5 light:border-slate-300/60 shrink-0 select-none">
+                                        限做 {template.max_completions || 1} 次
+                                      </span>
                                     </div>
                                   )}
                                 </div>
