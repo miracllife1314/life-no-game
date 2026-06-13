@@ -434,11 +434,22 @@ export default function Home() {
       // because this project uses profiles table login, not Supabase Auth accounts.
       const mockUserId = typeof window !== 'undefined' ? localStorage.getItem('nlp_mock_user_id') : null;
       
-      const activeUserId = mockUserId;
+      let activeUserId = mockUserId;
+      let loadedProfile: Profile | null = null;
+
+      if (activeUserId) {
+        loadedProfile = await fetchData(activeUserId);
+        if (!loadedProfile) {
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem('nlp_mock_user_id');
+            localStorage.removeItem('nlp_session');
+          }
+          activeUserId = null;
+        }
+      }
 
       if (activeUserId) {
         setViewState('app');
-        const loadedProfile = await fetchData(activeUserId);
         
         // If they followed an invite link while logged in, check enrollment!
         if (queryInvite && queryBatch && queryTeam) {
