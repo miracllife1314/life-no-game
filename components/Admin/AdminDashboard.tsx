@@ -5940,6 +5940,7 @@ export function AdminDashboard({
                                           type="number"
                                           min={1}
                                           value={localRule.day_offset ?? 1}
+                                          onFocus={e => e.target.select()}
                                           onChange={e => updateLocalRuleField(template.id, 'day_offset', Number(e.target.value))}
                                           className="w-16 shrink-0 bg-slate-950 border border-slate-800 text-white rounded-lg p-2 text-xs text-center outline-none focus:border-red-500 light:bg-slate-50 light:border-slate-200 light:text-slate-900 font-mono font-bold"
                                         />
@@ -5953,6 +5954,7 @@ export function AdminDashboard({
                                           type="number"
                                           min={1}
                                           value={localRule.duration_days ?? 1}
+                                          onFocus={e => e.target.select()}
                                           onChange={e => updateLocalRuleField(template.id, 'duration_days', Number(e.target.value))}
                                           className="w-16 shrink-0 bg-slate-950 border border-slate-800 text-white rounded-lg p-2 text-xs text-center outline-none focus:border-red-500 light:bg-slate-50 light:border-slate-200 light:text-slate-900 font-mono font-bold"
                                         />
@@ -5960,7 +5962,7 @@ export function AdminDashboard({
                                       </div>
 
                                       <span className="text-[10px] text-slate-500 font-bold bg-slate-900/60 light:bg-slate-200/50 px-2.5 py-1 rounded border border-white/5 light:border-slate-300/60 shrink-0 select-none">
-                                        限做 {template.max_completions || 1} 次
+                                        {template.max_completions === 0 ? '無限次' : `限做 ${template.max_completions ?? 1} 次`}
                                       </span>
                                     </div>
                                   )}
