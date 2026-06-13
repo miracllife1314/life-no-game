@@ -375,7 +375,8 @@ export default function Home() {
       setUserPets(joinedUserPets);
       setDeckCards(joinedDeckCards);
       setUserDecks(joinedUserDecks);
-      if (coursesList) setCourses(coursesList);
+      // 依 sort_order 排序（數字小在前）；未設定者視為 0。欄位尚未建立時 ?? 0 也不會壞
+      if (coursesList) setCourses([...coursesList].sort((a: any, b: any) => (a.sort_order ?? 0) - (b.sort_order ?? 0)));
       if (achsList) setAchievements(achsList);
       if (annsList) setAnnouncements(annsList);
       if (scoreLogsList) setScoreLogs(scoreLogsList);

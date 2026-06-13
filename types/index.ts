@@ -102,6 +102,7 @@ export interface Course {
   class_date: string;
   batch_id?: string | null;
   register_url?: string | null;
+  sort_order?: number | null;
   created_at: string;
 }
 

@@ -852,13 +852,15 @@ export function AdminDashboard({
   const [editCourseDate, setEditCourseDate] = useState('');
   const [editCourseBatchId, setEditCourseBatchId] = useState('');
   const [editCourseRegisterUrl, setEditCourseRegisterUrl] = useState('');
+  const [editCourseSortOrder, setEditCourseSortOrder] = useState(0);
   const handleStartEditCourse = (course: Course) => {
     setEditingCourseId(course.id);
     setEditCourseName(course.name);
     setEditCourseDesc(course.description || '');
     setEditCourseDate(course.class_date || '');
     setEditCourseBatchId(course.batch_id || '');
-    setCourseRegisterUrl(course.register_url || '');
+    setEditCourseRegisterUrl(course.register_url || '');
+    setEditCourseSortOrder(course.sort_order ?? 0);
   };
   const handleCancelEditCourse = () => setEditingCourseId(null);
   const handleSaveEditCourse = async (id: string) => {
@@ -868,7 +870,8 @@ export function AdminDashboard({
         description: editCourseDesc || null,
         class_date: editCourseDate,
         batch_id: editCourseBatchId || null,
-        register_url: editCourseRegisterUrl || null
+        register_url: editCourseRegisterUrl || null,
+        sort_order: editCourseSortOrder
       });
     }
     setEditingCourseId(null);
@@ -3258,6 +3261,10 @@ export function AdminDashboard({
                             <input type="date" value={editCourseDate} onChange={e => setEditCourseDate(e.target.value)} className="flex-1 bg-slate-900 border border-slate-700 rounded p-1.5 text-[11px] text-white" />
                           </div>
                           <input type="url" value={editCourseRegisterUrl} onChange={e => setEditCourseRegisterUrl(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded p-1.5 text-[11px] text-white" placeholder="報名連結" />
+                          <div className="flex items-center gap-2">
+                            <label className="text-[10px] text-slate-400 font-bold shrink-0">排序（數字越小越前面）</label>
+                            <input type="number" value={editCourseSortOrder} onFocus={e => e.target.select()} onChange={e => setEditCourseSortOrder(Number(e.target.value))} className="w-20 bg-slate-900 border border-slate-700 rounded p-1.5 text-[11px] text-white text-center font-mono" />
+                          </div>
                           <div className="flex justify-end gap-2 mt-2">
                             <button onClick={handleCancelEditCourse} className="px-3 py-1 bg-slate-800 text-slate-300 rounded text-[10px]">取消</button>
                             <button onClick={() => handleSaveEditCourse(course.id)} disabled={isSyncing} className="px-3 py-1 bg-amber-500 text-white rounded text-[10px] font-bold">儲存</button>
