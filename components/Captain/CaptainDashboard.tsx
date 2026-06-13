@@ -474,20 +474,43 @@ export function CaptainDashboard({
   const handleGetAIBriefing = () => {
     setIsLoadingBriefing(true);
     setAiBriefing(null);
-    
+
     setTimeout(() => {
       setIsLoadingBriefing(false);
-      const topMemberName = sortedMembers[1]?.name || sortedMembers[0]?.name || '張品嬋';
-      const needsCareName = sortedMembers[3]?.name || sortedMembers[2]?.name || '莊俊琦';
-      
+
+      // 只分析「學員」（不含隊長本人），依實際得分與完成率計算
+      const students = squadStudents.filter(m => m.role === 'student');
+      const allTasks = [...dailyMissions, ...weeklyMissions, ...specialMissions];
+
+      const stats = students.map(m => {
+        let possible = 0, done = 0;
+        allTasks.forEach(t => {
+          const lim = (t.max_completions ?? 1) === 0 ? 1 : (t.max_completions ?? 1);
+          possible += lim;
+          const approved = submissions.filter(s => s.mission_id === t.id && s.student_id === m.id && s.status === 'approved').length;
+          done += Math.min(approved, lim);
+        });
+        const rate = possible > 0 ? Math.round((done / possible) * 100) : 0;
+        return { name: m.name, score: m.score || 0, rate };
+      });
+
+      // 本週之星：個人經驗最高者
+      const topByScore = [...stats].sort((a, b) => b.score - a.score)[0];
+      // 需要關懷：完成率明顯偏低 (< 60%) 者，由低到高，最多 3 位
+      const laggards = stats.filter(s => s.rate < 60).sort((a, b) => a.rate - b.rate).slice(0, 3);
+
       setAiBriefing({
         teamMorale: teamDailyRate >= 80 ? 'high' : teamDailyRate >= 50 ? 'medium' : 'low',
-        teamSummary: `本分隊打卡進度為 ${totalDailyCompleted + totalWeeklyCompleted}/${totalDailyPossible + totalWeeklyPossible}。定課達成率為 ${teamDailyRate}%，任務達成率為 ${teamWeeklyRate}%。`,
-        topPerformer: `${topMemberName}：目前獲得個人經驗 ${sortedMembers[1]?.score || 0}，為小隊主力！`,
-        needsSupport: teamDailyRate < 85 ? [needsCareName] : [],
-        suggestion: `建議小隊長多鼓勵大家，本週推薦引導組員多在群組交流「卓越狀態」心錨的重塑練習。`
+        teamSummary: `本小隊定課達成率 ${teamDailyRate}%、任務達成率 ${teamWeeklyRate}%（共完成 ${totalDailyCompleted + totalWeeklyCompleted}/${totalDailyPossible + totalWeeklyPossible}）。`,
+        topPerformer: topByScore
+          ? `${topByScore.name}：個人經驗 ${topByScore.score}、完成率 ${topByScore.rate}%，最認真拿分 💪`
+          : '目前尚無學員資料',
+        needsSupport: laggards.map(l => `${l.name} ${l.rate}%`),
+        suggestion: laggards.length > 0
+          ? `建議私下關心 ${laggards.map(l => l.name).join('、')}，了解卡關原因、鼓勵他們跟上進度。`
+          : `全隊狀態良好，繼續保持！可在群組公開讚美${topByScore ? `「${topByScore.name}」` : '表現好的隊員'}帶動氣氛。`
       });
-    }, 1200);
+    }, 600);
   };
 
   // Quest Draw Simulation
@@ -1614,13 +1637,13 @@ export function CaptainDashboard({
         </div>
       </section>
 
-      {/* 🤖 AI 隊務 analysis */}
+      {/* 📊 隊務分析（依實際數據） */}
       <section className="glass-panel p-6 rounded-3xl border border-purple-500/20 space-y-4 text-left light:bg-white light:border-purple-500/30">
         <h3 className="text-sm font-black text-white border-b border-white/5 pb-3 flex items-center gap-2 select-none light:border-slate-200">
-          <span>🤖</span> AI 隊務分析
+          <span>📊</span> 隊務分析
         </h3>
         <p className="text-xs text-slate-400 font-bold leading-relaxed light:text-slate-600">
-          即時分析本小隊成員近 7 天修行打卡表現，識別本週之星與需要加強關懷輔導的隊員。
+          依本小隊成員實際的得分與打卡完成率，找出最認真拿分的「本週之星」，以及完成率偏低、需要關懷的隊員。
         </p>
         <button
           disabled={isLoadingBriefing}
@@ -1630,7 +1653,7 @@ export function CaptainDashboard({
           {isLoadingBriefing ? (
             <><Loader2 size={16} className="animate-spin" /> 分析中，請稍候…</>
           ) : (
-            <>🤖 開始分析隊務</>
+            <>📊 產生隊務分析</>
           )}
         </button>
 

@@ -1224,6 +1224,11 @@ export default function Home() {
       Object.keys(updates).forEach(key => {
         if (allowedUpdates.includes(key)) cleanUpdates[key] = updates[key as keyof Profile];
       });
+      // 換隊時同步「所屬隊長」，避免學員仍掛在舊隊長底下（換到無隊長的隊則清空）
+      if ('team_id' in cleanUpdates) {
+        const newTeam = teams.find(t => t.id === cleanUpdates.team_id);
+        cleanUpdates.captain_id = newTeam?.captain_id ?? null;
+      }
       const { error } = await supabase.from('profiles').update(cleanUpdates).eq('id', profileId);
       if (error) throw new Error(error.message);
       await fetchData();
@@ -1934,12 +1939,14 @@ export default function Home() {
 
   const handleManualAdjustScore = async (studentId: string, amount: number, reason: string) => {
     if (!currentUser) return;
-    await supabase.rpc('adjust_score', {
+    // 檢查 RPC 是否真的成功，失敗就拋錯（避免「假成功」）
+    const { error } = await supabase.rpc('adjust_score', {
       p_student_id: studentId,
       p_amount: amount,
       p_reason: reason,
       p_created_by: currentUser.id
     });
+    if (error) throw new Error(error.message || '調分失敗');
     await fetchData();
   };
 
@@ -2339,9 +2346,10 @@ export default function Home() {
   const currentUiRole = (gmMode && currentUser.role === 'admin') ? selectedGmRole : currentUser.role;
 
   // For admin (大隊長) viewing Captain Dashboard, we use their selected team; otherwise use their own team
+  // 隊長若沒有自己的小隊，一律為 null（不可退回 teams[0]，否則會看到/操作別隊資料）
   const selectedTeamForCaptainView = (currentUser.role === 'admin' || currentUiRole === 'admin')
     ? (teams.find(t => t.id === adminSelectedTeamId) || teams[0])
-    : (currentTeam || teams[0]);
+    : (currentTeam || null);
 
   // Filter data by batch context
   const batchFilterId = currentUser.batch_id;
@@ -2495,7 +2503,17 @@ export default function Home() {
           />
         )}
 
-        {activeTab === 'captain' && currentUiRole !== 'student' && (
+        {/* 隊長沒有被指派小隊：顯示擋板，不可看到/操作任何別隊資料 */}
+        {activeTab === 'captain' && currentUiRole !== 'student' && currentUiRole !== 'admin' && !selectedTeamForCaptainView && (
+          <div className="glass-panel p-10 rounded-3xl border border-white/10 text-center max-w-md mx-auto mt-8">
+            <div className="text-4xl mb-4">🪧</div>
+            <h2 className="text-lg font-bold text-white mb-2 light:text-slate-800">尚未指派小隊</h2>
+            <p className="text-sm text-slate-400 light:text-slate-600">
+              你的帳號還沒有被分配到任何小隊，請聯絡大隊長（管理員）為你指派後，即可使用隊長功能。
+            </p>
+          </div>
+        )}
+        {activeTab === 'captain' && currentUiRole !== 'student' && (currentUiRole === 'admin' || selectedTeamForCaptainView) && (
           <CaptainDashboard
             team={selectedTeamForCaptainView}
             allTeams={teams}

@@ -496,17 +496,6 @@ export function DailyQuestsTab({
     }, 800);
   };
 
-  console.log('[PET LOAD] DailyQuestsTab rendering pet:', {
-    student_id: userPet?.student_id,
-    pet_line: userPet?.pet_line,
-    current_stage_index: userPet?.current_stage_index,
-    level: userPet?.level,
-    activeStage_id: activeStage?.id,
-    activeStage_name: activeStage?.stage_name,
-    image_url: activeStage?.image_url,
-    updated_at: activeStage?.updated_at
-  });
-
   const getAnimationClass = (type: string | null | undefined) => {
     if (!type) return 'animate-float-glow';
     const clean = type.trim().toLowerCase();

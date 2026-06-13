@@ -59,19 +59,21 @@ export function CourseTab({ courses }: CourseTabProps) {
                     請點擊右側按鈕前往課程報名
                   </span>
 
-                  <a
-                    href={
-                      course.register_url 
-                        ? (course.register_url.startsWith('http') ? course.register_url : `https://${course.register_url}`)
-                        : 'https://example.com/register-nlp'
-                    }
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 text-xs font-black text-white bg-purple-600 hover:bg-purple-700 border border-purple-500/30 px-4 py-2 rounded-xl transition-all shadow-md shadow-purple-900/20 cursor-pointer"
-                  >
-                    <ExternalLink size={12} />
-                    前往課程報名連結
-                  </a>
+                  {course.register_url ? (
+                    <a
+                      href={course.register_url.startsWith('http') ? course.register_url : `https://${course.register_url}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 text-xs font-black text-white bg-purple-600 hover:bg-purple-700 border border-purple-500/30 px-4 py-2 rounded-xl transition-all shadow-md shadow-purple-900/20 cursor-pointer"
+                    >
+                      <ExternalLink size={12} />
+                      前往課程報名連結
+                    </a>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 bg-slate-800/50 border border-white/5 px-4 py-2 rounded-xl select-none cursor-not-allowed light:bg-slate-100 light:text-slate-400 light:border-slate-200">
+                      報名尚未開放
+                    </span>
+                  )}
                 </div>
               </div>
             );

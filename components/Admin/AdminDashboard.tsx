@@ -954,13 +954,22 @@ export function AdminDashboard({
     e.preventDefault();
     if (!adjustStudentId || !adjustReason) return;
     const amountNum = Number(adjustAmount);
-    await onManualAdjustScore(adjustStudentId, amountNum, adjustReason);
-    
+    // 大額調分（超過 5000）先確認，避免手滑打錯
+    if (Math.abs(amountNum) > 5000 && !window.confirm(`確定要調整 ${amountNum > 0 ? '+' : ''}${amountNum} 分嗎？這是一個很大的數字，請確認沒有打錯。`)) {
+      return;
+    }
     const studentName = profiles.find(p => p.id === adjustStudentId)?.name || '學員';
-    setAdjustMessage(`🎉 成功對 ${studentName} 調整分數：${amountNum > 0 ? '+' : ''}${amountNum}`);
-    setAdjustStudentId('');
-    setAdjustReason('');
-    setTimeout(() => setAdjustMessage(''), 3000);
+    try {
+      await onManualAdjustScore(adjustStudentId, amountNum, adjustReason);
+      // 只有真的成功才顯示成功訊息
+      setAdjustMessage(`🎉 成功對 ${studentName} 調整分數：${amountNum > 0 ? '+' : ''}${amountNum}`);
+      setAdjustStudentId('');
+      setAdjustReason('');
+      setTimeout(() => setAdjustMessage(''), 3000);
+    } catch (err: any) {
+      setAdjustMessage(`❌ 調分失敗：${err?.message || '請稍後再試'}`);
+      setTimeout(() => setAdjustMessage(''), 5000);
+    }
   };
 
   const handleAnnouncementTemplateChange = (templateId: string, currentBatchId: string) => {
