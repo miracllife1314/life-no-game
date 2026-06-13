@@ -182,6 +182,7 @@ export function DailyQuestsTab({
   const [submitting, setSubmitting] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [confirmTask, setConfirmTask] = useState<any | null>(null);
+  const [isSelectingLine, setIsSelectingLine] = useState(false);
 
   // --- Proof Image Upload States ---
   const [proofImg, setProofImg] = useState('');
@@ -1751,7 +1752,7 @@ export function DailyQuestsTab({
             const matchedMission = (missions || []).find(
               m => m.template_id === highlightedLine.task_template_id && m.batch_id === studentBatchId
             );
-            if (!matchedMission) return { completed: false, statusText: '待發佈', statusColor: 'text-amber-500' };
+            if (!matchedMission) return { completed: false, statusText: '未選擇', statusColor: 'text-slate-400' };
             const sub = submissions.find(s => s.mission_id === matchedMission.id && s.student_id === profile.id);
             if (!sub) return { completed: false, statusText: '待提交', statusColor: 'text-amber-400' };
             if (sub.status === 'pending') return { completed: false, statusText: '審核中', statusColor: 'text-blue-400 animate-pulse' };
@@ -1786,7 +1787,7 @@ export function DailyQuestsTab({
                       const matchedMission = (missions || []).find(
                         m => m.template_id === line.task_template_id && m.batch_id === studentBatchId
                       );
-                      if (!matchedMission) return { completed: false, statusText: '待發佈', statusColor: 'text-amber-500' };
+                      if (!matchedMission) return { completed: false, statusText: '未選擇', statusColor: 'text-slate-400' };
                       const sub = submissions.find(s => s.mission_id === matchedMission.id && s.student_id === profile.id);
                       if (!sub) return { completed: false, statusText: '待提交', statusColor: 'text-amber-400' };
                       if (sub.status === 'pending') return { completed: false, statusText: '審核中', statusColor: 'text-blue-400 animate-pulse' };
@@ -1879,7 +1880,10 @@ export function DailyQuestsTab({
                       const matchedMission = (missions || []).find(
                         m => m.template_id === highlightedLine.task_template_id && m.batch_id === studentBatchId
                       );
-                      if (matchedMission) {
+                      
+                      const isCurrentlySelected = userPet?.selected_evolution_line === highlightedLine.line_key;
+
+                      if (isCurrentlySelected && matchedMission) {
                         return (
                           <button
                             type="button"
@@ -1900,10 +1904,25 @@ export function DailyQuestsTab({
                       return (
                         <button
                           type="button"
-                          disabled
-                          className="flex-1 btn-action py-3 rounded-xl bg-slate-800 border border-slate-700 text-slate-500 text-xs font-bold"
+                          disabled={isSelectingLine}
+                          onClick={async () => {
+                            if (isCohortEnded) {
+                              alert('已結束期數僅可查看，不可再互動或培養。');
+                              return;
+                            }
+                            setIsSelectingLine(true);
+                            try {
+                              await onSelectEvolutionLine(profile.id, highlightedLine.line_key);
+                            } catch (err) {
+                              console.error(err);
+                              alert('啟用進化方向失敗，請重試。');
+                            } finally {
+                              setIsSelectingLine(false);
+                            }
+                          }}
+                          className="flex-1 btn-action py-3 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-400 hover:to-indigo-500 text-white text-xs font-black shadow-[0_0_15px_rgba(59,130,246,0.4)] cursor-pointer font-bold shimmer-btn disabled:opacity-50"
                         >
-                          🔒 任務尚未發佈
+                          {isSelectingLine ? '🔮 正在開啟進化考驗...' : '🔮 確定選擇此進化方向並開啟任務'}
                         </button>
                       );
                     })()
