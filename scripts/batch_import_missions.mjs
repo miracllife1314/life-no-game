@@ -57,6 +57,18 @@ console.log(`準備匯入 ${formattedRecords.length} 筆任務模板資料...`);
 
 // 5. 匯入到 Supabase mission_templates
 async function importMissions() {
+  const titles = formattedRecords.map(r => r.title);
+  console.log('正在清理重複的任務模板...');
+  for (const title of titles) {
+    await fetch(`${supabaseUrl}/rest/v1/mission_templates?title=eq.${encodeURIComponent(title)}`, {
+      method: 'DELETE',
+      headers: {
+        apikey: supabaseKey,
+        Authorization: `Bearer ${supabaseKey}`,
+      }
+    });
+  }
+
   const response = await fetch(`${supabaseUrl}/rest/v1/mission_templates`, {
     method: 'POST',
     headers: {
