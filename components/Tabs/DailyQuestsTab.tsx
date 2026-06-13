@@ -837,12 +837,18 @@ export function DailyQuestsTab({
                       maxWidth: '285px',
                       maxHeight: '285px',
                       objectFit: 'contain',
+                      // 行內保險：置中定位也寫死，避免初次進面板 .pet-image CSS 尚未套用時圖跑到右下角。
+                      // 動畫執行時會以自身 keyframes(含 translate(-50%,-50%)) 接手，不衝突。
+                      position: 'absolute',
+                      left: 'calc(50% + var(--pet-x, 0px))',
+                      top: 'calc(50% + var(--pet-y, 0px))',
+                      transform: 'translate(-50%, -50%) scale(var(--pet-scale))',
                     } as React.CSSProperties}
                   />
                 </>
               ) : (
-                // 載入中或尚無神獸：顯示蛋佔位，不要閃出隨機備用圖
-                <div className="pet-image flex items-center justify-center select-none" style={{ fontSize: '110px', filter: `drop-shadow(0 0 20px ${glowColor})` }}>
+                // 載入中或尚無神獸：顯示蛋佔位（用 flex 置中，不用絕對定位避免偏移）
+                <div className="flex items-center justify-center select-none z-[2]" style={{ fontSize: '110px', filter: `drop-shadow(0 0 20px ${glowColor})` }}>
                   🥚
                 </div>
               )}
