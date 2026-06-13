@@ -4860,7 +4860,7 @@ export function AdminDashboard({
               <table className="w-full text-xs text-left border-collapse min-w-[800px]">
                 <thead>
                   <tr className="bg-slate-950/60 text-slate-450 font-bold border-b border-white/5 light:bg-slate-100 light:border-slate-300 light:text-slate-600">
-                    <th className="p-3">姓名</th>
+                    <th className="p-3 sticky left-0 z-10 bg-slate-950 light:bg-slate-100">姓名</th>
                     <th className="p-3">手機</th>
                     <th className="p-3">期數</th>
                     <th className="p-3">角色/小隊</th>
@@ -4882,7 +4882,7 @@ export function AdminDashboard({
                         <tr key={p.id} className="border-b border-white/5 hover:bg-white/5 transition-colors light:border-slate-200 light:hover:bg-slate-50">
                           {isEditing ? (
                             <>
-                              <td className="p-3">
+                              <td className="p-3 sticky left-0 z-10 bg-slate-950 light:bg-white">
                                 <input
                                   type="text"
                                   value={editingProfileData.name || ''}
@@ -4970,7 +4970,7 @@ export function AdminDashboard({
                             </>
                           ) : (
                             <>
-                              <td className="p-3 font-bold text-white light:text-slate-900">{p.name}</td>
+                              <td className="p-3 font-bold text-white light:text-slate-900 sticky left-0 z-10 bg-slate-950 light:bg-white">{p.name}</td>
                               <td className="p-3 text-slate-400 font-mono">{p.phone || '-'}</td>
                               <td className="p-3 text-purple-400 font-bold">{batchName}</td>
                               <td className="p-3">
