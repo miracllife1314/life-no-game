@@ -61,8 +61,10 @@ export function LeaderboardTab({
   const isLockedForStudents = rankingsVisibleSetting === false || (rankingsVisibleSetting !== true && isWithinLast7Days);
 
   // Display name helpers
-  const getTeamDisplayName = (team: Team) => {
-    return team.custom_name ? `${team.name} (${team.custom_name})` : team.name;
+  const getBatchName = (batchId?: string | null) => {
+    if (!batchId) return '未知期數';
+    const batch = batches.find(b => b.id === batchId);
+    return batch ? batch.name : '未知期數';
   };
 
   const getSubTeamNameOnly = (teamName: string, batchName: string) => {
@@ -70,6 +72,12 @@ export function LeaderboardTab({
       return teamName.replace(batchName, '').trim();
     }
     return teamName.replace(/NLP.*?期/gi, '').trim() || teamName;
+  };
+
+  const getTeamDisplayName = (team: Team) => {
+    const batchName = getBatchName(team.batch_id);
+    const shortName = getSubTeamNameOnly(team.name, batchName);
+    return team.custom_name ? `${shortName} (${team.custom_name})` : shortName;
   };
 
   const getTeamName = (teamId: string | null) => {
@@ -86,12 +94,6 @@ export function LeaderboardTab({
     }
   };
 
-  const getBatchName = (batchId?: string | null) => {
-    if (!batchId) return '未知期數';
-    const batch = batches.find(b => b.id === batchId);
-    return batch ? batch.name : '未知期數';
-  };
-
   // Rank badge styles
   const getRankBadge = (rank: number) => {
     switch (rank) {
@@ -106,8 +108,8 @@ export function LeaderboardTab({
     }
   };
 
-  // 1. DATA PREPARATION: Current Batch Individual
-  const currentBatchProfiles = profiles.filter(p => p.batch_id === selectedBatchId && p.status !== 'inactive');
+  // 1. DATA PREPARATION: Current Batch Individual (排除大隊長)
+  const currentBatchProfiles = profiles.filter(p => p.batch_id === selectedBatchId && p.status !== 'inactive' && p.role !== 'admin');
   const sortedIndividual = [...currentBatchProfiles].sort((a, b) => b.score - a.score);
   const topIndividual = sortedIndividual.slice(0, 3);
   const remainingIndividual = sortedIndividual.slice(3);
