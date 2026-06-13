@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { 
   Profile, Team, Task, Submission, 
   Course, Achievement, Announcement, UserRole, TaskType, TaskTargetType,
-  Pet, UserPet, PetLine, PetStage, PetEvolutionLog, Card, Deck, DeckCard, UserDeck, Batch, MissionTemplate, BatchMissionTemplate, CaptainCandidate, StudentNote, SquadRoleDef
+  Pet, UserPet, PetLine, PetStage, PetEvolutionLog, Card, Deck, DeckCard, UserDeck, Batch, MissionTemplate, BatchMissionTemplate, Mission, CaptainCandidate, StudentNote, SquadRoleDef
 } from '@/types';
 import { 
   ShieldCheck, FileCheck, Calendar, Trophy, 
@@ -95,6 +95,8 @@ interface AdminDashboardProps {
   deckCards: DeckCard[];
   userDecks: UserDeck[];
   batches: Batch[];
+  missions: Mission[];
+  onDeleteMission?: (missionId: string) => Promise<void>;
   missionTemplates: MissionTemplate[];
   batchMissionTemplates: BatchMissionTemplate[];
   petLines: PetLine[];
@@ -162,6 +164,8 @@ export function AdminDashboard({
   teams,
   tasks,
   submissions,
+  missions,
+  onDeleteMission,
   courses,
   achievements,
   announcements = [],
@@ -6099,6 +6103,70 @@ export function AdminDashboard({
               </select>
             </div>
           </div>
+
+          {/* 已產生任務（可單筆刪除）：解決『刪了模板但已產生任務還殘留在前台』的問題 */}
+          {selectedPreviewBatchId && (() => {
+            const batchMissions = missions
+              .filter(m => m.batch_id === selectedPreviewBatchId)
+              .sort((a, b) => String(a.publish_at).localeCompare(String(b.publish_at)));
+            return (
+              <div className="space-y-3 pb-2 border-b border-white/5 light:border-slate-100">
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                  <h4 className="font-black text-white text-sm light:text-slate-900">🗂️ 已產生的任務（{batchMissions.length}）</h4>
+                  <span className="text-[10px] text-slate-500">可單筆刪除；刪除會一併移除該任務的打卡並自動退回經驗</span>
+                </div>
+                {batchMissions.length === 0 ? (
+                  <p className="text-xs text-slate-500 py-3 select-none">此期數目前沒有已產生的任務。</p>
+                ) : (
+                  <div className="border border-white/5 rounded-2xl overflow-x-auto light:border-slate-200 max-h-96 overflow-y-auto">
+                    <table className="w-full text-xs text-left [&_th]:whitespace-nowrap [&_td]:whitespace-nowrap">
+                      <thead className="sticky top-0">
+                        <tr className="bg-slate-900 text-slate-400 border-b border-white/5 light:bg-slate-100 light:text-slate-600">
+                          <th className="p-3">任務</th>
+                          <th className="p-3">類型</th>
+                          <th className="p-3">發布</th>
+                          <th className="p-3">截止</th>
+                          <th className="p-3 text-center">打卡數</th>
+                          <th className="p-3 text-center">操作</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-white/5 light:divide-slate-200">
+                        {batchMissions.map(m => {
+                          const subCount = submissions.filter(s => s.mission_id === m.id).length;
+                          const typeLabel = m.mission_type === 'daily' ? '每日' : m.mission_type === 'weekly' ? '每週' : m.mission_type === 'limited' ? '限時' : '特殊';
+                          return (
+                            <tr key={m.id} className="bg-slate-950/40 light:bg-white">
+                              <td className="p-3 font-bold text-white light:text-slate-900">{m.title}</td>
+                              <td className="p-3 text-slate-300 light:text-slate-600">{typeLabel}</td>
+                              <td className="p-3 text-slate-400 font-mono">{String(m.publish_at).substring(0, 10)}</td>
+                              <td className="p-3 text-slate-400 font-mono">{String(m.deadline_at).substring(0, 10)}</td>
+                              <td className="p-3 text-center text-amber-500 font-bold">{subCount}</td>
+                              <td className="p-3 text-center">
+                                <button
+                                  type="button"
+                                  onClick={async () => {
+                                    const msg = subCount > 0
+                                      ? `確定刪除任務「${m.title}」嗎？\n\n它已有 ${subCount} 筆打卡，刪除會一併移除這些打卡並退回對應經驗。\n此操作無法復原。`
+                                      : `確定刪除任務「${m.title}」嗎？\n此操作無法復原。`;
+                                    if (window.confirm(msg) && onDeleteMission) {
+                                      await onDeleteMission(m.id);
+                                    }
+                                  }}
+                                  className="text-red-400 hover:text-white hover:bg-red-500 px-3 py-1 rounded-lg text-[11px] font-bold transition-colors cursor-pointer border border-red-500/30"
+                                >
+                                  刪除
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
 
           {selectedPreviewBatchId ? (() => {
             const previewData = getSchedulePreview(selectedPreviewBatchId);

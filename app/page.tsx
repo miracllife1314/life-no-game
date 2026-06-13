@@ -1950,6 +1950,23 @@ export default function Home() {
     return { successCount, skipCount };
   };
 
+  // 後台單筆刪除「已產生的任務」：先刪該任務的打卡（DB trigger 會自動退回已給經驗），再刪任務本身
+  const handleDeleteMission = async (missionId: string) => {
+    setIsSyncing(true);
+    try {
+      const { error: e1 } = await supabase.from('submissions').delete().eq('mission_id', missionId);
+      if (e1) throw new Error(e1.message);
+      const { error: e2 } = await supabase.from('missions').delete().eq('id', missionId);
+      if (e2) throw new Error(e2.message);
+      await fetchData();
+    } catch (err: any) {
+      console.error('刪除任務失敗:', err);
+      alert('刪除任務失敗：' + (err?.message || '請稍後再試'));
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   const handleManualAdjustScore = async (studentId: string, amount: number, reason: string) => {
     if (!currentUser) return;
     // 檢查 RPC 是否真的成功，失敗就拋錯（避免「假成功」）
@@ -2627,6 +2644,8 @@ export default function Home() {
             onDeleteMissionTemplate={handleDeleteMissionTemplate}
             onSaveBatchMissionTemplates={handleSaveBatchMissionTemplates}
             onGenerateMissions={handleGenerateMissions}
+            missions={missions}
+            onDeleteMission={handleDeleteMission}
             onAddProfile={handleAddProfile}
             onUpdateProfile={handleUpdateProfile}
             onDeleteProfile={handleDeleteProfile}
