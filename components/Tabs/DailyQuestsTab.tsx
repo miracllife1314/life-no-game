@@ -797,11 +797,19 @@ export function DailyQuestsTab({
             className="relative flex items-center justify-center cursor-pointer transition-transform hover:scale-105 active:scale-95"
             title="點擊與守護神獸互動"
           >
-            <div 
+            <div
               className={`pet-stage ${isEvolvingLocal ? 'scale-[2.2] opacity-0 rotate-6' : ''}`}
-              style={{ 
+              style={{
                 '--glow-color': glowColor,
-                transition: 'all 800ms'
+                transition: 'all 800ms',
+                // 行內保險：固定容器幾何，避免初次進面板時 globals.css 尚未套用，
+                // 導致絕對定位的寵物圖找不到基準框而跑到右下角
+                position: 'relative',
+                width: '300px',
+                height: '300px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
               } as React.CSSProperties}
             >
               <div className="pet-aura"></div>
