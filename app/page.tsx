@@ -574,9 +574,11 @@ export default function Home() {
         throw new Error('姓名與手機號碼不符，請再確認後重試');
       }
 
-      // 記住登入身分（下次自動登入），不再整頁重整，直接進入 App
+      // 記住登入身分後整頁重整：確保資料一次載齊、寵物圖一進去就置中（B 方案）
       if (typeof window !== 'undefined') {
         localStorage.setItem('nlp_mock_user_id', profile.id);
+        window.location.reload();
+        return;
       }
 
       setViewState('app');
