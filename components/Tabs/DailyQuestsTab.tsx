@@ -522,7 +522,7 @@ export function DailyQuestsTab({
 
   const stageName = activeStage?.stage_name || '混沌之卵';
   const stageDesc = activeStage?.description || '蘊含著無限可能的混沌之卵，靜靜等待能量積累以尋找其未來的進化方向。';
-  const stageImage = activeStage?.image_url || 'https://images.unsplash.com/photo-1516233758813-a38d024919c5?auto=format&fit=crop&q=80&w=300';
+  const stageImage = activeStage?.image_url || ''; // 無圖時不顯示隨機備用照，改用蛋佔位（見下方渲染）
   const animationClass = getAnimationClass(activeStage?.animation_type);
   const glowColor = activeStage?.glow_color || '#A855F7';
 
@@ -813,32 +813,39 @@ export function DailyQuestsTab({
               } as React.CSSProperties}
             >
               <div className="pet-aura"></div>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img 
-                src={stageImage ? (stageImage.startsWith('data:') ? stageImage : `${stageImage}${stageImage.includes('?') ? '&' : '?'}u=${encodeURIComponent(activeStage?.updated_at || '')}`) : ''}
-                alt={stageName}
-                className={`pet-image ${animationClass}`}
-                style={{ 
-                  '--pet-scale': (() => {
-                    let zoom = 1.0; // 預設倍率改為 1.0
-                    if (stageImage) {
-                      const match = stageImage.match(/[#&?]zoom=([0-9.]+)/i) || stageImage.match(/[#&?]scale=([0-9.]+)/i);
-                      if (match && match[1]) {
-                        const parsed = parseFloat(match[1]);
-                        if (!isNaN(parsed) && parsed > 0) zoom = parsed;
-                      }
-                    }
-                    return Math.min(0.85 + (userLevel % 5) * 0.05, 1.1) * zoom;
-                  })(),
-                  '--pet-x': `${parsePetOffset(stageImage).x}px`,
-                  '--pet-y': `${parsePetOffset(stageImage).y}px`,
-                  '--glow-color': glowColor,
-                  // 行內保險：固定像素上限，即使 .pet-image 的 CSS 尚未套用也不會撐爆容器（避免初次載入破版）
-                  maxWidth: '285px',
-                  maxHeight: '285px',
-                  objectFit: 'contain',
-                } as React.CSSProperties}
-              />
+              {stageImage ? (
+                <>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={stageImage.startsWith('data:') ? stageImage : `${stageImage}${stageImage.includes('?') ? '&' : '?'}u=${encodeURIComponent(activeStage?.updated_at || '')}`}
+                    alt={stageName}
+                    className={`pet-image ${animationClass}`}
+                    style={{
+                      '--pet-scale': (() => {
+                        let zoom = 1.0; // 預設倍率改為 1.0
+                        const match = stageImage.match(/[#&?]zoom=([0-9.]+)/i) || stageImage.match(/[#&?]scale=([0-9.]+)/i);
+                        if (match && match[1]) {
+                          const parsed = parseFloat(match[1]);
+                          if (!isNaN(parsed) && parsed > 0) zoom = parsed;
+                        }
+                        return Math.min(0.85 + (userLevel % 5) * 0.05, 1.1) * zoom;
+                      })(),
+                      '--pet-x': `${parsePetOffset(stageImage).x}px`,
+                      '--pet-y': `${parsePetOffset(stageImage).y}px`,
+                      '--glow-color': glowColor,
+                      // 行內保險：固定像素上限，即使 .pet-image 的 CSS 尚未套用也不會撐爆容器（避免初次載入破版）
+                      maxWidth: '285px',
+                      maxHeight: '285px',
+                      objectFit: 'contain',
+                    } as React.CSSProperties}
+                  />
+                </>
+              ) : (
+                // 載入中或尚無神獸：顯示蛋佔位，不要閃出隨機備用圖
+                <div className="pet-image flex items-center justify-center select-none" style={{ fontSize: '110px', filter: `drop-shadow(0 0 20px ${glowColor})` }}>
+                  🥚
+                </div>
+              )}
               <div className="pet-shadow"></div>
               <div className="pet-particles"></div>
             </div>
