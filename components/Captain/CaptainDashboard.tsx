@@ -252,7 +252,13 @@ export function CaptainDashboard({
   };
   const dailyMissions = tasks.filter(t => t.type === 'daily' && isPublished(t));
   const weeklyMissions = tasks.filter(t => t.type === 'weekly' && isPublished(t));
-  const specialMissions = tasks.filter(t => (t.type === 'temporary' || t.type === 'limited') && isPublished(t));
+  const specialMissions = tasks.filter(t => 
+    (t.type === 'temporary' || t.type === 'limited') && 
+    isPublished(t) &&
+    t.category !== '神獸進化' &&
+    !String((t as any).template_id || '').startsWith('temp-evolve') &&
+    !String(t.id || '').startsWith('mission-evolve')
+  );
 
   let totalDailyPossible = 0;
   let totalDailyCompleted = 0;
