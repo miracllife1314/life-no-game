@@ -1013,13 +1013,22 @@ export function DailyQuestsTab({
                   </div>
 
                   {/* 展開攻略按鈕 */}
-                  <div className="pt-1 flex justify-start">
+                  <div className="pt-1.5 flex justify-start select-none">
                     <button
                       type="button"
                       onClick={() => setShowStrategy(!showStrategy)}
-                      className="text-[9px] font-bold text-pink-400/90 hover:text-pink-400 flex items-center gap-1 cursor-pointer transition-all active:scale-95 light:text-pink-600"
+                      className={`
+                        px-3.5 py-1.5 rounded-full text-[10px] font-bold tracking-wider transition-all duration-300
+                        flex items-center gap-1.5 cursor-pointer border active:scale-95
+                        ${showStrategy 
+                          ? 'bg-pink-500/20 border-pink-500/40 text-pink-300 shadow-[0_0_12px_rgba(236,72,153,0.15)] light:bg-pink-100 light:text-pink-700 light:border-pink-300' 
+                          : 'bg-white/[0.03] border-white/10 hover:border-pink-500/40 text-slate-300 hover:text-pink-400 hover:shadow-[0_0_12px_rgba(236,72,153,0.1)] light:bg-slate-100 light:border-slate-300 light:text-slate-700 light:hover:text-pink-600 light:hover:border-pink-300'
+                        }
+                      `}
                     >
-                      <span>{showStrategy ? "收起修行加速攻略 ▴" : "查看修行加速攻略 (折抵天數) ▾"}</span>
+                      <Sparkles size={11} className={showStrategy ? "animate-pulse text-pink-400" : "text-slate-400"} />
+                      <span>{showStrategy ? "收起修行加速攻略" : "查看修行加速攻略 (天數折抵)"}</span>
+                      {showStrategy ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
                     </button>
                   </div>
 
