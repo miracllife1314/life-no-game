@@ -612,6 +612,20 @@ export default function Home() {
   const handleRegister = async (regData: { name: string; phone: string; role: UserRole }) => {
     setIsSyncing(true);
 
+    // 防呆：同「姓名+手機」若已存在，不可重複註冊（避免產生重複帳號、破壞多期相連）
+    const safeName = (regData.name || '').trim();
+    const safePhone = (regData.phone || '').trim();
+    const { data: existingPerson } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('name', safeName)
+      .eq('phone', safePhone)
+      .limit(1);
+    if (existingPerson && existingPerson.length > 0) {
+      setIsSyncing(false);
+      throw new Error('此姓名與手機已經註冊過了。若要加入新的一期，請改用「登入」，登入後再點一次邀請連結即可加入。');
+    }
+
     let batch_id: string | null = null;
     let team_id: string | null = null;
     let captain_id: string | null = null;
@@ -637,8 +651,8 @@ export default function Home() {
     const { error } = await supabase.from('profiles').insert({
       id: newId,
       profile_id: newId,
-      name: regData.name,
-      phone: regData.phone,
+      name: safeName,
+      phone: safePhone,
       role: regData.role,
       batch_id,
       team_id,
