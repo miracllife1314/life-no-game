@@ -13,7 +13,7 @@ import {
   Sparkles, Layers, BookOpen, Upload, Image as ImageIcon, AlertCircle, Shield, Settings, Users
 } from 'lucide-react';
 import { supabase, isRealSupabase } from '@/lib/supabase';
-import { parsePetOffset, trimCenterSquare } from '@/lib/petImage';
+import { parsePetOffset, trimCenterSquare, useTrimmedPetImage } from '@/lib/petImage';
 
 export const MISSION_CATEGORIES = ['初階', '進階', 'VIP', '期數任務', '神獸進化'];
 
@@ -504,6 +504,7 @@ export function AdminDashboard({
   const [editDescription, setEditDescription] = useState('');
   const [editEvolutionText, setEditEvolutionText] = useState('');
   const [editImageUrl, setEditImageUrl] = useState('');
+  const trimmedEditImage = useTrimmedPetImage(editImageUrl);
   const [editMinLevel, setEditMinLevel] = useState(0);
   const [editMaxLevel, setEditMaxLevel] = useState(99);
   const [editStageActive, setEditStageActive] = useState(true);
@@ -3908,7 +3909,7 @@ export function AdminDashboard({
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             {editImageUrl ? (
                               <img
-                                src={editImageUrl}
+                                src={trimmedEditImage || editImageUrl}
                                 alt={editStageName || '預覽神獸'}
                                 className={`pet-image animate-${editAnimationType || 'float'}`}
                                 style={{ 

@@ -3,7 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "node scripts/check-env.mjs && next dev",
+    "check-env": "node scripts/check-env.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
