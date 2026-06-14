@@ -574,11 +574,10 @@ export default function Home() {
         throw new Error('姓名與手機號碼不符，請再確認後重試');
       }
 
-      // 記住登入身分後整頁重整：確保資料一次載齊、寵物圖一進去就置中（B 方案）
+      // 記住登入身分，設定單次重整標記，整合至個人面板切換時統一重整
       if (typeof window !== 'undefined') {
         localStorage.setItem('nlp_mock_user_id', profile.id);
-        window.location.reload();
-        return;
+        localStorage.setItem('nlp_need_pet_refresh', 'true');
       }
 
       setViewState('app');
@@ -599,6 +598,16 @@ export default function Home() {
       setAdminSelectedTeamId(teams[0].id);
     }
   }, [teams, adminSelectedTeamId]);
+
+  useEffect(() => {
+    if (activeTab === 'daily' && typeof window !== 'undefined') {
+      const needRefresh = localStorage.getItem('nlp_need_pet_refresh');
+      if (needRefresh === 'true') {
+        localStorage.removeItem('nlp_need_pet_refresh');
+        window.location.reload();
+      }
+    }
+  }, [activeTab, currentUser?.id, currentUser?.batch_id]);
 
   const handleRegister = async (regData: { name: string; phone: string; role: UserRole }) => {
     setIsSyncing(true);
@@ -646,6 +655,7 @@ export default function Home() {
 
     if (typeof window !== 'undefined') {
       localStorage.setItem('nlp_mock_user_id', newId);
+      localStorage.setItem('nlp_need_pet_refresh', 'true');
     }
     setViewState('app');
     setActiveTab('daily');
@@ -678,6 +688,7 @@ export default function Home() {
       if (typeof window !== 'undefined') {
         localStorage.setItem('nlp_session', JSON.stringify(nextEnrollment));
         localStorage.setItem('nlp_mock_user_id', nextEnrollment.id);
+        localStorage.setItem('nlp_need_pet_refresh', 'true');
       }
       await fetchData(nextEnrollment.id);
     }
