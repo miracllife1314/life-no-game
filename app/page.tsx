@@ -1320,6 +1320,42 @@ export default function Home() {
     }
     try {
       await supabase.from('teams').update(settings).eq('id', teamId);
+
+      // 指派小隊長時：確保該隊長在「這個梯次」有一筆 captain 報名（支援跨期小隊長）。
+      // 否則只設了 teams.captain_id，本人沒有該期報名 → 登入後看不到也管不了這一隊。
+      if ('captain_id' in settings && settings.captain_id) {
+        const team = teams.find(t => t.id === teamId);
+        const batchId = team?.batch_id || null;
+        const capProfileId = settings.captain_id;
+        if (batchId) {
+          const existing = profiles.find(p => p.profile_id === capProfileId && p.batch_id === batchId);
+          if (existing) {
+            // 已有該期報名 → 設為小隊長並綁到此隊
+            await supabase.from('profiles').update({ role: 'captain', team_id: teamId }).eq('id', existing.id);
+          } else {
+            // 該期還沒有報名 → 用同一人(其他期)的資料，新增一筆「隊長報名」(同 profile_id)
+            const anyProfile = profiles.find(p => p.profile_id === capProfileId);
+            if (anyProfile) {
+              const newId = (typeof crypto !== 'undefined' && crypto.randomUUID)
+                ? crypto.randomUUID()
+                : `usr-${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
+              await supabase.from('profiles').insert({
+                id: newId,
+                profile_id: capProfileId,
+                name: anyProfile.name,
+                phone: anyProfile.phone,
+                role: 'captain',
+                batch_id: batchId,
+                team_id: teamId,
+                score: 0,
+                status: 'active',
+                created_at: new Date().toISOString()
+              });
+            }
+          }
+        }
+      }
+
       await fetchData();
     } catch (err) {
       console.error(err);
