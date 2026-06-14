@@ -120,7 +120,7 @@ export function LeaderboardTab({
     const members = currentBatchProfiles.filter(p => p.team_id === team.id);
     const size = members.length || 1;
     const avgScore = Math.round(team.total_score / size);
-    const totalLevel = members.reduce((sum, m) => sum + Math.floor(m.score / 500), 0);
+    const totalLevel = members.reduce((sum, m) => sum + Math.floor(m.score / 700), 0);
     return {
       ...team,
       memberCount: members.length,
@@ -142,7 +142,7 @@ export function LeaderboardTab({
     const members = profiles.filter(p => p.team_id === team.id);
     const size = members.length || 1;
     const avgScore = Math.round(team.total_score / size);
-    const totalLevel = members.reduce((sum, m) => sum + Math.floor(m.score / 500), 0);
+    const totalLevel = members.reduce((sum, m) => sum + Math.floor(m.score / 700), 0);
     return {
       ...team,
       memberCount: members.length,
@@ -294,7 +294,7 @@ export function LeaderboardTab({
                       {/* Pedestal with Level inside */}
                       <div className="h-16 w-20 mt-3 rounded-t-xl bg-gradient-to-t from-slate-800/80 to-slate-700/30 border border-slate-700/40 flex flex-col items-center justify-center shadow-lg light:from-slate-200 light:to-slate-100">
                         <span className="text-slate-500 font-extrabold text-xs font-mono">II</span>
-                        <span className="text-[9px] font-bold text-slate-400 mt-0.5">LV.{Math.floor(topIndividual[1].score / 500)}</span>
+                        <span className="text-[9px] font-bold text-slate-400 mt-0.5">LV.{Math.floor(topIndividual[1].score / 700)}</span>
                       </div>
                     </div>
                   )}
@@ -322,7 +322,7 @@ export function LeaderboardTab({
                       <div className="h-24 w-24 mt-3 rounded-t-xl bg-gradient-to-t from-amber-600/80 to-amber-500/30 border border-amber-500/40 flex flex-col items-center justify-center shadow-2xl relative overflow-hidden light:from-amber-100 light:to-amber-50">
                         <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent animate-pulse" />
                         <span className="text-amber-500/70 font-extrabold text-lg font-mono z-10">I</span>
-                        <span className="text-[9px] font-black text-amber-400 mt-0.5 z-10">LV.{Math.floor(topIndividual[0].score / 500)}</span>
+                        <span className="text-[9px] font-black text-amber-400 mt-0.5 z-10">LV.{Math.floor(topIndividual[0].score / 700)}</span>
                       </div>
                     </div>
                   )}
@@ -348,7 +348,7 @@ export function LeaderboardTab({
                       {/* Pedestal with Level inside */}
                       <div className="h-12 w-20 mt-3 rounded-t-xl bg-gradient-to-t from-orange-900/60 to-orange-850/30 border border-orange-800/40 flex flex-col items-center justify-center shadow-md light:from-orange-100 light:to-orange-50">
                         <span className="text-orange-600/70 font-extrabold text-sm font-mono">III</span>
-                        <span className="text-[9px] font-bold text-orange-500 mt-0.5">LV.{Math.floor(topIndividual[2].score / 500)}</span>
+                        <span className="text-[9px] font-bold text-orange-500 mt-0.5">LV.{Math.floor(topIndividual[2].score / 700)}</span>
                       </div>
                     </div>
                   )}
@@ -361,7 +361,7 @@ export function LeaderboardTab({
                 {remainingIndividual.map((p, idx) => {
                   const rank = idx + 4;
                   const isSelf = p.id === currentUser.id;
-                  const level = Math.floor(p.score / 500);
+                  const level = Math.floor(p.score / 700);
                   
                   return (
                     <div
@@ -604,7 +604,7 @@ export function LeaderboardTab({
                   <tbody className="divide-y divide-white/5 light:divide-slate-200">
                     {sortedAllTimeIndividual.map((p, idx) => {
                       const rank = idx + 1;
-                      const level = Math.floor(p.score / 500);
+                      const level = Math.floor(p.score / 700);
                       const isSelf = p.id === currentUser.id;
 
                       return (

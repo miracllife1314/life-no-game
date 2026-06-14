@@ -781,7 +781,7 @@ export default function Home() {
         setUserPets(prev => prev.map(up => {
           if (up.student_id === currentUser.id) {
             const nextExp = up.total_exp + points;
-            const nextLv = Math.floor(nextExp / 500);
+            const nextLv = Math.floor(nextExp / 700);
             return {
               ...up,
               total_exp: nextExp,
@@ -837,7 +837,7 @@ export default function Home() {
         setUserPets(prev => prev.map(up => {
           if (up.student_id === currentUser.id) {
             const nextExp = up.total_exp + points;
-            const nextLv = Math.floor(nextExp / 500);
+            const nextLv = Math.floor(nextExp / 700);
             return {
               ...up,
               total_exp: nextExp,
@@ -981,7 +981,7 @@ export default function Home() {
         setUserPets(prev => prev.map(up => {
           if (up.student_id === sub.student_id) {
             const nextExp = up.total_exp + scoreDiff;
-            const nextLv = Math.floor(nextExp / 500);
+            const nextLv = Math.floor(nextExp / 700);
             return { ...up, total_exp: nextExp, level: nextLv, updated_at: new Date().toISOString() };
           }
           return up;
@@ -1070,7 +1070,7 @@ export default function Home() {
         setUserPets(prev => prev.map(up => {
           if (up.student_id === studentId) {
             const nextExp = up.total_exp + task.score;
-            const nextLv = Math.floor(nextExp / 500);
+            const nextLv = Math.floor(nextExp / 700);
             return { ...up, total_exp: nextExp, level: nextLv, updated_at: new Date().toISOString() };
           }
           return up;
@@ -1117,7 +1117,7 @@ export default function Home() {
         setUserPets(prev => prev.map(up => {
           if (up.student_id === studentId) {
             const nextExp = up.total_exp + task.score;
-            const nextLv = Math.floor(nextExp / 500);
+            const nextLv = Math.floor(nextExp / 700);
             return { ...up, total_exp: nextExp, level: nextLv, updated_at: new Date().toISOString() };
           }
           return up;
@@ -1149,7 +1149,7 @@ export default function Home() {
         setUserPets(prev => prev.map(up => {
           if (up.student_id === studentId) {
             const nextExp = up.total_exp - targetSub.score_awarded;
-            const nextLv = Math.floor(nextExp / 500);
+            const nextLv = Math.floor(nextExp / 700);
             return { ...up, total_exp: nextExp, level: nextLv, updated_at: new Date().toISOString() };
           }
           return up;
@@ -2250,7 +2250,7 @@ export default function Home() {
       await supabase.from('user_pets').insert({
         student_id: studentId,
         total_exp: exp,
-        level: Math.floor(exp / 500),
+        level: Math.floor(exp / 700),
         pet_line: lineKey,
         current_stage_index: Math.min(2, maxStage), // 第一次進化：蛋(1) → 第 2 階
         has_pending_evolution: false,
@@ -2270,7 +2270,7 @@ export default function Home() {
       const { data, error } = await supabase.from('user_pets').insert({
         student_id: studentId,
         total_exp: exp,
-        level: Math.floor(exp / 500),
+        level: Math.floor(exp / 700),
         pet_line: null,
         current_stage_index: 1,
         has_pending_evolution: false,

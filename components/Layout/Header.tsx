@@ -33,8 +33,8 @@ export function Header({
   userEnrollments = [],
   onSwitchCohort
 }: HeaderProps) {
-  // Simple level formula: 1 level per 500 score (syncs with pet/leaderboard level)
-  const userLevel = Math.floor(profile.score / 500);
+  // Simple level formula: 1 level per 700 score (syncs with pet/leaderboard level)
+  const userLevel = Math.floor(profile.score / 700);
   const userBatch = batches?.find(b => b.id === profile.batch_id);
 
   const getRoleLabel = (role: string) => {

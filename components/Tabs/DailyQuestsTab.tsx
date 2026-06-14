@@ -206,7 +206,7 @@ export function DailyQuestsTab({
 
   // Level and Pet stage logic
   const totalExp = userPet ? userPet.total_exp : activeProfile.score;
-  const userLevel = userPet ? userPet.level : Math.floor(activeProfile.score / 500);
+  const userLevel = userPet ? userPet.level : Math.floor(activeProfile.score / 700);
 
   // --- Pet Dialogue Bubble States & Functions ---
   const [petBubble, setPetBubble] = useState<string | null>(null);
@@ -929,18 +929,18 @@ export function DailyQuestsTab({
                   '🔥 升級進度 (Next Level)'
                 )}
               </span>
-              <span className="text-amber-500">{(totalExp % 500).toLocaleString()} / 500 EXP</span>
+              <span className="text-amber-500">{(totalExp % 700).toLocaleString()} / 700 EXP</span>
             </div>
             <div className="w-full bg-slate-950 h-2.5 rounded-full overflow-hidden border border-white/5 light:bg-slate-100 light:border-slate-300">
               <div 
                 className="bg-gradient-to-r from-amber-400 via-orange-500 to-amber-500 h-full rounded-full transition-all duration-500 shadow-[0_0_10px_rgba(245,158,11,0.3)]"
-                style={{ width: `${((totalExp % 500) / 500) * 100}%` }}
+                style={{ width: `${((totalExp % 700) / 700) * 100}%` }}
               />
             </div>
             {userPet && userPet.current_stage_index > 1 && (
               <div className="flex justify-between text-[10px] text-slate-500 mt-1 font-bold">
                 <span>經驗：{totalExp.toLocaleString()} EXP</span>
-                <span>距離下一級：{(500 - (totalExp % 500)).toLocaleString()} EXP</span>
+                <span>距離下一級：{(700 - (totalExp % 700)).toLocaleString()} EXP</span>
               </div>
             )}
 
@@ -965,7 +965,7 @@ export function DailyQuestsTab({
               
               if (!nextStage) return null;
               
-              const requiredTotalExp = nextStage.min_level * 500;
+              const requiredTotalExp = nextStage.min_level * 700;
               const expNeeded = Math.max(0, requiredTotalExp - totalExp);
               const progressPercent = Math.min(100, (totalExp / requiredTotalExp) * 100);
               
@@ -2234,7 +2234,7 @@ export function DailyQuestsTab({
               </div>
               <div className="flex justify-between text-[11px] text-slate-500 font-medium">
                 <span>距離下一次升級：</span>
-                <span>{500 - (showLevelUpModal.totalExp % 500)} EXP</span>
+                <span>{700 - (showLevelUpModal.totalExp % 700)} EXP</span>
               </div>
             </div>
 

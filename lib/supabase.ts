@@ -295,7 +295,7 @@ const SEED_DATA = {
       animation_type: 'animate-pulse',
       glow_color: '#A855F7',
       description: '蘊含著無限可能的混沌之卵，靜靜等待能量積累以尋找其未來的進化方向。',
-      evolution_text: '當修行達到 Level 5 (2500 EXP) 時，混沌之卵將會破殼誕生出你專屬的 NLP 守護神獸！',
+      evolution_text: '當修行達到 Level 5 (3500 EXP) 時，混沌之卵將會破殼誕生出你專屬的 NLP 守護神獸！',
       is_active: true,
       created_at: new Date('2026-06-01T00:00:00Z').toISOString(),
       updated_at: new Date('2026-06-01T00:00:00Z').toISOString()
@@ -902,7 +902,7 @@ const getLocalStorageData = (): typeof SEED_DATA => {
     parsed.profiles?.forEach((p: any) => {
       if (p.role !== 'admin') {
         const total_exp = p.score || 0;
-        const level = Math.floor(total_exp / 500);
+        const level = Math.floor(total_exp / 700);
         const reachedLv5 = level >= 5;
         const first_reached_lv5_at = reachedLv5 ? new Date('2026-06-03T12:00:00Z').toISOString() : null;
 
@@ -1377,7 +1377,7 @@ class SupabaseQueryBuilder {
             description: activeStage.description,
             image_url: activeStage.image_url,
             evolution_image_url: activeStage.image_url,
-            unlock_score_threshold: activeStage.min_level * 500,
+            unlock_score_threshold: activeStage.min_level * 700,
             created_at: activeStage.created_at
           } : null;
           up.profile = mergedProfiles.find(prof => prof.id === up.student_id);
@@ -1909,7 +1909,7 @@ const adjustScoreLocal = (studentId: string, amount: number, reason: string, cre
     if ((db as any).user_pets) {
       let upet = (db as any).user_pets.find((up: any) => up.student_id === studentId);
       const total_exp = enrollment.score || 0;
-      const level = Math.floor(total_exp / 500);
+      const level = Math.floor(total_exp / 700);
       const reachedLv5 = level >= 5;
       const nowStr = new Date().toISOString();
       
