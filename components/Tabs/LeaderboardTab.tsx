@@ -77,7 +77,7 @@ export function LeaderboardTab({
   const getTeamDisplayName = (team: Team) => {
     const batchName = getBatchName(team.batch_id);
     const shortName = getSubTeamNameOnly(team.name, batchName);
-    return team.custom_name ? `${shortName} (${team.custom_name})` : shortName;
+    return shortName;
   };
 
   const getTeamName = (teamId: string | null) => {

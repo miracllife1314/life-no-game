@@ -115,7 +115,7 @@ export function Header({
                       }
                     }
                     displayName = displayName.replace(/^[\s·\-\#\s]+/, '');
-                    return team.custom_name ? `${displayName} (${team.custom_name})` : displayName;
+                    return displayName;
                   })()}
                 </span>
               </div>
