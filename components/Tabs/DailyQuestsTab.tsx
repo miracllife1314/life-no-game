@@ -943,6 +943,73 @@ export function DailyQuestsTab({
                 <span>距離下一級：{(500 - (totalExp % 500)).toLocaleString()} EXP</span>
               </div>
             )}
+
+            {/* 🔮 大進化進度與遊戲化激勵指引 */}
+            {(() => {
+              const currentStageIdx = userPet?.current_stage_index || 1;
+              
+              if (currentStageIdx >= 6) {
+                return (
+                  <div className="mt-4 p-3 rounded-2xl border border-amber-500/20 bg-amber-500/5 text-center select-none">
+                    <span className="text-xs font-black text-amber-500 flex items-center justify-center gap-1">
+                      👑 神獸已達終極形態【{stageName}】！
+                    </span>
+                  </div>
+                );
+              }
+              
+              const nextStageIndex = currentStageIdx + 1;
+              const nextStage = petStages.find(
+                s => (currentStageIdx === 1 ? s.stage_index === 2 : s.line_key === userPet?.pet_line && s.stage_index === nextStageIndex)
+              );
+              
+              if (!nextStage) return null;
+              
+              const requiredTotalExp = nextStage.min_level * 500;
+              const expNeeded = Math.max(0, requiredTotalExp - totalExp);
+              const progressPercent = Math.min(100, (totalExp / requiredTotalExp) * 100);
+              
+              // 估計天數：假設每日穩定修行可獲得 150 EXP
+              const daysEstimate = Math.ceil(expNeeded / 150);
+              const isEgg = currentStageIdx === 1;
+              
+              return (
+                <div className="mt-4 p-3.5 rounded-2xl border border-pink-500/20 bg-pink-500/5 space-y-2.5 select-none light:bg-pink-500/10">
+                  <div className="flex justify-between items-center text-[11px] font-bold">
+                    <span className="text-pink-400 flex items-center gap-1.5 light:text-pink-600">
+                      <Sparkles size={12} className="animate-pulse" />
+                      {isEgg ? "🥚 距離破殼誕生" : `🔮 距離進化為【${nextStage.stage_name}】`}
+                    </span>
+                    <span className="text-pink-400 light:text-pink-600">
+                      {totalExp.toLocaleString()} / {requiredTotalExp.toLocaleString()} EXP
+                    </span>
+                  </div>
+                  
+                  {/* 進度條 */}
+                  <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-pink-500/10 light:bg-slate-200">
+                    <div 
+                      className="bg-gradient-to-r from-pink-500 via-rose-500 to-purple-500 h-full rounded-full transition-all duration-500 shadow-[0_0_10px_rgba(236,72,153,0.3)] animate-pulse"
+                      style={{ width: `${progressPercent}%` }}
+                    />
+                  </div>
+                  
+                  {/* 遊戲化文字激勵指引 */}
+                  <div className="text-[10px] text-slate-400 leading-relaxed font-semibold light:text-slate-600">
+                    {isEgg ? (
+                      <>
+                        🐣 還差 <span className="text-pink-400 font-extrabold light:text-pink-600">{expNeeded.toLocaleString()} EXP</span>。
+                        持續累積修行，預估再過 <span className="text-amber-500 font-extrabold">{daysEstimate} 天</span>，混沌之卵即可破殼誕生你專屬的 NLP 守護神獸！
+                      </>
+                    ) : (
+                      <>
+                        🔥 還差 <span className="text-pink-400 font-extrabold light:text-pink-600">{expNeeded.toLocaleString()} EXP</span>。
+                        預估進行 <span className="text-amber-500 font-extrabold">{daysEstimate} 天</span> 的定課與挑戰，即可解鎖並突破到更強大的【{nextStage.stage_name}】！
+                      </>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
           </div>
 
           {/* Toggle Attributes Button */}
