@@ -600,7 +600,7 @@ export default function Home() {
   }, [teams, adminSelectedTeamId]);
 
   useEffect(() => {
-    if (activeTab === 'daily' && typeof window !== 'undefined') {
+    if (activeTab === 'daily' && currentUser && typeof window !== 'undefined') {
       const needRefresh = localStorage.getItem('nlp_need_pet_refresh');
       if (needRefresh === 'true') {
         localStorage.removeItem('nlp_need_pet_refresh');
