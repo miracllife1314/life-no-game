@@ -946,7 +946,7 @@ export function DailyQuestsTab({
 
             {/* 🔮 大進化進度與遊戲化激勵指引 */}
             {(() => {
-              const currentStageIdx = userPet?.current_stage_index || 1;
+              const currentStageIdx = activeStage?.stage_index || 1;
               
               if (currentStageIdx >= 6) {
                 return (
