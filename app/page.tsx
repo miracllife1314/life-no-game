@@ -766,6 +766,7 @@ export default function Home() {
         score_awarded: requiresApproval ? 0 : points,
         reviewed_by: null,
         reviewed_at: requiresApproval ? null : new Date().toISOString(),
+        share_to_witness: requiresApproval && !!shareToWitness,
         created_at: new Date().toISOString(),
         profile: currentUser,
         mission: mission || undefined
@@ -958,18 +959,33 @@ export default function Home() {
         scoreDiff = points;
       }
 
+      const oldApproved = sub.status === 'approved';
+      const oldShared = oldApproved && !!sub.share_to_witness && sub.mission_id !== 'task-custom-post';
+      const newApproved = status === 'approved';
+      const newShared = newApproved && !!shareToWitness && sub.mission_id !== 'task-custom-post';
+
+      let witnessDiff = 0;
+      if (newShared && !oldShared) {
+        witnessDiff = 300;
+      } else if (oldShared && !newShared) {
+        witnessDiff = -300;
+      }
+
+      const totalDiff = scoreDiff + witnessDiff;
+
       setSubmissions(prev => prev.map(s => s.id === submissionId ? {
         ...s,
         status,
         score_awarded: status === 'approved' ? (sub.score_awarded || points) : 0,
+        share_to_witness: status === 'approved' ? !!shareToWitness : false,
         reviewed_by: currentUser.id,
         reviewed_at: new Date().toISOString()
       } : s));
 
-      if (scoreDiff !== 0) {
+      if (totalDiff !== 0) {
         setProfiles(prev => prev.map(p => {
           if (p.id === sub.student_id) {
-            const nextScore = p.score + scoreDiff;
+            const nextScore = p.score + totalDiff;
             if (currentUser && p.id === currentUser.id) {
               setCurrentUser(prevUser => prevUser ? { ...prevUser, score: nextScore } : null);
             }
@@ -980,24 +996,41 @@ export default function Home() {
 
         setUserPets(prev => prev.map(up => {
           if (up.student_id === sub.student_id) {
-            const nextExp = up.total_exp + scoreDiff;
+            const nextExp = up.total_exp + totalDiff;
             const nextLv = Math.floor(nextExp / 700);
             return { ...up, total_exp: nextExp, level: nextLv, updated_at: new Date().toISOString() };
           }
           return up;
         }));
 
-        const newLog: ScoreLog = {
-          id: `mock-log-${Date.now()}`,
-          student_id: sub.student_id,
-          amount: scoreDiff,
-          reason: scoreDiff > 0 ? `完成任務: ${title}` : `取消已核准任務: ${title}`,
-          submission_id: submissionId,
-          created_by: currentUser.id,
-          created_at: new Date().toISOString(),
-          profile: profiles.find(p => p.id === sub.student_id)
-        };
-        setScoreLogs(prev => [newLog, ...prev]);
+        const newLogs: ScoreLog[] = [];
+        if (scoreDiff !== 0) {
+          newLogs.push({
+            id: `mock-log-${Date.now()}-1`,
+            student_id: sub.student_id,
+            amount: scoreDiff,
+            reason: scoreDiff > 0 ? `完成任務: ${title}` : `取消已核准任務: ${title}`,
+            submission_id: submissionId,
+            created_by: currentUser.id,
+            created_at: new Date().toISOString(),
+            profile: profiles.find(p => p.id === sub.student_id)
+          });
+        }
+        if (witnessDiff !== 0) {
+          newLogs.push({
+            id: `mock-log-${Date.now()}-2`,
+            student_id: sub.student_id,
+            amount: witnessDiff,
+            reason: witnessDiff > 0 ? `入選見證牆獎勵` : `取消入選見證牆獎勵`,
+            submission_id: submissionId,
+            created_by: currentUser.id,
+            created_at: new Date().toISOString(),
+            profile: profiles.find(p => p.id === sub.student_id)
+          });
+        }
+        if (newLogs.length > 0) {
+          setScoreLogs(prev => [...newLogs, ...prev]);
+        }
       }
       return;
     }
@@ -1548,6 +1581,47 @@ export default function Home() {
   };
 
   const handleHideWitness = async (submissionId: string) => {
+    if (gmMode) {
+      const sub = submissions.find(s => s.id === submissionId);
+      if (sub && sub.status === 'approved' && sub.share_to_witness && sub.mission_id !== 'task-custom-post') {
+        // Deduct 300 EXP
+        setProfiles(prev => prev.map(p => {
+          if (p.id === sub.student_id) {
+            const nextScore = p.score - 300;
+            if (currentUser && p.id === currentUser.id) {
+              setCurrentUser(prevUser => prevUser ? { ...prevUser, score: nextScore } : null);
+            }
+            return { ...p, score: nextScore };
+          }
+          return p;
+        }));
+
+        setUserPets(prev => prev.map(up => {
+          if (up.student_id === sub.student_id) {
+            const nextExp = up.total_exp - 300;
+            const nextLv = Math.floor(nextExp / 700);
+            return { ...up, total_exp: nextExp, level: nextLv, updated_at: new Date().toISOString() };
+          }
+          return up;
+        }));
+
+        const newLog: ScoreLog = {
+          id: `mock-log-${Date.now()}`,
+          student_id: sub.student_id,
+          amount: -300,
+          reason: '取消入選見證牆獎勵',
+          submission_id: submissionId,
+          created_by: currentUser?.id || 'admin',
+          created_at: new Date().toISOString(),
+          profile: profiles.find(p => p.id === sub.student_id)
+        };
+        setScoreLogs(prev => [newLog, ...prev]);
+      }
+
+      setSubmissions(prev => prev.map(s => s.id === submissionId ? { ...s, share_to_witness: false } : s));
+      return;
+    }
+
     setIsSyncing(true);
     try {
       const { error } = await supabase.from('submissions').update({ share_to_witness: false }).eq('id', submissionId);
@@ -1580,6 +1654,57 @@ export default function Home() {
   };
 
   const handleDeleteWitness = async (submissionId: string) => {
+    if (gmMode) {
+      const sub = submissions.find(s => s.id === submissionId);
+      if (!sub) return;
+      const isSocialPost = sub.mission_id === 'task-custom-post';
+
+      if (isSocialPost) {
+        // 純分享貼文：與任務無關 → 整筆刪除。
+        setSubmissions(prev => prev.filter(s => s.id !== submissionId));
+      } else {
+        // 任務打卡：只刪「照片」釋放空間，保留任務完成與經驗（不刪資料列、不碰分數）。
+        // 但因為 share_to_witness 變 false，所以如果是 approved 且本來是 true，則要扣回 300
+        if (sub.status === 'approved' && sub.share_to_witness && sub.mission_id !== 'task-custom-post') {
+          // Deduct 300 EXP
+          setProfiles(prev => prev.map(p => {
+            if (p.id === sub.student_id) {
+              const nextScore = p.score - 300;
+              if (currentUser && p.id === currentUser.id) {
+                setCurrentUser(prevUser => prevUser ? { ...prevUser, score: nextScore } : null);
+              }
+              return { ...p, score: nextScore };
+            }
+            return p;
+          }));
+
+          setUserPets(prev => prev.map(up => {
+            if (up.student_id === sub.student_id) {
+              const nextExp = up.total_exp - 300;
+              const nextLv = Math.floor(nextExp / 700);
+              return { ...up, total_exp: nextExp, level: nextLv, updated_at: new Date().toISOString() };
+            }
+            return up;
+          }));
+
+          const newLog: ScoreLog = {
+            id: `mock-log-${Date.now()}`,
+            student_id: sub.student_id,
+            amount: -300,
+            reason: '取消入選見證牆獎勵',
+            submission_id: submissionId,
+            created_by: currentUser?.id || 'admin',
+            created_at: new Date().toISOString(),
+            profile: profiles.find(p => p.id === sub.student_id)
+          };
+          setScoreLogs(prev => [newLog, ...prev]);
+        }
+
+        setSubmissions(prev => prev.map(s => s.id === submissionId ? { ...s, proof_image_url: null, share_to_witness: false } : s));
+      }
+      return;
+    }
+
     setIsSyncing(true);
     try {
       const sub = submissions.find(s => s.id === submissionId);
