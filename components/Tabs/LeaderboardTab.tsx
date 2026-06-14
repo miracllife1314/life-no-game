@@ -127,7 +127,7 @@ export function LeaderboardTab({
       averageScore: avgScore,
       totalLevel
     };
-  }).sort((a, b) => b.total_score - a.total_score);
+  }).sort((a, b) => b.averageScore - a.averageScore);
   const topTeams = enrichedTeams.slice(0, 3);
   const remainingTeams = enrichedTeams.slice(3);
 
@@ -140,12 +140,16 @@ export function LeaderboardTab({
   // 4. DATA PREPARATION: All-Time Team (神隊榜) - Limit to top 30
   const enrichedAllTimeTeams = teams.map(team => {
     const members = profiles.filter(p => p.team_id === team.id);
+    const size = members.length || 1;
+    const avgScore = Math.round(team.total_score / size);
     const totalLevel = members.reduce((sum, m) => sum + Math.floor(m.score / 500), 0);
     return {
       ...team,
+      memberCount: members.length,
+      averageScore: avgScore,
       totalLevel
     };
-  }).sort((a, b) => b.total_score - a.total_score).slice(0, 30);
+  }).sort((a, b) => b.averageScore - a.averageScore).slice(0, 30);
 
   return (
     <div className="w-full max-w-2xl mx-auto space-y-6 animate-in fade-in duration-300 select-none text-left">
@@ -434,8 +438,11 @@ export function LeaderboardTab({
                       <span className="text-[9px] text-slate-500 font-bold">
                         隊長：{profiles.find(p => p.id === topTeams[1].captain_id)?.name || '未指派'}
                       </span>
-                      <span className="text-[10px] font-bold text-slate-400">
-                        {topTeams[1].total_score.toLocaleString()} XP
+                      <span className="text-xs font-black text-amber-500 animate-pulse mt-0.5">
+                        {topTeams[1].averageScore.toLocaleString()} 人均
+                      </span>
+                      <span className="text-[9px] text-slate-400 font-bold">
+                        總分：{topTeams[1].total_score.toLocaleString()} XP
                       </span>
                       
                       {/* Pedestal with Team Total Level inside */}
@@ -468,8 +475,11 @@ export function LeaderboardTab({
                       <span className="text-[9px] text-amber-500/70 font-bold">
                         隊長：{profiles.find(p => p.id === topTeams[0].captain_id)?.name || '未指派'}
                       </span>
-                      <span className="text-[10px] font-bold text-amber-400">
-                        {topTeams[0].total_score.toLocaleString()} XP
+                      <span className="text-sm font-black text-amber-400 animate-pulse mt-0.5">
+                        {topTeams[0].averageScore.toLocaleString()} 人均
+                      </span>
+                      <span className="text-[9px] text-amber-500/60 font-bold">
+                        總分：{topTeams[0].total_score.toLocaleString()} XP
                       </span>
                       
                       {/* Pedestal with Team Total Level inside */}
@@ -502,8 +512,11 @@ export function LeaderboardTab({
                       <span className="text-[9px] text-slate-500 font-bold">
                         隊長：{profiles.find(p => p.id === topTeams[2].captain_id)?.name || '未指派'}
                       </span>
-                      <span className="text-[10px] font-bold text-slate-400">
-                        {topTeams[2].total_score.toLocaleString()} XP
+                      <span className="text-xs font-black text-amber-500 animate-pulse mt-0.5">
+                        {topTeams[2].averageScore.toLocaleString()} 人均
+                      </span>
+                      <span className="text-[9px] text-slate-400 font-bold">
+                        總分：{topTeams[2].total_score.toLocaleString()} XP
                       </span>
                       
                       {/* Pedestal with Team Total Level inside */}
@@ -553,13 +566,12 @@ export function LeaderboardTab({
                         <div className="text-right flex flex-col items-end">
                           <div>
                             <span className="font-black text-amber-500 text-sm">
-                              {team.total_score.toLocaleString()}
+                              {team.averageScore.toLocaleString()}
                             </span>
-                            <span className="text-[10px] text-slate-500 font-bold ml-1">總分</span>
+                            <span className="text-[10px] text-slate-400 font-bold ml-1">人均</span>
                           </div>
-                          <div className="flex items-center gap-0.5 text-[9px] text-slate-500 font-mono">
-                            <Zap size={9} className="text-amber-500/70" />
-                            <span>人均：{team.averageScore.toLocaleString()}</span>
+                          <div className="text-[9px] text-slate-500 font-bold mt-0.5">
+                            總分：{team.total_score.toLocaleString()} XP
                           </div>
                         </div>
                       </div>
@@ -646,7 +658,7 @@ export function LeaderboardTab({
                       <th className="p-3">隊名</th>
                       <th className="p-3">小隊長</th>
                       <th className="p-3 text-center">總等級</th>
-                      <th className="p-3 text-right">總經驗</th>
+                      <th className="p-3 text-right">經驗 (人均)</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/5 light:divide-slate-200">
@@ -669,7 +681,10 @@ export function LeaderboardTab({
                           <td className="p-3 font-bold text-white light:text-slate-900">{getSubTeamNameOnly(team.name, getBatchName(team.batch_id))}</td>
                           <td className="p-3 text-slate-400 font-bold">{captainName}</td>
                           <td className="p-3 text-center font-bold text-indigo-400">LV.{team.totalLevel}</td>
-                          <td className="p-3 text-right font-black text-amber-500 font-mono">{team.total_score.toLocaleString()} XP</td>
+                          <td className="p-3 text-right font-black text-amber-500 font-mono">
+                            {team.averageScore.toLocaleString()} <span className="text-[9px] text-slate-500 font-bold">人均</span>
+                            <div className="text-[8px] text-slate-500 font-bold mt-0.5">總分: {team.total_score.toLocaleString()} XP</div>
+                          </td>
                         </tr>
                       );
                     })}
