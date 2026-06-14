@@ -389,6 +389,7 @@ export function DailyQuestsTab({
   const [showSuccessModal, setShowSuccessModal] = useState<any | null>(null);
   const [showLevelUpModal, setShowLevelUpModal] = useState<any | null>(null);
   const [selectedTempLine, setSelectedTempLine] = useState<string | null>(null);
+  const [showStrategy, setShowStrategy] = useState(false);
 
   const getEvolutionDetails = () => {
     if (!userPet || !batchStartDate) return null;
@@ -969,12 +970,15 @@ export function DailyQuestsTab({
               const expNeeded = Math.max(0, requiredTotalExp - totalExp);
               const progressPercent = Math.min(100, (totalExp / requiredTotalExp) * 100);
               
-              // 估計天數：假設每日穩定修行可獲得 150 EXP
-              const daysEstimate = Math.ceil(expNeeded / 150);
+              // 估計天數：
+              // 認真修行：每日平均 300 EXP (每日定課 100 EXP + 每週任務與日常挑戰折算)
+              const earnestDays = Math.ceil(expNeeded / 300);
+              // 積極挑戰：每日平均 700 EXP (包含每週影片/心錨、次感元個案、邀約與推薦大獎)
+              const proactiveDays = Math.ceil(expNeeded / 700);
               const isEgg = currentStageIdx === 1;
               
               return (
-                <div className="mt-4 p-3.5 rounded-2xl border border-pink-500/20 bg-pink-500/5 space-y-2.5 select-none light:bg-pink-500/10">
+                <div className="mt-4 p-3.5 rounded-2xl border border-pink-500/20 bg-pink-500/5 space-y-3 select-none light:bg-pink-500/10">
                   <div className="flex justify-between items-center text-[11px] font-bold">
                     <span className="text-pink-400 flex items-center gap-1.5 light:text-pink-600">
                       <Sparkles size={12} className="animate-pulse" />
@@ -998,15 +1002,81 @@ export function DailyQuestsTab({
                     {isEgg ? (
                       <>
                         🐣 還差 <span className="text-pink-400 font-extrabold light:text-pink-600">{expNeeded.toLocaleString()} EXP</span>。
-                        持續累積修行，預估再過 <span className="text-amber-500 font-extrabold">{daysEstimate} 天</span>，混沌之卵即可破殼誕生你專屬的 NLP 守護神獸！
+                        積極挑戰最快只要 <span className="text-amber-500 font-extrabold">{proactiveDays} 天</span> 即可破殼誕生！認真修行也僅需 <span className="text-indigo-400 font-extrabold">{earnestDays} 天</span>。
                       </>
                     ) : (
                       <>
                         🔥 還差 <span className="text-pink-400 font-extrabold light:text-pink-600">{expNeeded.toLocaleString()} EXP</span>。
-                        預估進行 <span className="text-amber-500 font-extrabold">{daysEstimate} 天</span> 的定課與挑戰，即可解鎖並突破到更強大的【{nextStage.stage_name}】！
+                        積極挑戰最快只要 <span className="text-amber-500 font-extrabold">{proactiveDays} 天</span> 即可突破！認真修行則需 <span className="text-indigo-400 font-extrabold">{earnestDays} 天</span>。
                       </>
                     )}
                   </div>
+
+                  {/* 展開攻略按鈕 */}
+                  <div className="pt-1 flex justify-start">
+                    <button
+                      type="button"
+                      onClick={() => setShowStrategy(!showStrategy)}
+                      className="text-[9px] font-bold text-pink-400/90 hover:text-pink-400 flex items-center gap-1 cursor-pointer transition-all active:scale-95 light:text-pink-600"
+                    >
+                      <span>{showStrategy ? "收起修行加速攻略 ▴" : "查看修行加速攻略 (折抵天數) ▾"}</span>
+                    </button>
+                  </div>
+
+                  {/* 攻略內容 */}
+                  {showStrategy && (
+                    <div className="mt-2 text-[10px] space-y-3 p-3 rounded-xl border border-white/5 bg-slate-950/80 animate-in slide-in-from-top-2 duration-300 light:bg-white/80 light:border-slate-200">
+                      
+                      {/* 認真修行版 */}
+                      <div className="space-y-1">
+                        <div className="font-extrabold text-indigo-400 flex items-center gap-1 light:text-indigo-600">
+                          <span>⏱️ 認真修行版 (均速 300 EXP/天)</span>
+                        </div>
+                        <ul className="list-disc pl-4 text-slate-400 space-y-0.5 font-medium light:text-slate-500">
+                          <li><span className="text-slate-300 light:text-slate-700">每日感恩與肯定</span>：堅持每日雙定課打卡 ➔ <span className="text-amber-500 font-bold">+100 EXP/天</span></li>
+                          <li><span className="text-slate-300 light:text-slate-700">每週實作打卡</span>：每週完成 1~2 項實作 ➔ <span className="text-amber-500 font-bold">+500 ~ +1000 EXP/週</span></li>
+                        </ul>
+                      </div>
+
+                      {/* 積極挑戰版 */}
+                      <div className="space-y-1 border-t border-white/5 pt-2.5 light:border-slate-150">
+                        <div className="font-extrabold text-amber-400 flex items-center gap-1 light:text-amber-600">
+                          <span>⚡ 積極挑戰版 (均速 700 EXP/天)</span>
+                        </div>
+                        <ul className="list-disc pl-4 text-slate-400 space-y-0.5 font-medium light:text-slate-500">
+                          <li><span className="text-slate-300 light:text-slate-700">全數打卡</span>：每日定課 + 每週任務全通（影片/心錨/卓越圈）➔ <span className="text-amber-500 font-bold">平均 +314 EXP/天</span></li>
+                          <li><span className="text-slate-300 light:text-slate-700">高分加碼</span>：完成次感元個案、填寫限時問卷等</li>
+                        </ul>
+                      </div>
+
+                      {/* 時間折抵對照表 */}
+                      <div className="space-y-1 border-t border-white/5 pt-2.5 light:border-slate-150">
+                        <div className="font-extrabold text-pink-400 flex items-center gap-1 light:text-pink-600">
+                          <span>✨ 攻略秘笈：高分任務「天數直接折抵」</span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 text-slate-400 font-medium light:text-slate-600">
+                          <div className="p-1.5 rounded bg-white/[0.02] border border-white/5 light:bg-slate-100/50 light:border-slate-200">
+                            <span className="text-slate-300 block font-bold light:text-slate-800">每週實作任務 (+500 EXP)</span>
+                            時間立減 <span className="text-emerald-400 font-black light:text-emerald-600">1.5 天</span>！
+                          </div>
+                          <div className="p-1.5 rounded bg-white/[0.02] border border-white/5 light:bg-slate-100/50 light:border-slate-200">
+                            <span className="text-slate-300 block font-bold light:text-slate-800">邀約入門體驗課 (+500 EXP)</span>
+                            時間立減 <span className="text-emerald-400 font-black light:text-emerald-600">1.5 天</span>！
+                          </div>
+                          <div className="p-1.5 rounded bg-white/[0.02] border border-white/5 light:bg-slate-100/50 light:border-slate-200 col-span-2">
+                            <span className="text-slate-300 block font-bold light:text-slate-800">推薦報名初階課 (+1500 EXP)</span>
+                            時間立減 <span className="text-emerald-400 font-black light:text-emerald-600">4.2 天</span>！讓破殼修行一鍵飛越！
+                          </div>
+                          <div className="p-1.5 rounded bg-white/[0.02] border border-white/5 light:bg-slate-100/50 light:border-slate-200 col-span-2">
+                            <span className="text-slate-300 block font-bold light:text-slate-800">次感元個案 3 次 (+1000 EXP)</span>
+                            時間立減 <span className="text-emerald-400 font-black light:text-emerald-600">2.8 天</span>！
+                          </div>
+                        </div>
+                      </div>
+
+                    </div>
+                  )}
+
                 </div>
               );
             })()}
