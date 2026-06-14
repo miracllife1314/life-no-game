@@ -47,22 +47,7 @@ const QUEST_ROLES_DEFS = [
   { id: 'role-guardian', name: '金剛護法', duties: ['維護學習紀律', '協助解答技術問題'] }
 ];
 
-const DEFAULT_CHARACTERS: Record<string, string> = {
-  '劉定洋': '如來佛祖(大隊長)',
-  '張品嬋': '嫦娥(抱抱)',
-  '胡俊宇': '觀音菩薩(副隊長)',
-  '莊俊琦': '哪吒(衝衝)',
-  '許特龍': '豬八戒(樂樂)',
-  '郭炫妙': '沙悟淨(踏實)',
-  '沈又希': '提燈人(小隊長)',
-  '林玉庭': '降龍羅漢(自律)',
-  '陳振揚': '伏虎羅漢(敏銳)',
-  '曾浩程': '托塔天王(大氣)',
-  '蕭意儒': '麻姑獻壽(親和)',
-  '鄭群譯': '二郎神(透視)',
-  '蕭雅韓': '九天玄女(智慧)',
-  '蔡宗玹': '雷公(活力)'
-};
+const DEFAULT_CHARACTERS: Record<string, string> = {};
 
 function getCountdownText(endTimeStr: string | undefined): { text: string; isUrgent: boolean; isExpired: boolean } | null {
   if (!endTimeStr) return null;
@@ -1082,7 +1067,7 @@ export function CaptainDashboard({
             
             // Note & Character
             const noteText = notesMap[member.id] || '';
-            const characterDesc = noteText || DEFAULT_CHARACTERS[member.name] || '未指定備註角色';
+            const characterDesc = noteText || DEFAULT_CHARACTERS[member.name] || '';
             
             // Score calculations
             const todayGained = getTodayScore(member.id);
