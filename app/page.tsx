@@ -729,6 +729,9 @@ export default function Home() {
     const points = task ? task.score : mission!.points;
     const title = task ? task.name : mission!.title;
 
+    // 操作對象：檢視某學員時 = 該學員；平常 = 登入者自己
+    const actingUser = (viewAsUserId ? profiles.find(p => p.id === viewAsUserId) : null) || currentUser;
+
     // 防連點：同一任務正在送出時，忽略重複觸發
     if (checkInLock.current.has(taskId)) return;
     // 防重複打卡：已達可完成次數就擋下（避免重複加分）。
@@ -736,7 +739,7 @@ export default function Home() {
     const maxCompletions = (task ? task.max_completions : mission!.max_completions) ?? 1;
     const completionLimit = maxCompletions <= 0 ? Infinity : maxCompletions;
     const priorCount = submissions.filter(
-      s => s.mission_id === taskId && s.student_id === currentUser.id && s.status !== 'rejected'
+      s => s.mission_id === taskId && s.student_id === actingUser.id && s.status !== 'rejected'
     ).length;
     if (priorCount >= completionLimit) {
       showToast('這個任務已經完成囉，不用重複打卡 😊', 'info');
@@ -747,7 +750,7 @@ export default function Home() {
     const submissionData = {
       id: crypto.randomUUID(),
       mission_id: taskId,
-      student_id: currentUser.id,
+      student_id: actingUser.id,
       proof_text: proofText || '免證明直接簽到',
       proof_image_url: proofImg || null,
       proof_link: proofLink || null,
@@ -835,15 +838,17 @@ export default function Home() {
         showToast(`❌ 打卡失敗：${insertError.message}`, 'error');
         return;
       }
-      // 樂觀更新 UI (Optimistic Update)
+      // 樂觀更新 UI (Optimistic Update) — 對 actingUser（被檢視學員或自己）
       if (!requiresApproval) {
-        const nextScore = currentUser.score + points;
-        const nextUser = { ...currentUser, score: nextScore };
-        setCurrentUser(nextUser);
-        setProfiles(prev => prev.map(p => p.id === currentUser.id ? nextUser : p));
+        const nextScore = (actingUser.score || 0) + points;
+        setProfiles(prev => prev.map(p => p.id === actingUser.id ? { ...p, score: nextScore } : p));
+        // 若操作對象就是登入者本人，同步 currentUser
+        if (actingUser.id === currentUser.id) {
+          setCurrentUser({ ...currentUser, score: nextScore });
+        }
 
         setUserPets(prev => prev.map(up => {
-          if (up.student_id === currentUser.id) {
+          if (up.student_id === actingUser.id) {
             const nextExp = up.total_exp + points;
             const nextLv = Math.floor(nextExp / 700);
             return {
@@ -880,6 +885,7 @@ export default function Home() {
 
   const handleRegisterCourse = async (courseId: string) => {
     if (!currentUser) return;
+    const actingUser = (viewAsUserId ? profiles.find(p => p.id === viewAsUserId) : null) || currentUser;
 
     if (gmMode) {
       const newAtt: CourseAttendance = {
@@ -896,7 +902,7 @@ export default function Home() {
 
     await supabase.from('course_attendance').insert({
       course_id: courseId,
-      student_id: currentUser.id,
+      student_id: actingUser.id,
       status: 'registered',
       attended_at: null
     });
@@ -2579,13 +2585,12 @@ export default function Home() {
   const isViewingStudent = !!viewedProfile;
   const panelUser = viewedProfile || currentUser;
   const panelBatchId = panelUser.batch_id;
-  // 唯讀守門：檢視學員時，個人分頁的所有寫入動作一律擋下（只看不動）
-  const blockedAction: any = async () => { showToast('檢視模式不代打卡（避免誤灌分）。要改帳號請用上方「✏️ 編輯此帳號」，補登請用後台手動補登。', 'info'); };
-  const vCheckIn = isViewingStudent ? blockedAction : handleCheckIn;
-  const vEvolvePet = isViewingStudent ? blockedAction : handleEvolvePet;
-  const vSelectLine = isViewingStudent ? blockedAction : handleSelectEvolutionLine;
-  const vRegisterCourse = isViewingStudent ? blockedAction : handleRegisterCourse;
-  const vMarkAttendance = isViewingStudent ? blockedAction : handleMarkAttendance;
+  // 檢視學員時也能完整以該學員身分操作（打卡/進化/課程）；handler 內部會自動對 actingUser 操作
+  const vCheckIn = handleCheckIn;
+  const vEvolvePet = handleEvolvePet;
+  const vSelectLine = handleSelectEvolutionLine;
+  const vRegisterCourse = handleRegisterCourse;
+  const vMarkAttendance = handleMarkAttendance;
 
   // Filter data by batch context
   const batchFilterId = currentUser.batch_id; // 後台/隊長情境用，維持大隊長身分
