@@ -37,8 +37,13 @@ export default function Home() {
   const [currentTeam, setCurrentTeam] = useState<Team | null>(null);
   const [viewState, setViewState] = useState<'login' | 'register' | 'app'>('login');
   const [loadError, setLoadError] = useState(false);
-  // 大隊長「唯讀檢視某學員帳號」：存被檢視的學員 id；null = 正常檢視自己
+  // 大隊長「檢視某學員帳號」：存被檢視的學員 id；null = 正常檢視自己
   const [viewAsUserId, setViewAsUserId] = useState<string | null>(null);
+  // 檢視中「編輯此帳號」面板
+  const [editAccountOpen, setEditAccountOpen] = useState(false);
+  const [accForm, setAccForm] = useState<{ name: string; phone: string; role: UserRole; team_id: string; status: string }>({ name: '', phone: '', role: 'student', team_id: '', status: 'active' });
+  const [accAdjAmount, setAccAdjAmount] = useState('');
+  const [accAdjReason, setAccAdjReason] = useState('');
   // 防連點 / 重複打卡：記錄「進行中」的任務 id，避免同一任務在送出尚未完成時被重複觸發而重複加分
   const checkInLock = useRef<Set<string>>(new Set());
   // 開機時先確認 session，避免每次重整閃一下登入頁
@@ -2575,7 +2580,7 @@ export default function Home() {
   const panelUser = viewedProfile || currentUser;
   const panelBatchId = panelUser.batch_id;
   // 唯讀守門：檢視學員時，個人分頁的所有寫入動作一律擋下（只看不動）
-  const blockedAction: any = async () => { showToast('👁️ 唯讀檢視中，無法代學員操作', 'info'); };
+  const blockedAction: any = async () => { showToast('檢視模式不代打卡（避免誤灌分）。要改帳號請用上方「✏️ 編輯此帳號」，補登請用後台手動補登。', 'info'); };
   const vCheckIn = isViewingStudent ? blockedAction : handleCheckIn;
   const vEvolvePet = isViewingStudent ? blockedAction : handleEvolvePet;
   const vSelectLine = isViewingStudent ? blockedAction : handleSelectEvolutionLine;
@@ -2657,19 +2662,98 @@ export default function Home() {
         userRole={isViewingStudent ? 'student' : currentUiRole}
       />
 
-      {/* 唯讀檢視學員：提示列 + 返回 */}
+      {/* 檢視學員：提示列 + 編輯此帳號 + 返回 */}
       {isViewingStudent && (
-        <div className="sticky top-0 z-40 w-full bg-amber-500 text-slate-950 px-4 py-2.5 flex items-center justify-between gap-3 shadow-lg select-none">
-          <span className="text-xs sm:text-sm font-black flex items-center gap-1.5 min-w-0">
-            <span>👁️</span>
-            <span className="truncate">正在檢視【{viewedProfile?.name}】的帳號（唯讀）</span>
-          </span>
-          <button
-            onClick={() => { setViewAsUserId(null); setActiveTab('admin'); }}
-            className="shrink-0 bg-slate-950 text-amber-400 font-black text-xs px-3 py-1.5 rounded-xl hover:bg-slate-800 active:scale-95 transition-all"
-          >
-            ← 返回大隊長
-          </button>
+        <div className="sticky top-0 z-40 w-full shadow-lg select-none">
+          <div className="bg-amber-500 text-slate-950 px-4 py-2.5 flex items-center justify-between gap-2">
+            <span className="text-xs sm:text-sm font-black flex items-center gap-1.5 min-w-0">
+              <span>👁️</span>
+              <span className="truncate">正在檢視【{viewedProfile?.name}】的帳號</span>
+            </span>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                onClick={() => {
+                  if (!editAccountOpen && viewedProfile) {
+                    setAccForm({
+                      name: viewedProfile.name || '',
+                      phone: viewedProfile.phone || '',
+                      role: viewedProfile.role,
+                      team_id: viewedProfile.team_id || '',
+                      status: viewedProfile.status || 'active',
+                    });
+                    setAccAdjAmount('');
+                    setAccAdjReason('');
+                  }
+                  setEditAccountOpen(v => !v);
+                }}
+                className={`font-black text-xs px-3 py-1.5 rounded-xl active:scale-95 transition-all ${editAccountOpen ? 'bg-slate-950 text-amber-400' : 'bg-slate-950/15 text-slate-950 hover:bg-slate-950/25'}`}
+              >
+                ✏️ 編輯此帳號
+              </button>
+              <button
+                onClick={() => { setViewAsUserId(null); setEditAccountOpen(false); setActiveTab('admin'); }}
+                className="bg-slate-950 text-amber-400 font-black text-xs px-3 py-1.5 rounded-xl hover:bg-slate-800 active:scale-95 transition-all"
+              >
+                ← 返回
+              </button>
+            </div>
+          </div>
+
+          {/* 行內編輯面板 */}
+          {editAccountOpen && viewedProfile && (
+            <div className="bg-slate-900 border-b border-amber-500/30 px-4 py-4 text-white text-xs space-y-3 light:bg-white light:text-slate-900">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                <label className="flex flex-col gap-1"><span className="text-slate-400 font-bold">姓名</span>
+                  <input value={accForm.name} onChange={e => setAccForm({ ...accForm, name: e.target.value })} className="bg-slate-950 border border-slate-700 rounded-lg p-2 outline-none focus:border-amber-500 light:bg-slate-50 light:border-slate-300 light:text-slate-900" /></label>
+                <label className="flex flex-col gap-1"><span className="text-slate-400 font-bold">手機</span>
+                  <input value={accForm.phone} onChange={e => setAccForm({ ...accForm, phone: e.target.value })} className="bg-slate-950 border border-slate-700 rounded-lg p-2 outline-none focus:border-amber-500 light:bg-slate-50 light:border-slate-300 light:text-slate-900" /></label>
+                <label className="flex flex-col gap-1"><span className="text-slate-400 font-bold">角色</span>
+                  <select value={accForm.role} onChange={e => setAccForm({ ...accForm, role: e.target.value as UserRole })} className="bg-slate-950 border border-slate-700 rounded-lg p-2 outline-none focus:border-amber-500 light:bg-slate-50 light:border-slate-300 light:text-slate-900">
+                    <option value="student">學員</option><option value="captain">小隊長</option><option value="admin">大隊長</option>
+                  </select></label>
+                <label className="flex flex-col gap-1"><span className="text-slate-400 font-bold">小隊</span>
+                  <select value={accForm.team_id} onChange={e => setAccForm({ ...accForm, team_id: e.target.value })} className="bg-slate-950 border border-slate-700 rounded-lg p-2 outline-none focus:border-amber-500 light:bg-slate-50 light:border-slate-300 light:text-slate-900">
+                    <option value="">— 未分配 —</option>
+                    {teams.filter(t => t.batch_id === viewedProfile.batch_id).map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                  </select></label>
+                <label className="flex flex-col gap-1"><span className="text-slate-400 font-bold">狀態</span>
+                  <select value={accForm.status} onChange={e => setAccForm({ ...accForm, status: e.target.value })} className="bg-slate-950 border border-slate-700 rounded-lg p-2 outline-none focus:border-amber-500 light:bg-slate-50 light:border-slate-300 light:text-slate-900">
+                    <option value="active">進行中</option><option value="ended">已結束</option><option value="inactive">已停用</option>
+                  </select></label>
+                <div className="flex items-end">
+                  <button
+                    disabled={isSyncing}
+                    onClick={async () => {
+                      await handleUpdateProfile(viewedProfile.id, { name: accForm.name.trim(), phone: accForm.phone.trim(), role: accForm.role, team_id: accForm.team_id || null, status: accForm.status as any });
+                      showToast('✓ 已更新帳號資料', 'success');
+                    }}
+                    className="w-full btn-action bg-amber-500 text-slate-950 font-black rounded-lg py-2 disabled:opacity-50"
+                  >儲存資料</button>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-end gap-3 pt-2 border-t border-white/10 light:border-slate-200">
+                <label className="flex flex-col gap-1"><span className="text-slate-400 font-bold">調分（+加 / -扣）</span>
+                  <input type="number" value={accAdjAmount} onFocus={e => e.target.select()} onChange={e => setAccAdjAmount(e.target.value)} className="w-28 bg-slate-950 border border-slate-700 rounded-lg p-2 text-center font-mono outline-none focus:border-amber-500 light:bg-slate-50 light:border-slate-300 light:text-slate-900" placeholder="例 500 / -300" /></label>
+                <label className="flex flex-col gap-1 flex-1 min-w-[140px]"><span className="text-slate-400 font-bold">調分原因</span>
+                  <input value={accAdjReason} onChange={e => setAccAdjReason(e.target.value)} className="bg-slate-950 border border-slate-700 rounded-lg p-2 outline-none focus:border-amber-500 light:bg-slate-50 light:border-slate-300 light:text-slate-900" placeholder="例：補登課堂表現" /></label>
+                <button
+                  disabled={isSyncing || !accAdjAmount || !accAdjReason.trim()}
+                  onClick={async () => {
+                    const amt = Number(accAdjAmount);
+                    if (!amt) { showToast('請輸入調分數字', 'error'); return; }
+                    if (Math.abs(amt) > 5000 && !window.confirm(`確定要調整 ${amt > 0 ? '+' : ''}${amt} 分嗎？數字很大，請確認沒打錯。`)) return;
+                    try {
+                      await handleManualAdjustScore(viewedProfile.id, amt, accAdjReason.trim());
+                      showToast(`✓ 已調整 ${amt > 0 ? '+' : ''}${amt} 分`, 'success');
+                      setAccAdjAmount(''); setAccAdjReason('');
+                    } catch (err: any) { showToast('調分失敗：' + (err?.message || ''), 'error'); }
+                  }}
+                  className="btn-action bg-emerald-600 text-white font-black rounded-lg px-4 py-2 disabled:opacity-40"
+                >套用調分</button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
