@@ -39,6 +39,8 @@ export default function Home() {
   const [loadError, setLoadError] = useState(false);
   // 大隊長「檢視某學員帳號」：存被檢視的學員 id；null = 正常檢視自己
   const [viewAsUserId, setViewAsUserId] = useState<string | null>(null);
+  // 檢視時是否「可操作」：預設 false（唯讀），需手動開啟才能代打卡等（防誤觸）
+  const [viewCanOperate, setViewCanOperate] = useState(false);
   // 檢視中「編輯此帳號」面板
   const [editAccountOpen, setEditAccountOpen] = useState(false);
   const [accForm, setAccForm] = useState<{ name: string; phone: string; role: UserRole; team_id: string; status: string }>({ name: '', phone: '', role: 'student', team_id: '', status: 'active' });
@@ -2585,12 +2587,14 @@ export default function Home() {
   const isViewingStudent = !!viewedProfile;
   const panelUser = viewedProfile || currentUser;
   const panelBatchId = panelUser.batch_id;
-  // 檢視學員時也能完整以該學員身分操作（打卡/進化/課程）；handler 內部會自動對 actingUser 操作
-  const vCheckIn = handleCheckIn;
-  const vEvolvePet = handleEvolvePet;
-  const vSelectLine = handleSelectEvolutionLine;
-  const vRegisterCourse = handleRegisterCourse;
-  const vMarkAttendance = handleMarkAttendance;
+  // 檢視學員時：預設唯讀；按「開啟操作」後才可代該學員打卡/進化/課程（handler 內部自動對 actingUser 操作）
+  const readOnlyView = isViewingStudent && !viewCanOperate;
+  const blockedAction: any = async () => { showToast('🔒 目前為唯讀檢視。要操作此帳號，請先按上方「開啟操作」。', 'info'); };
+  const vCheckIn = readOnlyView ? blockedAction : handleCheckIn;
+  const vEvolvePet = readOnlyView ? blockedAction : handleEvolvePet;
+  const vSelectLine = readOnlyView ? blockedAction : handleSelectEvolutionLine;
+  const vRegisterCourse = readOnlyView ? blockedAction : handleRegisterCourse;
+  const vMarkAttendance = readOnlyView ? blockedAction : handleMarkAttendance;
 
   // Filter data by batch context
   const batchFilterId = currentUser.batch_id; // 後台/隊長情境用，維持大隊長身分
@@ -2677,6 +2681,13 @@ export default function Home() {
             </span>
             <div className="flex items-center gap-2 shrink-0">
               <button
+                onClick={() => setViewCanOperate(v => !v)}
+                className={`font-black text-xs px-3 py-1.5 rounded-xl active:scale-95 transition-all ${viewCanOperate ? 'bg-emerald-600 text-white' : 'bg-slate-950/15 text-slate-950 hover:bg-slate-950/25'}`}
+                title={viewCanOperate ? '目前可代此帳號操作，點此鎖回唯讀' : '目前唯讀，點此開啟操作'}
+              >
+                {viewCanOperate ? '✅ 可操作中' : '🔒 開啟操作'}
+              </button>
+              <button
                 onClick={() => {
                   if (!editAccountOpen && viewedProfile) {
                     setAccForm({
@@ -2696,7 +2707,7 @@ export default function Home() {
                 ✏️ 編輯此帳號
               </button>
               <button
-                onClick={() => { setViewAsUserId(null); setEditAccountOpen(false); setActiveTab('admin'); }}
+                onClick={() => { setViewAsUserId(null); setViewCanOperate(false); setEditAccountOpen(false); setActiveTab('admin'); }}
                 className="bg-slate-950 text-amber-400 font-black text-xs px-3 py-1.5 rounded-xl hover:bg-slate-800 active:scale-95 transition-all"
               >
                 ← 返回
@@ -2953,7 +2964,7 @@ export default function Home() {
             onGenerateMissions={handleGenerateMissions}
             missions={missions}
             onDeleteMission={handleDeleteMission}
-            onViewAsStudent={(id: string) => { setViewAsUserId(id); setActiveTab('daily'); }}
+            onViewAsStudent={(id: string) => { setViewAsUserId(id); setViewCanOperate(false); setEditAccountOpen(false); setActiveTab('daily'); }}
             onAddProfile={handleAddProfile}
             onUpdateProfile={handleUpdateProfile}
             onDeleteProfile={handleDeleteProfile}
