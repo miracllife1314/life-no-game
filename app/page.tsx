@@ -37,6 +37,8 @@ export default function Home() {
   const [currentTeam, setCurrentTeam] = useState<Team | null>(null);
   const [viewState, setViewState] = useState<'login' | 'register' | 'app'>('login');
   const [loadError, setLoadError] = useState(false);
+  // 大隊長「唯讀檢視某學員帳號」：存被檢視的學員 id；null = 正常檢視自己
+  const [viewAsUserId, setViewAsUserId] = useState<string | null>(null);
   // 防連點 / 重複打卡：記錄「進行中」的任務 id，避免同一任務在送出尚未完成時被重複觸發而重複加分
   const checkInLock = useRef<Set<string>>(new Set());
   // 開機時先確認 session，避免每次重整閃一下登入頁
@@ -2567,19 +2569,33 @@ export default function Home() {
     ? (teams.find(t => t.id === adminSelectedTeamId) || teams[0])
     : (currentTeam || null);
 
+  // 大隊長唯讀檢視某學員：個人分頁(個人面板/歷史/成就/課程)的資料來源改為被檢視的學員
+  const viewedProfile = viewAsUserId ? profiles.find(p => p.id === viewAsUserId) : null;
+  const isViewingStudent = !!viewedProfile;
+  const panelUser = viewedProfile || currentUser;
+  const panelBatchId = panelUser.batch_id;
+  // 唯讀守門：檢視學員時，個人分頁的所有寫入動作一律擋下（只看不動）
+  const blockedAction: any = async () => { showToast('👁️ 唯讀檢視中，無法代學員操作', 'info'); };
+  const vCheckIn = isViewingStudent ? blockedAction : handleCheckIn;
+  const vEvolvePet = isViewingStudent ? blockedAction : handleEvolvePet;
+  const vSelectLine = isViewingStudent ? blockedAction : handleSelectEvolutionLine;
+  const vRegisterCourse = isViewingStudent ? blockedAction : handleRegisterCourse;
+  const vMarkAttendance = isViewingStudent ? blockedAction : handleMarkAttendance;
+
   // Filter data by batch context
-  const batchFilterId = currentUser.batch_id;
-  const filteredTasks = currentUser.role === 'admin' ? tasks : tasks.filter(t => t.batch_id === batchFilterId);
+  const batchFilterId = currentUser.batch_id; // 後台/隊長情境用，維持大隊長身分
   const filteredProfiles = currentUser.role === 'admin' ? profiles : profiles.filter(p => p.batch_id === batchFilterId);
   const now = new Date();
-  const filteredAnnouncements = currentUser.role === 'admin' && currentUiRole === 'admin'
+  // 以下為「個人分頁」用，依 panelUser（被檢視學員或自己）
+  const filteredTasks = (panelUser.role === 'admin' && !isViewingStudent) ? tasks : tasks.filter(t => t.batch_id === panelBatchId);
+  const filteredAnnouncements = (panelUser.role === 'admin' && !isViewingStudent)
     ? announcements
-    : announcements.filter(ann => (!ann.batch_id || ann.batch_id === batchFilterId) && new Date(ann.created_at) <= now);
-  const filteredCourses = currentUser.role === 'admin' ? courses : courses.filter(c => !c.batch_id || c.batch_id === batchFilterId);
+    : announcements.filter(ann => (!ann.batch_id || ann.batch_id === panelBatchId) && new Date(ann.created_at) <= now);
+  const filteredCourses = (panelUser.role === 'admin' && !isViewingStudent) ? courses : courses.filter(c => !c.batch_id || c.batch_id === panelBatchId);
 
   // Filter submissions / logs for the active tab context
-  const filteredSubmissions = submissions.filter(s => s.student_id === currentUser.id);
-  const filteredScoreLogs = scoreLogs.filter((l: ScoreLog) => l.student_id === currentUser.id).map(log => {
+  const filteredSubmissions = submissions.filter(s => s.student_id === panelUser.id);
+  const filteredScoreLogs = scoreLogs.filter((l: ScoreLog) => l.student_id === panelUser.id).map(log => {
     let displayReason = log.reason;
     if (displayReason === '完成任務' && log.submission_id) {
       const sub = submissions.find(s => s.id === log.submission_id);
@@ -2620,7 +2636,7 @@ export default function Home() {
       
       {/* 1. Header */}
       <Header
-        profile={currentUser}
+        profile={panelUser}
         team={currentTeam}
         batches={batches}
         theme={theme}
@@ -2638,31 +2654,47 @@ export default function Home() {
       <Navigation
         activeTab={activeTab}
         setActiveTab={setActiveTab}
-        userRole={currentUiRole}
+        userRole={isViewingStudent ? 'student' : currentUiRole}
       />
+
+      {/* 唯讀檢視學員：提示列 + 返回 */}
+      {isViewingStudent && (
+        <div className="sticky top-0 z-40 w-full bg-amber-500 text-slate-950 px-4 py-2.5 flex items-center justify-between gap-3 shadow-lg select-none">
+          <span className="text-xs sm:text-sm font-black flex items-center gap-1.5 min-w-0">
+            <span>👁️</span>
+            <span className="truncate">正在檢視【{viewedProfile?.name}】的帳號（唯讀）</span>
+          </span>
+          <button
+            onClick={() => { setViewAsUserId(null); setActiveTab('admin'); }}
+            className="shrink-0 bg-slate-950 text-amber-400 font-black text-xs px-3 py-1.5 rounded-xl hover:bg-slate-800 active:scale-95 transition-all"
+          >
+            ← 返回大隊長
+          </button>
+        </div>
+      )}
 
       {/* 3. Main Workspace Area */}
       <main className="flex-1 w-full max-w-7xl mx-auto px-4 pt-8 pb-24 md:pb-8 overflow-y-auto">
         {activeTab === 'daily' && (
           <DailyQuestsTab
-            profile={currentUser}
+            profile={panelUser}
             tasks={filteredTasks}
             submissions={filteredSubmissions}
             announcements={filteredAnnouncements}
-            onCheckIn={handleCheckIn}
+            onCheckIn={vCheckIn}
             isSyncing={isSyncing}
             missions={missions}
             showToast={showToast}
-            userPet={userPets.find(up => up.student_id === currentUser.id) || null}
+            userPet={userPets.find(up => up.student_id === panelUser.id) || null}
             petStages={petStages}
-            onEvolvePet={handleEvolvePet}
-            batchStartDate={batches.find(b => b.id === currentUser.batch_id)?.start_date || null}
+            onEvolvePet={vEvolvePet}
+            batchStartDate={batches.find(b => b.id === panelUser.batch_id)?.start_date || null}
             allProfiles={profiles}
             allUserPets={userPets}
             batches={batches}
             petLines={petLines}
             missionTemplates={missionTemplates}
-            onSelectEvolutionLine={handleSelectEvolutionLine}
+            onSelectEvolutionLine={vSelectLine}
           />
         )}
 
@@ -2682,8 +2714,8 @@ export default function Home() {
         {activeTab === 'achievements' && (
           <AchievementsTab
             achievements={achievements}
-            userAchievements={userAchievements.filter(ua => ua.student_id === currentUser.id)}
-            studentScore={currentUser.score}
+            userAchievements={userAchievements.filter(ua => ua.student_id === panelUser.id)}
+            studentScore={panelUser.score}
           />
         )}
 
@@ -2693,9 +2725,9 @@ export default function Home() {
             attendance={attendance}
             profiles={profiles}
             teams={teams}
-            currentUserId={currentUser.id}
-            onRegisterCourse={handleRegisterCourse}
-            onMarkAttendance={handleMarkAttendance}
+            currentUserId={panelUser.id}
+            onRegisterCourse={vRegisterCourse}
+            onMarkAttendance={vMarkAttendance}
             isSyncing={isSyncing}
           />
         )}
@@ -2832,6 +2864,7 @@ export default function Home() {
             onGenerateMissions={handleGenerateMissions}
             missions={missions}
             onDeleteMission={handleDeleteMission}
+            onViewAsStudent={(id: string) => { setViewAsUserId(id); setActiveTab('daily'); }}
             onAddProfile={handleAddProfile}
             onUpdateProfile={handleUpdateProfile}
             onDeleteProfile={handleDeleteProfile}

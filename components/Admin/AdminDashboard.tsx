@@ -84,6 +84,7 @@ interface AdminDashboardProps {
   batches: Batch[];
   missions: Mission[];
   onDeleteMission?: (missionId: string) => Promise<void>;
+  onViewAsStudent?: (studentId: string) => void;
   missionTemplates: MissionTemplate[];
   batchMissionTemplates: BatchMissionTemplate[];
   petLines: PetLine[];
@@ -153,6 +154,7 @@ export function AdminDashboard({
   submissions,
   missions,
   onDeleteMission,
+  onViewAsStudent,
   courses,
   achievements,
   announcements = [],
@@ -4989,6 +4991,15 @@ export function AdminDashboard({
                               <td className="p-3 text-emerald-400 font-bold">{p.score}</td>
                               <td className="p-3 text-right">
                                 <div className="flex items-center justify-end gap-2">
+                                  {onViewAsStudent && p.role !== 'admin' && (
+                                    <button
+                                      onClick={() => onViewAsStudent(p.id)}
+                                      className="p-1.5 text-slate-400 hover:text-sky-400 hover:bg-sky-500/10 rounded transition-colors"
+                                      title="以唯讀方式檢視此帳號"
+                                    >
+                                      👁️
+                                    </button>
+                                  )}
                                   <button
                                     onClick={() => {
                                       setEditingProfileId(p.id);
