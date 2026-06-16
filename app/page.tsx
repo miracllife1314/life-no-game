@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useCallback, useRef } from 'react';
 import { supabase, uploadProofImage, isRealSupabase } from '@/lib/supabase';
 import { CheckCircle2, Clock, AlertCircle } from 'lucide-react';
 import { 
@@ -423,6 +423,18 @@ export default function Home() {
       setIsSyncing(false);
     }
   }, [currentUser?.id]);
+
+  // 在畫面真正繪製前先判斷：沒登入且沒邀請 → 直接顯示登入框，不先閃「載入中…」
+  // （已登入或有邀請者仍維持 booting，由 initSession 處理）
+  useLayoutEffect(() => {
+    if (typeof window === 'undefined') return;
+    const hasSession = !!localStorage.getItem('nlp_mock_user_id');
+    const params = new URLSearchParams(window.location.search);
+    const hasInvite = !!params.get('invite');
+    if (!hasSession && !hasInvite) {
+      setBooting(false);
+    }
+  }, []);
 
   // Load session on startup & handle invite query params
   useEffect(() => {
