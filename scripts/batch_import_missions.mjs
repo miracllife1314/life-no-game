@@ -57,18 +57,37 @@ console.log(`準備匯入 ${formattedRecords.length} 筆任務模板資料...`);
 
 // 5. 匯入到 Supabase mission_templates
 async function importMissions() {
-  const titles = formattedRecords.map(r => r.title);
-  console.log('正在清理重複的任務模板...');
-  for (const title of titles) {
-    await fetch(`${supabaseUrl}/rest/v1/mission_templates?title=eq.${encodeURIComponent(title)}`, {
-      method: 'DELETE',
-      headers: {
-        apikey: supabaseKey,
-        Authorization: `Bearer ${supabaseKey}`,
-      }
-    });
+  console.log('正在查詢現有的任務模板...');
+  const res = await fetch(`${supabaseUrl}/rest/v1/mission_templates?select=title`, {
+    method: 'GET',
+    headers: {
+      apikey: supabaseKey,
+      Authorization: `Bearer ${supabaseKey}`,
+    }
+  });
+
+  let existingTitles = [];
+  if (res.ok) {
+    const data = await res.json();
+    existingTitles = data.map(item => item.title);
+  } else {
+    console.warn('無法獲取現有任務模板，將直接上傳新資料。');
   }
 
+  // 調整同名任務的標題（若重複則加上 " (新)"）
+  const recordsToInsert = formattedRecords.map(record => {
+    let title = record.title;
+    while (existingTitles.includes(title)) {
+      title = `${title} (新)`;
+    }
+    existingTitles.push(title);
+    return {
+      ...record,
+      title
+    };
+  });
+
+  console.log('正在匯入任務模板...');
   const response = await fetch(`${supabaseUrl}/rest/v1/mission_templates`, {
     method: 'POST',
     headers: {
@@ -76,7 +95,7 @@ async function importMissions() {
       Authorization: `Bearer ${supabaseKey}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify(formattedRecords)
+    body: JSON.stringify(recordsToInsert)
   });
   
   if (!response.ok) {
@@ -84,6 +103,7 @@ async function importMissions() {
     console.error('匯入任務模板失敗:', response.status, errorText);
   } else {
     console.log('🎉 任務模板成功匯入，已經出現在你的預設任務模板列表中！');
+    console.log('匯入的標題為：', recordsToInsert.map(r => r.title).join(', '));
   }
 }
 
