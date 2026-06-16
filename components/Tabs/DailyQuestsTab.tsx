@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { Task, Submission, Announcement, Profile, Mission, UserPet, PetStage, Batch, PetLine, MissionTemplate } from '@/types';
 import { nowTaipei, parseTaipei } from '@/lib/time';
-import { parsePetOffset, useTrimmedPetImage } from '@/lib/petImage';
+import { parsePetOffset } from '@/lib/petImage';
 import { 
   CheckCircle2, Circle, Clock, MessageSquare, 
   AlertCircle, FileText, Send, Flame, Sparkles, 
@@ -524,7 +524,6 @@ export function DailyQuestsTab({
   const stageName = activeStage?.stage_name || '混沌之卵';
   const stageDesc = activeStage?.description || '蘊含著無限可能的混沌之卵，靜靜等待能量積累以尋找其未來的進化方向。';
   const stageImage = activeStage?.image_url || ''; // 無圖時不顯示隨機備用照，改用蛋佔位（見下方渲染）
-  const trimmedImage = useTrimmedPetImage(stageImage);
   const animationClass = getAnimationClass(activeStage?.animation_type);
   const glowColor = activeStage?.glow_color || '#A855F7';
 
@@ -819,7 +818,7 @@ export function DailyQuestsTab({
                 <>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src={trimmedImage || (stageImage.startsWith('data:') ? stageImage : `${stageImage}${stageImage.includes('?') ? '&' : '?'}u=${encodeURIComponent(activeStage?.updated_at || '')}`)}
+                    src={stageImage.startsWith('data:') ? stageImage : `${stageImage}${stageImage.includes('?') ? '&' : '?'}u=${encodeURIComponent(activeStage?.updated_at || '')}`}
                     alt={stageName}
                     className={`pet-image ${animationClass}`}
                     style={{
