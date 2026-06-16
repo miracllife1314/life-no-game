@@ -834,9 +834,10 @@ export function DailyQuestsTab({
                       '--pet-x': `${parsePetOffset(stageImage).x}px`,
                       '--pet-y': `${parsePetOffset(stageImage).y}px`,
                       '--glow-color': glowColor,
-                      // 行內保險：固定像素上限，即使 .pet-image 的 CSS 尚未套用也不會撐爆容器（避免初次載入破版）
-                      maxWidth: '285px',
-                      maxHeight: '285px',
+                      // 固定 285×285 的框（不是上限）：元素尺寸恆定，圖片無論何時載入都不會改變元素大小，
+                      // 避免「載入後元素變大→transform 過渡把圖推到一邊」的位移問題。圖片用 object-fit 置中塞入。
+                      width: '285px',
+                      height: '285px',
                       objectFit: 'contain',
                       // 行內保險：置中定位也寫死，避免初次進面板 .pet-image CSS 尚未套用時圖跑到右下角。
                       // 動畫執行時會以自身 keyframes(含 translate(-50%,-50%)) 接手，不衝突。
