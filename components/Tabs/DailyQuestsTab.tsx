@@ -979,12 +979,12 @@ export function DailyQuestsTab({
               
               return (
                 <div className="mt-4 p-3.5 rounded-2xl border border-pink-500/20 bg-pink-500/5 space-y-3 select-none light:bg-pink-500/10">
-                  <div className="flex justify-between items-center text-[11px] font-bold">
+                  <div className="flex flex-col gap-1 text-[11px] font-bold">
                     <span className="text-pink-400 flex items-center gap-1.5 light:text-pink-600">
                       <Sparkles size={12} className="animate-pulse" />
                       {isEgg ? "🥚 距離破殼誕生" : `🔮 距離進化為【${nextStage.stage_name}】`}
                     </span>
-                    <span className="text-pink-400 light:text-pink-600">
+                    <span className="text-pink-400 text-sm font-black light:text-pink-600">
                       {totalExp.toLocaleString()} / {requiredTotalExp.toLocaleString()} EXP
                     </span>
                   </div>
