@@ -309,7 +309,7 @@ export function CaptainDashboard({
   };
 
   // Matrix display state
-  const [showMatrix, setShowMatrix] = useState(true);
+  const [showMatrix, setShowMatrix] = useState(false);
 
   // Note edit state
   const [editingNoteText, setEditingNoteText] = useState('');
