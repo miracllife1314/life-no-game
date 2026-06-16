@@ -2692,34 +2692,38 @@ export default function Home() {
               <span className="truncate">正在檢視【{viewedProfile?.name}】的帳號</span>
             </span>
             <div className="flex items-center gap-2 shrink-0">
+              {currentUser.role === 'admin' && (
+                <>
+                  <button
+                    onClick={() => setViewCanOperate(v => !v)}
+                    className={`font-black text-xs px-3 py-1.5 rounded-xl active:scale-95 transition-all ${viewCanOperate ? 'bg-emerald-600 text-white' : 'bg-slate-950/15 text-slate-950 hover:bg-slate-950/25'}`}
+                    title={viewCanOperate ? '目前可代此帳號操作，點此鎖回唯讀' : '目前唯讀，點此開啟操作'}
+                  >
+                    {viewCanOperate ? '✅ 可操作中' : '🔒 開啟操作'}
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (!editAccountOpen && viewedProfile) {
+                        setAccForm({
+                          name: viewedProfile.name || '',
+                          phone: viewedProfile.phone || '',
+                          role: viewedProfile.role,
+                          team_id: viewedProfile.team_id || '',
+                          status: viewedProfile.status || 'active',
+                        });
+                        setAccAdjAmount('');
+                        setAccAdjReason('');
+                      }
+                      setEditAccountOpen(v => !v);
+                    }}
+                    className={`font-black text-xs px-3 py-1.5 rounded-xl active:scale-95 transition-all ${editAccountOpen ? 'bg-slate-950 text-amber-400' : 'bg-slate-950/15 text-slate-950 hover:bg-slate-950/25'}`}
+                  >
+                    ✏️ 編輯此帳號
+                  </button>
+                </>
+              )}
               <button
-                onClick={() => setViewCanOperate(v => !v)}
-                className={`font-black text-xs px-3 py-1.5 rounded-xl active:scale-95 transition-all ${viewCanOperate ? 'bg-emerald-600 text-white' : 'bg-slate-950/15 text-slate-950 hover:bg-slate-950/25'}`}
-                title={viewCanOperate ? '目前可代此帳號操作，點此鎖回唯讀' : '目前唯讀，點此開啟操作'}
-              >
-                {viewCanOperate ? '✅ 可操作中' : '🔒 開啟操作'}
-              </button>
-              <button
-                onClick={() => {
-                  if (!editAccountOpen && viewedProfile) {
-                    setAccForm({
-                      name: viewedProfile.name || '',
-                      phone: viewedProfile.phone || '',
-                      role: viewedProfile.role,
-                      team_id: viewedProfile.team_id || '',
-                      status: viewedProfile.status || 'active',
-                    });
-                    setAccAdjAmount('');
-                    setAccAdjReason('');
-                  }
-                  setEditAccountOpen(v => !v);
-                }}
-                className={`font-black text-xs px-3 py-1.5 rounded-xl active:scale-95 transition-all ${editAccountOpen ? 'bg-slate-950 text-amber-400' : 'bg-slate-950/15 text-slate-950 hover:bg-slate-950/25'}`}
-              >
-                ✏️ 編輯此帳號
-              </button>
-              <button
-                onClick={() => { setViewAsUserId(null); setViewCanOperate(false); setEditAccountOpen(false); setActiveTab('admin'); }}
+                onClick={() => { setViewAsUserId(null); setViewCanOperate(false); setEditAccountOpen(false); setActiveTab(currentUser.role === 'admin' ? 'admin' : 'captain'); }}
                 className="bg-slate-950 text-amber-400 font-black text-xs px-3 py-1.5 rounded-xl hover:bg-slate-800 active:scale-95 transition-all"
               >
                 ← 返回
@@ -2919,6 +2923,7 @@ export default function Home() {
             squadRoles={squadRoles}
             onToggleCell={handleToggleCell}
             onUpdateProfile={handleUpdateProfile}
+            onViewAsStudent={(id) => { setViewAsUserId(id); setViewCanOperate(false); setEditAccountOpen(false); setActiveTab('daily'); }}
           />
         )}
 

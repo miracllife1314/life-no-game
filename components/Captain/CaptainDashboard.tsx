@@ -39,6 +39,7 @@ interface CaptainDashboardProps {
   currentUserRole?: UserRole;
   onAdminSelectTeam?: (teamId: string) => void;
   squadRoles?: SquadRoleDef[];
+  onViewAsStudent?: (studentId: string) => void;
 }
 
 const QUEST_ROLES_DEFS = [
@@ -103,6 +104,7 @@ export function CaptainDashboard({
   currentUserRole,
   onAdminSelectTeam,
   onUpdateProfile,
+  onViewAsStudent,
   squadRoles = []
 }: CaptainDashboardProps) {
   // Get active members of this team (both students and captain)
@@ -809,6 +811,85 @@ export function CaptainDashboard({
         </div>
       </div>
 
+      {/* ❤️ 任務審核（小隊長初審） */}
+      <section className="glass-panel p-6 rounded-3xl border border-amber-500/20 space-y-4 text-left light:bg-white light:border-amber-500/30 animate-in fade-in duration-300">
+        <h3 className="text-sm font-black text-white border-b border-white/5 pb-3 flex items-center gap-1.5 light:border-slate-200">
+          <Heart size={16} className="text-amber-500" />
+          任務初審區（限組員待審核提交）
+        </h3>
+        
+        {squadPendingReviews.length === 0 ? (
+          <p className="text-xs text-slate-500 text-center py-4 font-bold">目前無待初審的組員提交件</p>
+        ) : (
+          <div className="space-y-4">
+            {squadPendingReviews.map(app => (
+              <div key={app.id} className="bg-slate-900 p-4 rounded-2xl border border-white/5 space-y-3 light:bg-slate-100 light:border-slate-300">
+                <div className="flex justify-between items-start select-none">
+                  <div>
+                    <p className="font-black text-white text-xs light:text-slate-900">{app.profile?.name}</p>
+                    <p className="text-[10px] text-amber-500 mt-1 font-bold">任務：{app.mission?.title || tasks.find(t => t.id === app.mission_id)?.name || '未知任務'}</p>
+                  </div>
+                  <span className="text-[10px] font-black text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded-lg">待初審</span>
+                </div>
+                
+                {app.proof_text && (
+                  <p className="text-xs text-slate-300 italic border-l-2 border-white/10 pl-2 py-0.5 light:border-slate-355 light:text-slate-650">
+                    「 {app.proof_text} 」
+                  </p>
+                )}
+
+                {/* Toggle to show/hide in witness section */}
+                {(app.proof_text || app.proof_image_url) && (
+                  <div className="flex items-center gap-2 pt-1">
+                    <input
+                      type="checkbox"
+                      id={`share-witness-${app.id}`}
+                      defaultChecked={!hiddenWitnessIds.includes(app.id)}
+                      onChange={(e) => {
+                        const isShared = e.target.checked;
+                        setHiddenWitnessIds(prev => {
+                          const next = isShared 
+                            ? prev.filter(id => id !== app.id)
+                            : prev.includes(app.id) ? prev : [...prev, app.id];
+                          localStorage.setItem('nlp_witness_hidden', JSON.stringify(next));
+                          return next;
+                        });
+                      }}
+                      className="rounded border-white/10 text-amber-500 focus:ring-0 focus:ring-offset-0 bg-slate-950/60 w-4 h-4 cursor-pointer"
+                    />
+                    <label htmlFor={`share-witness-${app.id}`} className="text-[11px] text-slate-450 font-bold select-none cursor-pointer light:text-slate-600">
+                      同時發佈至見證分享牆
+                    </label>
+                  </div>
+                )}
+                
+                <div className="flex gap-2 pt-2 select-none">
+                  <button
+                    onClick={() => handleReviewSubmissionLocal(app.id, false)}
+                    className="flex-1 py-2 bg-red-500/10 text-red-400 font-bold rounded-xl text-xs border border-red-500/20 active:scale-95 transition-all"
+                  >
+                    ❌ 駁回
+                  </button>
+                  <button
+                    onClick={() => handleReviewSubmissionLocal(app.id, true, false)}
+                    className="flex-1 py-2 bg-amber-500 text-slate-950 font-black rounded-xl text-xs active:scale-95 transition-all shadow-md shadow-amber-500/10"
+                  >
+                    ✅ 初審通過
+                  </button>
+                  <button
+                    onClick={() => handleReviewSubmissionLocal(app.id, true, true)}
+                    title="通過並分享到見證牆"
+                    className="flex-1 py-2 bg-purple-500 text-white font-black rounded-xl text-xs active:scale-95 transition-all shadow-md shadow-purple-500/10"
+                  >
+                    ✅ 上見證牆
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
       {/* 🔗 小隊專屬招募通道 */}
       <section className="glass-panel p-6 rounded-3xl border border-white/10 text-left space-y-4 light:bg-white light:border-slate-200">
         <div className="flex items-center gap-2 font-black text-sm text-white light:text-slate-900">
@@ -1131,6 +1212,18 @@ export function CaptainDashboard({
                         <span className="text-[9px] font-black bg-slate-950 text-slate-400 px-1.5 py-0.5 rounded-full light:bg-slate-200 light:text-slate-600 font-mono">
                           LV.{level}
                         </span>
+                        {onViewAsStudent && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onViewAsStudent(member.id);
+                            }}
+                            className="text-[9px] font-black bg-sky-500/20 hover:bg-sky-500/30 text-sky-400 px-2 py-0.5 rounded-md border border-sky-500/20 flex items-center gap-0.5 cursor-pointer transition-all active:scale-95 ml-1 select-none"
+                            title="唯讀檢視此組員帳號"
+                          >
+                            <span>👁️</span> 檢視帳號
+                          </button>
+                        )}
                       </div>
                       
                       <div className="text-xs text-slate-400 font-medium truncate max-w-[200px] sm:max-w-md light:text-slate-500">
@@ -1721,85 +1814,6 @@ export function CaptainDashboard({
               <Dices size={16} /> 
               {isDrawing ? '命運抽選中...' : '🎲 抽選本週推薦定課'}
             </button>
-          </div>
-        )}
-      </section>
-
-      {/* ❤️ 任務審核（小隊長初審） */}
-      <section className="glass-panel p-6 rounded-3xl border border-amber-500/20 space-y-4 text-left light:bg-white light:border-amber-500/30">
-        <h3 className="text-sm font-black text-white border-b border-white/5 pb-3 flex items-center gap-1.5 light:border-slate-200">
-          <Heart size={16} className="text-amber-500" />
-          任務初審區（限組員待審核提交）
-        </h3>
-        
-        {squadPendingReviews.length === 0 ? (
-          <p className="text-xs text-slate-500 text-center py-4 font-bold">目前無待初審的組員提交件</p>
-        ) : (
-          <div className="space-y-4">
-            {squadPendingReviews.map(app => (
-              <div key={app.id} className="bg-slate-900 p-4 rounded-2xl border border-white/5 space-y-3 light:bg-slate-100 light:border-slate-300">
-                <div className="flex justify-between items-start select-none">
-                  <div>
-                    <p className="font-black text-white text-xs light:text-slate-900">{app.profile?.name}</p>
-                    <p className="text-[10px] text-amber-500 mt-1 font-bold">任務：{app.mission?.title || tasks.find(t => t.id === app.mission_id)?.name || '未知任務'}</p>
-                  </div>
-                  <span className="text-[10px] font-black text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded-lg">待初審</span>
-                </div>
-                
-                {app.proof_text && (
-                  <p className="text-xs text-slate-300 italic border-l-2 border-white/10 pl-2 py-0.5 light:border-slate-355 light:text-slate-650">
-                    「 {app.proof_text} 」
-                  </p>
-                )}
-
-                {/* Toggle to show/hide in witness section */}
-                {(app.proof_text || app.proof_image_url) && (
-                  <div className="flex items-center gap-2 pt-1">
-                    <input
-                      type="checkbox"
-                      id={`share-witness-${app.id}`}
-                      defaultChecked={!hiddenWitnessIds.includes(app.id)}
-                      onChange={(e) => {
-                        const isShared = e.target.checked;
-                        setHiddenWitnessIds(prev => {
-                          const next = isShared 
-                            ? prev.filter(id => id !== app.id)
-                            : prev.includes(app.id) ? prev : [...prev, app.id];
-                          localStorage.setItem('nlp_witness_hidden', JSON.stringify(next));
-                          return next;
-                        });
-                      }}
-                      className="rounded border-white/10 text-amber-500 focus:ring-0 focus:ring-offset-0 bg-slate-950/60 w-4 h-4 cursor-pointer"
-                    />
-                    <label htmlFor={`share-witness-${app.id}`} className="text-[11px] text-slate-450 font-bold select-none cursor-pointer light:text-slate-600">
-                      同時發佈至見證分享牆
-                    </label>
-                  </div>
-                )}
-                
-                <div className="flex gap-2 pt-2 select-none">
-                  <button
-                    onClick={() => handleReviewSubmissionLocal(app.id, false)}
-                    className="flex-1 py-2 bg-red-500/10 text-red-400 font-bold rounded-xl text-xs border border-red-500/20 active:scale-95 transition-all"
-                  >
-                    ❌ 駁回
-                  </button>
-                  <button
-                    onClick={() => handleReviewSubmissionLocal(app.id, true, false)}
-                    className="flex-1 py-2 bg-amber-500 text-slate-950 font-black rounded-xl text-xs active:scale-95 transition-all shadow-md shadow-amber-500/10"
-                  >
-                    ✅ 初審通過
-                  </button>
-                  <button
-                    onClick={() => handleReviewSubmissionLocal(app.id, true, true)}
-                    title="通過並分享到見證牆"
-                    className="flex-1 py-2 bg-purple-500 text-white font-black rounded-xl text-xs active:scale-95 transition-all shadow-md shadow-purple-500/10"
-                  >
-                    ✅ 上見證牆
-                  </button>
-                </div>
-              </div>
-            ))}
           </div>
         )}
       </section>
