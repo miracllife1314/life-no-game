@@ -58,7 +58,7 @@ console.log(`準備匯入 ${formattedRecords.length} 筆任務模板資料...`);
 // 5. 匯入到 Supabase mission_templates
 async function importMissions() {
   console.log('正在查詢現有的任務模板...');
-  const res = await fetch(`${supabaseUrl}/rest/v1/mission_templates?select=title`, {
+  const res = await fetch(`${supabaseUrl}/rest/v1/mission_templates?select=title,category`, {
     method: 'GET',
     headers: {
       apikey: supabaseKey,
@@ -66,21 +66,21 @@ async function importMissions() {
     }
   });
 
-  let existingTitles = [];
+  let existingMissions = [];
   if (res.ok) {
-    const data = await res.json();
-    existingTitles = data.map(item => item.title);
+    existingMissions = await res.json();
   } else {
     console.warn('無法獲取現有任務模板，將直接上傳新資料。');
   }
 
-  // 調整同名任務的標題（若重複則加上 " (新)"）
+  // 調整同名任務的標題（若同分類且同名，則加上 " (新)"）
   const recordsToInsert = formattedRecords.map(record => {
     let title = record.title;
-    while (existingTitles.includes(title)) {
+    const category = record.category || '';
+    while (existingMissions.some(m => m.title === title && (m.category || '') === category)) {
       title = `${title} (新)`;
     }
-    existingTitles.push(title);
+    existingMissions.push({ title, category });
     return {
       ...record,
       title
