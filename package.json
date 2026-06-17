@@ -9,7 +9,8 @@
     "start": "next start",
     "lint": "eslint",
     "backup": "node scripts/backup-db.mjs",
-    "restore": "node scripts/restore-db.mjs"
+    "restore": "node scripts/restore-db.mjs",
+    "security-check": "node scripts/security-check.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.107.0",
