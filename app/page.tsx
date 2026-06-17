@@ -32,6 +32,10 @@ const CaptainDashboard = lazy(() => import('@/components/Captain/CaptainDashboar
 const AdminDashboard = lazy(() => import('@/components/Admin/AdminDashboard').then(m => ({ default: m.AdminDashboard })));
 import { WitnessTab } from '@/components/Tabs/WitnessTab';
 
+// 階段0 開關：登入時是否先向後端換取真實 Supabase session。
+// 預設開；若新流程出狀況，設環境變數 NEXT_PUBLIC_USE_REAL_AUTH=false 即可退回舊「假登入」。
+const USE_REAL_AUTH = process.env.NEXT_PUBLIC_USE_REAL_AUTH !== 'false';
+
 // lazy 後台組件載入中的暫時畫面
 function DashboardLoading() {
   return (
@@ -547,6 +551,27 @@ export default function Home() {
       // 需「姓名」與「手機號碼」兩者都吻合才能登入
       const safeName = (name || '').trim();
       const safePhone = (phone || '').trim();
+
+      // 階段0：先向後端換取真實 Supabase session（保留姓名+電話體驗）。
+      // 失敗不阻斷登入 —— 仍會往下走既有的姓名+電話比對（漸進、可回退）。
+      if (USE_REAL_AUTH && typeof (supabase as any)?.auth?.verifyOtp === 'function') {
+        try {
+          const res = await fetch('/api/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: safeName, phone: safePhone }),
+          });
+          if (res.ok) {
+            const { token_hash } = await res.json();
+            if (token_hash) {
+              await supabase.auth.verifyOtp({ token_hash, type: 'email' });
+            }
+          }
+        } catch (e) {
+          console.warn('[auth] 後端核發 session 失敗，退回姓名+電話比對：', e);
+        }
+      }
+
       const { data: profile, error } = await supabase
         .from('profiles')
         .select('*')

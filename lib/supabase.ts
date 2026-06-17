@@ -21,8 +21,10 @@ console.log(`📡 [Supabase Client Init] Environment: ${process.env.NODE_ENV || 
 // Base real supabase client
 export const realSupabase = isRealSupabase ? createClient(supabaseUrl, supabaseKey, {
   auth: {
-    autoRefreshToken: false,
-    persistSession: false,
+    // 階段0：改用後端核發的真實 session → 需保存並自動續期，
+    // 這樣登入後的查詢才會帶上 JWT（auth.uid() 才有值，未來 RLS 才判得了）。
+    autoRefreshToken: true,
+    persistSession: true,
     detectSessionInUrl: false,
   }
 }) : null;
