@@ -739,7 +739,18 @@ export default function Home() {
         .insert({ ...submissionData, proof_image_url: uploadedImg });
       if (insertError) {
         console.error('[CheckIn] submissions insert error:', insertError);
-        showToast(`❌ 打卡失敗：${insertError.message}`, 'error');
+        // 安全鎖擋下通常代表「登入身分失效/未綁定」→ 引導重新登入，而非顯示嚇人的安全訊息
+        if (/\[安全\]|只能為自己|row-level security/i.test(insertError.message || '')) {
+          showToast('您的登入似乎已過期，請重新登入後再打卡 🙏', 'error');
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem('nlp_mock_user_id');
+            localStorage.removeItem('nlp_session');
+          }
+          try { await supabase.auth.signOut(); } catch { /* 忽略 */ }
+          setViewState('login');
+        } else {
+          showToast(`❌ 打卡失敗：${insertError.message}`, 'error');
+        }
         return;
       }
       // 樂觀更新 UI (Optimistic Update) — 對 actingUser（被檢視學員或自己）
