@@ -4,6 +4,7 @@ import React, { useState, useEffect, useLayoutEffect, useCallback, useRef, lazy,
 import { supabase, uploadProofImage, isRealSupabase } from '@/lib/supabase';
 import { fetchAllTables } from '@/services/queries';
 import { computeJoinedData } from '@/services/joinData';
+import { useUiFeedback } from '@/hooks/useUiFeedback';
 import { getChineseNumber, getMondayOfWeek, removeStorageImageByUrl } from '@/lib/helpers';
 import { CheckCircle2, Clock, AlertCircle } from 'lucide-react';
 import { 
@@ -122,72 +123,8 @@ export default function Home() {
   const [isSyncing, setIsSyncing] = useState(false);
   const [adminSelectedTeamId, setAdminSelectedTeamId] = useState<string>('');
 
-  // --- Toast & Confetti Animations States ---
-  interface ToastInfo {
-    message: string;
-    type: 'success' | 'info' | 'error';
-    id: string;
-  }
-  interface Particle {
-    id: string;
-    size: number;
-    color: string;
-    angle: number;
-    speed: number;
-    delay: number;
-    tx: string;
-    ty: string;
-    rot: string;
-  }
-  interface ScoreFloat {
-    id: string;
-    text: string;
-  }
-
-  const [toasts, setToasts] = useState<ToastInfo[]>([]);
-  const [particles, setParticles] = useState<Particle[]>([]);
-  const [scoreFloats, setScoreFloats] = useState<ScoreFloat[]>([]);
-
-  const showToast = (message: string, type: 'success' | 'info' | 'error' = 'success') => {
-    const id = Math.random().toString(36).substring(2, 9);
-    setToasts(prev => [...prev, { message, type, id }]);
-    setTimeout(() => {
-      setToasts(prev => prev.filter(t => t.id !== id));
-    }, 4000);
-  };
-
-  const triggerConfetti = () => {
-    const newParticles: Particle[] = Array.from({ length: 65 }).map((_, i) => {
-      const angle = Math.random() * 360;
-      const speed = Math.random() * 8 + 4;
-      const tx = `${Math.cos(angle * Math.PI / 180) * speed * 22}vh`;
-      const ty = `${Math.sin(angle * Math.PI / 180) * speed * 22}vh`;
-      const rot = `${(Math.random() - 0.5) * 720}`;
-      return {
-        id: `${Date.now()}-${i}`,
-        size: Math.random() * 8 + 4,
-        color: ['#fbbf24', '#f59e0b', '#d97706', '#fef08a', '#fb7185', '#38bdf8', '#c084fc'][Math.floor(Math.random() * 7)],
-        angle,
-        speed,
-        delay: Math.random() * 0.15,
-        tx,
-        ty,
-        rot
-      };
-    });
-    setParticles(prev => [...prev, ...newParticles]);
-    setTimeout(() => {
-      setParticles(prev => prev.filter(p => !newParticles.find(np => np.id === p.id)));
-    }, 1500);
-  };
-
-  const triggerScoreFloat = (text: string) => {
-    const id = Math.random().toString(36).substring(2, 9);
-    setScoreFloats(prev => [...prev, { text, id }]);
-    setTimeout(() => {
-      setScoreFloats(prev => prev.filter(sf => sf.id !== id));
-    }, 1800);
-  };
+  // --- UI 回饋（Toast / 彩帶 / 分數浮動）抽到 hooks/useUiFeedback ---
+  const { toasts, particles, scoreFloats, showToast, triggerConfetti, triggerScoreFloat } = useUiFeedback();
 
   // Load theme preference on mount
   useEffect(() => {
