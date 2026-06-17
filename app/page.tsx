@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useLayoutEffect, useCallback, useRef } from 'react';
 import { supabase, uploadProofImage, isRealSupabase } from '@/lib/supabase';
+import { fetchAllTables } from '@/services/queries';
 import { CheckCircle2, Clock, AlertCircle } from 'lucide-react';
 import { 
   Profile, Team, Task, Submission, ScoreLog, SubmissionStatus,
@@ -224,64 +225,16 @@ export default function Home() {
         setCurrentTeam(null);
       }
 
-      // 2. Fetch standard tables —— 全部「平行」查詢，避免 24 次序列往返拖慢載入
-      const [
-        batchesRes, templatesRes, rulesRes, profilesRes, teamsRes, tasksRes,
-        subsRes, coursesRes, attendanceRes, achsRes, userAchsRes, annsRes,
-        notesRes, scoreLogsRes, petsRes, userPetsRes, cardsRes, decksRes,
-        deckCardsRes, userDecksRes, missionsRes, petLinesRes, petStagesRes, candidatesRes, squadRolesRes
-      ] = await Promise.all([
-        supabase.from('batches').select('*'),
-        supabase.from('mission_templates').select('*'),
-        supabase.from('batch_mission_templates').select('*'),
-        supabase.from('profiles').select('*'),
-        supabase.from('teams').select('*'),
-        supabase.from('tasks').select('*'),
-        supabase.from('submissions').select('*'),
-        supabase.from('courses').select('*'),
-        supabase.from('course_attendance').select('*'),
-        supabase.from('achievements').select('*'),
-        supabase.from('user_achievements').select('*'),
-        supabase.from('announcements').select('*'),
-        supabase.from('student_notes').select('*'),
-        supabase.from('score_logs').select('*'),
-        supabase.from('pets').select('*'),
-        supabase.from('user_pets').select('*'),
-        supabase.from('cards').select('*'),
-        supabase.from('decks').select('*'),
-        supabase.from('deck_cards').select('*'),
-        supabase.from('user_decks').select('*'),
-        supabase.from('missions').select('*'),
-        supabase.from('pet_lines').select('*'),
-        supabase.from('pet_stages').select('*'),
-        supabase.from('captain_candidates').select('*'),
-        supabase.from('squad_roles').select('*').order('created_at', { ascending: true }),
-      ]);
-      const batchesList = batchesRes.data;
-      const templatesList = templatesRes.data;
-      const rulesList = rulesRes.data;
-      const profilesList = profilesRes.data;
-      const teamsList = teamsRes.data;
-      const tasksList = tasksRes.data;
-      const subsList = subsRes.data;
-      const coursesList = coursesRes.data;
-      const attendanceList = attendanceRes.data;
-      const achsList = achsRes.data;
-      const userAchsList = userAchsRes.data;
-      const annsList = annsRes.data;
-      const notesList = notesRes.data;
-      const scoreLogsList = scoreLogsRes.data;
-      const petsList = petsRes.data;
-      const userPetsList = userPetsRes.data;
-      const cardsList = cardsRes.data;
-      const decksList = decksRes.data;
-      const deckCardsList = deckCardsRes.data;
-      const userDecksList = userDecksRes.data;
-      const missionsList = missionsRes.data;
-      const petLinesList = petLinesRes.data;
-      const petStagesList = petStagesRes.data;
-      const candidatesList = candidatesRes.data;
-      const squadRolesList = squadRolesRes.data;
+      // 2. 分流讀取（P0）：學員/隊長只撈本期資料、跳過後台表；大隊長全撈。詳見 services/queries.ts
+      const isAdminUser = loadedProfile?.role === 'admin';
+      const userBatchId = loadedProfile?.batch_id || null;
+      const {
+        batchesList, templatesList, rulesList, profilesList, teamsList, tasksList,
+        subsList, coursesList, attendanceList, achsList, userAchsList, annsList,
+        notesList, scoreLogsList, petsList, userPetsList, cardsList, decksList,
+        deckCardsList, userDecksList, missionsList, petLinesList, petStagesList,
+        candidatesList, squadRolesList,
+      } = await fetchAllTables({ batchId: userBatchId, isAdmin: isAdminUser });
 
       if (batchesList) setBatches(batchesList);
       if (templatesList) setMissionTemplates(templatesList);
