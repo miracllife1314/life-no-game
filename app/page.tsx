@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useLayoutEffect, useCallback, useRef, lazy, Suspense } from 'react';
 import { supabase, uploadProofImage, isRealSupabase } from '@/lib/supabase';
 import { fetchAllTables } from '@/services/queries';
+import { getChineseNumber, roleLabel, getMondayOfWeek, removeStorageImageByUrl } from '@/lib/helpers';
 import { CheckCircle2, Clock, AlertCircle } from 'lucide-react';
 import { 
   Profile, Team, Task, Submission, ScoreLog, SubmissionStatus,
@@ -378,7 +379,6 @@ export default function Home() {
       if (squadRolesList) setSquadRoles(squadRolesList);
 
       // 小隊長候選：依 profile_id 帶出姓名/手機/曾參與期數/曾擔任角色
-      const roleLabel = (r: string) => r === 'captain' ? '小隊長' : r === 'admin' ? '大隊長' : '學員';
       const joinedCandidates = (candidatesList || []).map((c: any) => {
         const personRows = profArr.filter((p: any) => p.profile_id === c.profile_id);
         const base = personRows[0] || profArr.find((p: any) => p.id === c.profile_id) || null;
@@ -1580,11 +1580,6 @@ export default function Home() {
     }
   };
 
-  const getChineseNumber = (n: number) => {
-    const chineseNums = ['零', '一', '二', '三', '四', '五', '六', '七', '八', '九', '十', '十一', '十二', '十三', '十四', '十五', '十六', '十七', '十八', '十九', '二十'];
-    return chineseNums[n] || n.toString();
-  };
-
   const handleCreateBatch = async (batchData: Omit<Batch, 'id' | 'created_at' | 'updated_at'>, teamCount?: number) => {
     const batchId = 'batch-' + Math.random().toString(36).substring(2, 9);
     await supabase.from('batches').insert({
@@ -1673,23 +1668,6 @@ export default function Home() {
 
   // 從 Storage 公開 URL 解析出 bucket/path 並刪除檔案（釋放空間；失敗不影響流程）
   // 自訂貼文可能含多張圖（以 '|' 串接），逐一刪除
-  const removeStorageImageByUrl = async (url?: string | null) => {
-    if (!url) return;
-    const marker = '/storage/v1/object/public/';
-    for (const one of url.split('|')) {
-      const u = one.trim();
-      if (!u) continue;
-      const idx = u.indexOf(marker);
-      if (idx < 0) continue;
-      const rest = u.substring(idx + marker.length); // bucket/path...
-      const slash = rest.indexOf('/');
-      if (slash <= 0) continue;
-      const bucket = rest.substring(0, slash);
-      const filePath = decodeURIComponent(rest.substring(slash + 1));
-      try { await supabase.storage.from(bucket).remove([filePath]); } catch { /* 忽略 */ }
-    }
-  };
-
   const handleDeleteWitness = async (submissionId: string) => {
     if (gmMode) {
       const sub = submissions.find(s => s.id === submissionId);
@@ -1939,15 +1917,6 @@ export default function Home() {
             cur.setDate(cur.getDate() + 1);
           }
         } else if (type === 'weekly') {
-          const getMondayOfWeek = (dateStr: string) => {
-            const date = new Date(dateStr);
-            const day = date.getUTCDay();
-            const diff = day === 0 ? -6 : 1 - day;
-            const monday = new Date(date);
-            monday.setUTCDate(date.getUTCDate() + diff);
-            monday.setUTCHours(0, 0, 0, 0);
-            return monday;
-          };
           const firstMonday = getMondayOfWeek(batch.start_date);
           const weekOffset = rule.week_offset !== null ? rule.week_offset : 1;
           const dayOffset = rule.day_offset !== null ? rule.day_offset : 1;
