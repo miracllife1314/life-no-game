@@ -7,6 +7,7 @@ import { computeJoinedData } from '@/services/joinData';
 import { useUiFeedback } from '@/hooks/useUiFeedback';
 import { useSquadRoles } from '@/hooks/useSquadRoles';
 import { useAdminContent } from '@/hooks/useAdminContent';
+import { useAdminMisc } from '@/hooks/useAdminMisc';
 import { getChineseNumber, getMondayOfWeek, removeStorageImageByUrl } from '@/lib/helpers';
 import { CheckCircle2, Clock, AlertCircle } from 'lucide-react';
 import { 
@@ -1148,21 +1149,14 @@ export default function Home() {
     }
   };
 
-  const handleCreateTask = async (taskData: Omit<Task, 'id' | 'created_at' | 'created_by'>) => {
-    if (!currentUser) return;
-    await supabase.from('tasks').insert({
-      id: crypto.randomUUID(),
-      ...taskData,
-      created_by: currentUser.id,
-      created_at: new Date().toISOString()
-    });
-    await fetchData();
-  };
-
-  const handleDeleteTask = async (taskId: string) => {
-    await supabase.from('tasks').delete().eq('id', taskId);
-    await fetchData();
-  };
+  const {
+    handleCreateTask, handleDeleteTask,
+    handleAddCaptainCandidate, handleUpdateCaptainCandidate, handleDeleteCaptainCandidate,
+    handleCreateMissionTemplate, handleUpdateMissionTemplate, handleDeleteMissionTemplate,
+    handleDeleteMission, handleManualAdjustScore,
+    handleCreatePet, handleCreateCard, handleCreateDeck,
+    handleAwardPetSkin, handleLevelUpPet, handleUpdatePetStage, handleUpdatePetLine,
+  } = useAdminMisc({ currentUser, setIsSyncing, fetchData, userPets });
 
   const handleAddProfile = async (profileData: { name: string; phone: string; role: UserRole; batchId: string; teamId: string; divisionName?: string | null; directorId?: string | null }) => {
     setIsSyncing(true);
@@ -1343,48 +1337,6 @@ export default function Home() {
 
   const { handleCreateSquadRole, handleUpdateSquadRole, handleDeleteSquadRole } =
     useSquadRoles({ setIsSyncing, fetchData, showToast });
-
-  const handleAddCaptainCandidate = async (profileId: string, status: 'eligible' | 'paused' | 'disabled') => {
-    setIsSyncing(true);
-    try {
-      const { error } = await supabase.from('captain_candidates').insert({ profile_id: profileId, status });
-      if (error) throw new Error(error.message);
-      await fetchData();
-    } catch (err: any) {
-      console.error(err);
-      alert(err.message || '新增小隊長候選人失敗');
-    } finally {
-      setIsSyncing(false);
-    }
-  };
-
-  const handleUpdateCaptainCandidate = async (candidateId: string, status: 'eligible' | 'paused' | 'disabled') => {
-    setIsSyncing(true);
-    try {
-      const { error } = await supabase.from('captain_candidates').update({ status }).eq('id', candidateId);
-      if (error) throw new Error(error.message);
-      await fetchData();
-    } catch (err: any) {
-      console.error(err);
-      alert(err.message || '更新小隊長狀態失敗');
-    } finally {
-      setIsSyncing(false);
-    }
-  };
-
-  const handleDeleteCaptainCandidate = async (candidateId: string) => {
-    setIsSyncing(true);
-    try {
-      const { error } = await supabase.from('captain_candidates').delete().eq('id', candidateId);
-      if (error) throw new Error(error.message);
-      await fetchData();
-    } catch (err: any) {
-      console.error(err);
-      alert(err.message || '移出小隊長候選人失敗');
-    } finally {
-      setIsSyncing(false);
-    }
-  };
 
   const handleQuickAssignCaptain = async (
     batchId: string,
@@ -1648,34 +1600,6 @@ export default function Home() {
     await supabase.from('teams').delete().eq('batch_id', batchId);
     // Finally delete the batch itself
     await supabase.from('batches').delete().eq('id', batchId);
-    await fetchData();
-  };
-
-  const handleCreateMissionTemplate = async (templateData: Omit<MissionTemplate, 'id' | 'created_at' | 'updated_at'>) => {
-    const { data } = await supabase.from('mission_templates').insert({
-      id: crypto.randomUUID(),
-      ...templateData,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    });
-    await fetchData();
-    return data?.[0] || (Array.isArray(data) ? data[0] : data);
-  };
-
-  const handleUpdateMissionTemplate = async (templateId: string, templateData: Partial<MissionTemplate>) => {
-    await supabase
-      .from('mission_templates')
-      .update({
-        ...templateData,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', templateId);
-    await fetchData();
-  };
-
-  const handleDeleteMissionTemplate = async (templateId: string) => {
-    await supabase.from('batch_mission_templates').delete().eq('template_id', templateId);
-    await supabase.from('mission_templates').delete().eq('id', templateId);
     await fetchData();
   };
 
@@ -1980,94 +1904,12 @@ export default function Home() {
   };
 
   // 後台單筆刪除「已產生的任務」：先刪該任務的打卡（DB trigger 會自動退回已給經驗），再刪任務本身
-  const handleDeleteMission = async (missionId: string) => {
-    setIsSyncing(true);
-    try {
-      const { error: e1 } = await supabase.from('submissions').delete().eq('mission_id', missionId);
-      if (e1) throw new Error(e1.message);
-      const { error: e2 } = await supabase.from('missions').delete().eq('id', missionId);
-      if (e2) throw new Error(e2.message);
-      await fetchData();
-    } catch (err: any) {
-      console.error('刪除任務失敗:', err);
-      alert('刪除任務失敗：' + (err?.message || '請稍後再試'));
-    } finally {
-      setIsSyncing(false);
-    }
-  };
-
-  const handleManualAdjustScore = async (studentId: string, amount: number, reason: string) => {
-    if (!currentUser) return;
-    // 檢查 RPC 是否真的成功，失敗就拋錯（避免「假成功」）
-    const { error } = await supabase.rpc('adjust_score', {
-      p_student_id: studentId,
-      p_amount: amount,
-      p_reason: reason,
-      p_created_by: currentUser.id
-    });
-    if (error) throw new Error(error.message || '調分失敗');
-    await fetchData();
-  };
 
   const {
     handleCreateAnnouncement, handleUpdateAnnouncement, handleDeleteAnnouncement,
     handleCreateCourse, handleUpdateCourse, handleDeleteCourse,
     handleCreateAchievement, handleUpdateAchievement, handleDeleteAchievement,
   } = useAdminContent({ currentUser, setIsSyncing, fetchData, setAchievements, setUserAchievements });
-
-  const handleCreatePet = async (petData: Omit<Pet, 'id' | 'created_at'>) => {
-    await supabase.from('pets').insert(petData);
-    await fetchData();
-  };
-
-  const handleCreateCard = async (cardData: Omit<Card, 'id' | 'created_at'>) => {
-    await supabase.from('cards').insert(cardData);
-    await fetchData();
-  };
-
-  const handleCreateDeck = async (name: string, isTemplate: boolean, cardIds: { cardId: string; count: number }[]) => {
-    const deckId = 'deck-' + Math.random().toString(36).substring(2, 11);
-    await supabase.from('decks').insert({
-      id: deckId,
-      name,
-      created_by: currentUser?.id || 'admin1',
-      is_template: isTemplate
-    });
-    
-    const deckCardsToInsert = cardIds.map(c => ({
-      deck_id: deckId,
-      card_id: c.cardId,
-      count: c.count
-    }));
-    await supabase.from('deck_cards').insert(deckCardsToInsert);
-    await fetchData();
-  };
-
-  const handleAwardPetSkin = async (studentId: string, petId: string, skinName: string) => {
-    const userPetRecord = userPets.find(up => up.student_id === studentId && up.pet_id === petId);
-    if (userPetRecord) {
-      await supabase.from('user_pets').update({ current_skin: skinName }).eq('id', userPetRecord.id);
-      await fetchData();
-    }
-  };
-
-  const handleLevelUpPet = async (userPetId: string) => {
-    const record = userPets.find(up => up.id === userPetId);
-    if (record) {
-      await supabase.from('user_pets').update({ pet_level: (record.pet_level ?? 1) + 1 }).eq('id', userPetId);
-      await fetchData();
-    }
-  };
-
-  const handleUpdatePetStage = async (stageId: string, updatedFields: Partial<PetStage>) => {
-    await supabase.from('pet_stages').update(updatedFields).eq('id', stageId);
-    await fetchData();
-  };
-
-  const handleUpdatePetLine = async (lineId: string, updatedFields: Partial<PetLine>) => {
-    await supabase.from('pet_lines').update(updatedFields).eq('id', lineId);
-    await fetchData();
-  };
 
   const handleEvolvePet = async (studentId: string, lineKey: string) => {
     const userPetRecord = userPets.find(up => up.student_id === studentId);
