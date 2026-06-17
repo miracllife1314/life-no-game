@@ -5,6 +5,7 @@ import { supabase, uploadProofImage, isRealSupabase } from '@/lib/supabase';
 import { fetchAllTables } from '@/services/queries';
 import { computeJoinedData } from '@/services/joinData';
 import { useUiFeedback } from '@/hooks/useUiFeedback';
+import { useSquadRoles } from '@/hooks/useSquadRoles';
 import { getChineseNumber, getMondayOfWeek, removeStorageImageByUrl } from '@/lib/helpers';
 import { CheckCircle2, Clock, AlertCircle } from 'lucide-react';
 import { 
@@ -1339,50 +1340,8 @@ export default function Home() {
     await fetchData();
   };
 
-  const handleCreateSquadRole = async (data: Omit<SquadRoleDef, "id" | "created_at">) => {
-    setIsSyncing(true);
-    try {
-      const { error } = await supabase.from("squad_roles").insert([data]);
-      if (error) throw error;
-      await fetchData();
-      showToast("成功新增小隊職責", "success");
-    } catch (err: any) {
-      console.error("Error creating squad role:", err);
-      showToast(err.message || "新增失敗", "error");
-    } finally {
-      setIsSyncing(false);
-    }
-  };
-
-  const handleUpdateSquadRole = async (id: string, updates: Partial<SquadRoleDef>) => {
-    setIsSyncing(true);
-    try {
-      const { error } = await supabase.from("squad_roles").update(updates).eq("id", id);
-      if (error) throw error;
-      await fetchData();
-      showToast("成功更新小隊職責", "success");
-    } catch (err: any) {
-      console.error("Error updating squad role:", err);
-      showToast(err.message || "更新失敗", "error");
-    } finally {
-      setIsSyncing(false);
-    }
-  };
-
-  const handleDeleteSquadRole = async (id: string) => {
-    setIsSyncing(true);
-    try {
-      const { error } = await supabase.from("squad_roles").delete().eq("id", id);
-      if (error) throw error;
-      await fetchData();
-      showToast("成功刪除小隊職責", "success");
-    } catch (err: any) {
-      console.error("Error deleting squad role:", err);
-      showToast(err.message || "刪除失敗", "error");
-    } finally {
-      setIsSyncing(false);
-    }
-  };
+  const { handleCreateSquadRole, handleUpdateSquadRole, handleDeleteSquadRole } =
+    useSquadRoles({ setIsSyncing, fetchData, showToast });
 
   const handleAddCaptainCandidate = async (profileId: string, status: 'eligible' | 'paused' | 'disabled') => {
     setIsSyncing(true);
