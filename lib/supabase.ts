@@ -7,16 +7,12 @@ import {
   Batch, MissionTemplate, BatchMissionTemplate, Mission, CaptainCandidate
 } from '@/types';
 
-// Detect environment (development vs production)
-const isDev = process.env.NODE_ENV === 'development';
-
-const supabaseUrl = (isDev && process.env.NEXT_PUBLIC_SUPABASE_URL_LOCAL)
-  ? process.env.NEXT_PUBLIC_SUPABASE_URL_LOCAL
-  : (process.env.NEXT_PUBLIC_SUPABASE_URL || '');
-
-const supabaseKey = (isDev && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY_LOCAL)
-  ? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY_LOCAL
-  : (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '');
+// 連線優先序：只要有設 _LOCAL（測試庫）就用它，否則用正式庫變數。
+// → 本機 dev 與 Vercel「Preview」都設 _LOCAL，會連測試庫；
+// → 正式「Production」不設 _LOCAL，自動 fallback 到正式庫。
+// ⚠️ 切勿在 Production 環境設定 _LOCAL 變數，否則正式站會連到測試庫！
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL_LOCAL || process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY_LOCAL || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
 export const isRealSupabase = !!(supabaseUrl && supabaseUrl !== 'your-supabase-url' && supabaseKey);
 
