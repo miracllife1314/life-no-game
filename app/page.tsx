@@ -8,8 +8,10 @@ import { useUiFeedback } from '@/hooks/useUiFeedback';
 import { useSquadRoles } from '@/hooks/useSquadRoles';
 import { useAdminContent } from '@/hooks/useAdminContent';
 import { useAdminMisc } from '@/hooks/useAdminMisc';
+import { useAuth } from '@/hooks/useAuth';
 import { useAdminPeople } from '@/hooks/useAdminPeople';
-import { getMondayOfWeek, removeStorageImageByUrl } from '@/lib/helpers';
+import { useMissionGen } from '@/hooks/useMissionGen';
+import { removeStorageImageByUrl } from '@/lib/helpers';
 import { CheckCircle2, Clock, AlertCircle } from 'lucide-react';
 import { 
   Profile, Team, Task, Submission, ScoreLog, SubmissionStatus,
@@ -480,167 +482,34 @@ export default function Home() {
   }, []);
 
   // --- Auth Actions ---
-  const handleLogin = async (name: string, phone: string) => {
-    setIsSyncing(true);
-    try {
-      // 需「姓名」與「手機號碼」兩者都吻合才能登入
-      const safeName = (name || '').trim();
-      const safePhone = (phone || '').trim();
-
-      // 階段0：先向後端換取真實 Supabase session（保留姓名+電話體驗）。
-      // 失敗不阻斷登入 —— 仍會往下走既有的姓名+電話比對（漸進、可回退）。
-      if (USE_REAL_AUTH && typeof (supabase as any)?.auth?.verifyOtp === 'function') {
-        try {
-          const res = await fetch('/api/auth/login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name: safeName, phone: safePhone }),
-          });
-          if (res.ok) {
-            const { token_hash } = await res.json();
-            if (token_hash) {
-              await supabase.auth.verifyOtp({ token_hash, type: 'email' });
-            }
-          }
-        } catch (e) {
-          console.warn('[auth] 後端核發 session 失敗，退回姓名+電話比對：', e);
-        }
-      }
-
-      const { data: profile, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('name', safeName)
-        .eq('phone', safePhone)
-        .limit(1)
-        .maybeSingle();
-
-      if (error || !profile) {
-        throw new Error('姓名與手機號碼不符，請再確認後重試');
-      }
-
-      // 記住登入身分
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('nlp_mock_user_id', profile.id);
-      }
-
-      const loadedProfile = await fetchData(profile.id);
-      setViewState('app');
-      if (loadedProfile && loadedProfile.role === 'admin') {
-        setActiveTab('admin');
-      } else {
-        setActiveTab('daily');
-      }
-    } catch (err: any) {
-      setIsSyncing(false);
-      throw new Error(err.message || '登入失敗');
-    }
-  };
+  const {
+    handleLogin,
+    handleRegister,
+    handleLogout,
+    handleSwitchCohort,
+  } = useAuth({
+    setIsSyncing,
+    fetchData,
+    currentUser,
+    setCurrentUser,
+    setCurrentTeam,
+    setViewState,
+    setGmMode,
+    setActiveTab,
+    inviteCode,
+    setInviteCode,
+    setInvitedTeamName,
+    setInvitedCaptainName,
+    setInviteError,
+    userEnrollments,
+    USE_REAL_AUTH,
+  });
 
   useEffect(() => {
     if (teams.length > 0 && !adminSelectedTeamId) {
       setAdminSelectedTeamId(teams[0].id);
     }
   }, [teams, adminSelectedTeamId]);
-
-
-
-  const handleRegister = async (regData: { name: string; phone: string; role: UserRole }) => {
-    setIsSyncing(true);
-
-    // 防呆：同「姓名+手機」若已存在，不可重複註冊（避免產生重複帳號、破壞多期相連）
-    const safeName = (regData.name || '').trim();
-    const safePhone = (regData.phone || '').trim();
-    const { data: existingPerson } = await supabase
-      .from('profiles')
-      .select('id')
-      .eq('name', safeName)
-      .eq('phone', safePhone)
-      .limit(1);
-    if (existingPerson && existingPerson.length > 0) {
-      setIsSyncing(false);
-      throw new Error('此姓名與手機已經註冊過了。若要加入新的一期，請改用「登入」，登入後再點一次邀請連結即可加入。');
-    }
-
-    let batch_id: string | null = null;
-    let team_id: string | null = null;
-    let captain_id: string | null = null;
-
-    if (inviteCode) {
-      const params = new URLSearchParams(window.location.search);
-      const urlBatch = params.get('batch') || '';
-      const urlTeam = params.get('team') || '';
-      const { data: teamsList } = await supabase.from('teams').select('*');
-      const team = teamsList?.find((t: any) => t.invite_code === inviteCode && t.batch_id === urlBatch && t.id === urlTeam);
-      if (team) {
-        batch_id = team.batch_id || 'batch-50';
-        team_id = team.id;
-        captain_id = team.captain_id;
-      }
-    }
-
-    // 本系統不走 Supabase Auth：直接在 profiles 建立一筆報名列（id 與 profile_id 同值＝新的人）
-    const newId = (typeof crypto !== 'undefined' && crypto.randomUUID)
-      ? crypto.randomUUID()
-      : `usr-${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
-
-    const { error } = await supabase.from('profiles').insert({
-      id: newId,
-      profile_id: newId,
-      name: safeName,
-      phone: safePhone,
-      role: regData.role,
-      batch_id,
-      team_id,
-      captain_id,
-      score: 0,
-      status: 'active',
-      created_at: new Date().toISOString()
-    });
-
-    if (error) {
-      setIsSyncing(false);
-      throw new Error(error.message);
-    }
-
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('nlp_mock_user_id', newId);
-    }
-    await fetchData(newId);
-    setViewState('app');
-    setActiveTab('daily');
-    setInviteCode('');
-    setInvitedTeamName('');
-    setInvitedCaptainName('');
-    setInviteError('');
-    if (typeof window !== 'undefined') {
-      window.history.replaceState({}, document.title, window.location.pathname);
-    }
-  };
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('nlp_session');
-      localStorage.removeItem('nlp_mock_user_id');
-    }
-    setCurrentUser(null);
-    setCurrentTeam(null);
-    setViewState('login');
-    setGmMode(false);
-    setActiveTab('daily');
-  };
-
-  const handleSwitchCohort = async (batchId: string) => {
-    const nextEnrollment = userEnrollments.find(e => e.batch_id === batchId);
-    if (nextEnrollment) {
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('nlp_session', JSON.stringify(nextEnrollment));
-        localStorage.setItem('nlp_mock_user_id', nextEnrollment.id);
-      }
-      await fetchData(nextEnrollment.id);
-    }
-  };
 
   // --- Student Actions ---
   const handleCheckIn = async (taskId: string, proofText?: string, proofImg?: string, proofLink?: string, shareToWitness?: boolean) => {
@@ -1342,308 +1211,8 @@ export default function Home() {
     }
   };
 
-
-  const handleSaveBatchMissionTemplates = async (
-    batchId: string, 
-    rules: Omit<BatchMissionTemplate, 'id' | 'created_at' | 'updated_at'>[]
-  ) => {
-    // 1. Delete existing rules for this cohort
-    await supabase.from('batch_mission_templates').delete().eq('batch_id', batchId);
-    
-    // 2. Insert new ones if any
-    if (rules.length > 0) {
-      await supabase.from('batch_mission_templates').insert(
-        rules.map(r => ({
-          ...r,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        }))
-      );
-    }
-    
-    // 3. Clear existing missions for this cohort that DO NOT have student submissions yet
-    const { data: currentMissions } = await supabase.from('missions').select('id').eq('batch_id', batchId);
-    if (currentMissions && currentMissions.length > 0) {
-      const { data: subs } = await supabase.from('submissions').select('mission_id');
-      const submittedMissionIds = new Set((subs || []).map((s: any) => s.mission_id));
-      
-      const missionsToDelete = currentMissions
-        .map((m: any) => m.id)
-        .filter((id: string) => !submittedMissionIds.has(id));
-        
-      if (missionsToDelete.length > 0) {
-        await supabase.from('missions').delete().in('id', missionsToDelete);
-      }
-    }
-
-    // 4. Auto-generate missions for this batch so user doesn't have to confirm manually
-    const batch = batches.find(b => b.id === batchId);
-    if (batch && rules.length > 0) {
-      const startDate = new Date(batch.start_date);
-      const endDate = new Date(batch.end_date);
-      const previews: any[] = [];
-      
-      rules.filter(r => r.is_enabled).forEach((rule: any) => {
-        const template = missionTemplates.find((t: any) => t.id === rule.template_id);
-        if (!template) return;
-        
-        const type = template.mission_type;
-        const points = template.points;
-        const title = template.title;
-        const desc = template.description;
-        const reviewType = template.review_type;
-        const category = template.category;
-        const maxCompletions = template.max_completions;
-        
-        if (type === 'daily') {
-          let cur = new Date(startDate);
-          while (cur <= endDate) {
-            const dayStr = cur.toISOString().substring(0, 10);
-            previews.push({
-              batch_id: batchId,
-              template_id: rule.template_id,
-              title,
-              description: desc,
-              mission_type: type,
-              points,
-              publish_at: `${dayStr} 00:00:00`,
-              deadline_at: `${dayStr} 23:59:59`,
-              status: 'scheduled',
-              review_type: reviewType,
-              category: category,
-              max_completions: maxCompletions,
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString()
-            });
-            cur.setDate(cur.getDate() + 1);
-          }
-        } else if (type === 'weekly') {
-          const firstMonday = getMondayOfWeek(batch.start_date);
-          const weekOffset = rule.week_offset !== null ? rule.week_offset : 1;
-          const dayOffset = rule.day_offset !== null ? rule.day_offset : 1;
-          
-          if (weekOffset === 0) {
-            const lastMonday = getMondayOfWeek(batch.end_date);
-            const totalWeeks = Math.round((lastMonday.getTime() - firstMonday.getTime()) / (7 * 24 * 60 * 60 * 1000)) + 1;
-            
-            for (let w = 1; w <= totalWeeks; w++) {
-              const publishDate = new Date(firstMonday);
-              publishDate.setUTCDate(firstMonday.getUTCDate() + (w - 1) * 7 + (dayOffset - 1));
-              
-              const deadlineDate = new Date(publishDate);
-              deadlineDate.setUTCDate(publishDate.getUTCDate() + 6);
-              
-              const pubStr = publishDate.toISOString().substring(0, 10);
-              const deadStr = deadlineDate.toISOString().substring(0, 10);
-              
-              previews.push({
-                batch_id: batchId,
-                template_id: rule.template_id,
-                title,
-                description: desc,
-                mission_type: type,
-                points,
-                publish_at: `${pubStr} 00:00:00`,
-                deadline_at: `${deadStr} 23:59:59`,
-                status: 'scheduled',
-                review_type: reviewType,
-                category: category,
-                max_completions: maxCompletions,
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString()
-              });
-            }
-          } else {
-            const publishDate = new Date(firstMonday);
-            publishDate.setUTCDate(firstMonday.getUTCDate() + (weekOffset - 1) * 7 + (dayOffset - 1));
-            
-            const deadlineDate = new Date(publishDate);
-            deadlineDate.setUTCDate(publishDate.getUTCDate() + 6);
-            
-            const pubStr = publishDate.toISOString().substring(0, 10);
-            const deadStr = deadlineDate.toISOString().substring(0, 10);
-            
-            previews.push({
-              batch_id: batchId,
-              template_id: rule.template_id,
-              title,
-              description: desc,
-              mission_type: type,
-              points,
-              publish_at: `${pubStr} 00:00:00`,
-              deadline_at: `${deadStr} 23:59:59`,
-              status: 'scheduled',
-              review_type: reviewType,
-              category: category,
-              max_completions: maxCompletions,
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString()
-            });
-          }
-        } else if (type === 'special') {
-          const dayStr = startDate.toISOString().substring(0, 10);
-          previews.push({
-            batch_id: batchId,
-            template_id: rule.template_id,
-            title,
-            description: desc,
-            mission_type: type,
-            points,
-            publish_at: `${dayStr} 00:00:00`,
-            deadline_at: batch.end_date.substring(0, 10) + ' 23:59:59',
-            status: 'scheduled',
-            review_type: reviewType,
-            category: category,
-            max_completions: maxCompletions,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          });
-        } else if (type === 'limited') {
-          const offset = rule.day_offset !== null ? Math.max(0, rule.day_offset - 1) : 0;
-          const duration = rule.duration_days !== null ? rule.duration_days : 1;
-          
-          const pubDate = new Date(startDate);
-          pubDate.setDate(pubDate.getDate() + offset);
-          
-          const deadDate = new Date(pubDate);
-          deadDate.setDate(deadDate.getDate() + duration);
-          
-          const pubStr = pubDate.toISOString().substring(0, 10);
-          const deadStr = deadDate.toISOString().substring(0, 10);
-          
-          previews.push({
-            batch_id: batchId,
-            template_id: rule.template_id,
-            title,
-            description: desc,
-            mission_type: type,
-            points,
-            publish_at: `${pubStr} 00:00:00`,
-            deadline_at: `${deadStr} 23:59:59`,
-            status: 'scheduled',
-            review_type: reviewType,
-            category: category,
-            max_completions: maxCompletions,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          });
-        }
-      });
-
-      if (previews.length > 0) {
-        const { data: existingMissions } = await supabase.from('missions').select('*').eq('batch_id', batchId);
-        const existingKeys = new Set((existingMissions || []).map((m: any) => `${m.template_id}_${m.publish_at}`));
-        
-        const missionsToInsert = previews.filter(p => !existingKeys.has(`${p.template_id}_${p.publish_at}`));
-        if (missionsToInsert.length > 0) {
-          await supabase.from('missions').insert(missionsToInsert);
-        }
-      }
-    }
-    
-    await fetchData();
-  };
-
-  const handleGenerateMissions = async (
-    batchId: string,
-    previews: Array<{
-      templateId: string;
-      title: string;
-      description: string;
-      type: 'daily' | 'weekly' | 'special' | 'limited';
-      points: number;
-      publishAt: string;
-      deadlineAt: string;
-      reviewType: 'auto' | 'leader' | 'admin';
-      category?: string;
-      maxCompletions?: number;
-    }>
-  ) => {
-    setIsSyncing(true);
-    let successCount = 0;
-    let skipCount = 0;
-    
-    try {
-      // 1. Fetch existing missions for the batch
-      const { data: existing } = await supabase.from('missions').select('*').eq('batch_id', batchId);
-      // 用「發布日期(YYYY-MM-DD)」當去重 key：不受 DB(+00:00) 與預覽字串時區解讀差異影響
-      const existingSet = new Set(
-        (existing || []).map((m: any) => `${m.batch_id}_${m.template_id}_${String(m.publish_at).substring(0, 10)}`)
-      );
-
-      const newMissions: Omit<Mission, 'id' | 'created_at' | 'updated_at'>[] = [];
-
-      previews.forEach(p => {
-        const key = `${batchId}_${p.templateId}_${String(p.publishAt).substring(0, 10)}`;
-        if (existingSet.has(key)) {
-          skipCount++;
-        } else {
-          newMissions.push({
-            batch_id: batchId,
-            template_id: p.templateId,
-            title: p.title,
-            description: p.description,
-            mission_type: p.type,
-            points: p.points,
-            publish_at: p.publishAt,
-            deadline_at: p.deadlineAt,
-            status: 'scheduled',
-            review_type: p.reviewType,
-            category: p.category,
-            max_completions: p.maxCompletions
-          });
-          successCount++;
-        }
-      });
-
-      // 1b. 確保 4 個「進化任務」存在（隱藏任務，學員到 5 級走進化流程才會用到）
-      //     改由此處集中發布，取代過去「每次載入頁面就寫入」造成的重複與變慢問題。
-      const EVOLVE_TEMPLATE_IDS = ['temp-evolve-dragon', 'temp-evolve-lion', 'temp-evolve-fox', 'temp-evolve-spirit'];
-      const targetBatch = batches.find(b => b.id === batchId);
-      EVOLVE_TEMPLATE_IDS.forEach(tid => {
-        const alreadyExists = (existing || []).some((m: any) => m.template_id === tid);
-        if (alreadyExists) return;
-        const template = missionTemplates.find(t => t.id === tid);
-        if (!template) return;
-        newMissions.push({
-          batch_id: batchId,
-          template_id: tid,
-          title: template.title,
-          description: template.description,
-          mission_type: template.mission_type,
-          points: template.points,
-          publish_at: targetBatch?.start_date || new Date().toISOString(),
-          deadline_at: targetBatch?.end_date || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-          status: 'active',
-          review_type: template.review_type,
-          category: template.category || '神獸進化',
-          max_completions: template.max_completions ?? 1
-        });
-        successCount++;
-      });
-
-      // 2. Insert batch missions
-      if (newMissions.length > 0) {
-        await supabase.from('missions').insert(
-          newMissions.map(m => ({
-            ...m,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          }))
-        );
-      }
-      
-      await fetchData();
-    } catch (err) {
-      console.error('產生任務失敗:', err);
-    } finally {
-      setIsSyncing(false);
-    }
-    
-    return { successCount, skipCount };
-  };
-
-  // 後台單筆刪除「已產生的任務」：先刪該任務的打卡（DB trigger 會自動退回已給經驗），再刪任務本身
+  const { handleSaveBatchMissionTemplates, handleGenerateMissions } =
+    useMissionGen({ setIsSyncing, fetchData, batches, missionTemplates });
 
   const {
     handleCreateAnnouncement, handleUpdateAnnouncement, handleDeleteAnnouncement,
