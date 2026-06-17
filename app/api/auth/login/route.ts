@@ -39,6 +39,37 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'missing_fields' }, { status: 400 });
     }
 
+    // 0. 速率限制（防暴力猜 姓名+電話）。
+    //    以「每支電話」為主（避免同一 WiFi/IP 的整班學員被誤擋），IP 設較寬鬆只擋掃描。
+    //    容錯：login_attempts 表不存在或查詢失敗時 fail-open，不阻斷正常登入。
+    const ip =
+      (req.headers.get('x-forwarded-for') || '').split(',')[0].trim() ||
+      req.headers.get('x-real-ip') || 'unknown';
+    try {
+      const now = Date.now();
+      const sincePhone = new Date(now - 10 * 60 * 1000).toISOString(); // 10 分鐘
+      const sinceIp = new Date(now - 60 * 1000).toISOString();         // 1 分鐘
+      const countOf = async (q: string) => {
+        const res = await fetch(`${SUPA_URL}/rest/v1/login_attempts?${q}&select=id`, {
+          headers: { ...srHeaders, Prefer: 'count=exact', Range: '0-0' },
+        });
+        return parseInt((res.headers.get('content-range') || '0-0/0').split('/')[1] || '0', 10);
+      };
+      const phoneCount = await countOf(`phone=eq.${encodeURIComponent(safePhone)}&created_at=gte.${sincePhone}`);
+      const ipCount = ip === 'unknown' ? 0 : await countOf(`ip=eq.${encodeURIComponent(ip)}&created_at=gte.${sinceIp}`);
+      if (phoneCount >= 8 || ipCount >= 60) {
+        return NextResponse.json({ error: 'too_many_attempts' }, { status: 429 });
+      }
+      // 記錄這次嘗試，並順手清掉 1 小時前的舊紀錄（控制表大小）
+      await fetch(`${SUPA_URL}/rest/v1/login_attempts`, {
+        method: 'POST', headers: { ...srHeaders, Prefer: 'return=minimal' },
+        body: JSON.stringify({ ip, phone: safePhone }),
+      });
+      fetch(`${SUPA_URL}/rest/v1/login_attempts?created_at=lt.${new Date(now - 60 * 60 * 1000).toISOString()}`, {
+        method: 'DELETE', headers: srHeaders,
+      }).catch(() => {});
+    } catch { /* 限流不可用時不阻斷登入 */ }
+
     // 1. 查 profiles（姓名+電話）。只取 id：auth user id 由下方 generate_link 回傳，
     //    這裡不 select auth_user_id，避免階段0 SQL 尚未執行（欄位不存在）時整支查詢 400。
     const lookupUrl =
