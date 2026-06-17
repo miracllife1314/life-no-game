@@ -222,8 +222,19 @@ export function AdminDashboard({
   // Roster Tab State
   const [rosterSearch, setRosterSearch] = useState('');
   const [rosterBatchFilter, setRosterBatchFilter] = useState('all');
+  const [rosterVisibleCount, setRosterVisibleCount] = useState(50); // 分頁：先渲染前 50 筆，避免一次渲染數百列卡死
   const [editingProfileId, setEditingProfileId] = useState<string | null>(null);
   const [editingProfileData, setEditingProfileData] = useState<Partial<Profile>>({});
+
+  // 篩選+排序後的名冊（記憶化，避免每次 render 重算）
+  const rosterFiltered = React.useMemo(() => profiles
+    .filter(p => rosterBatchFilter === 'all' || p.batch_id === rosterBatchFilter)
+    .filter(p => p.name.includes(rosterSearch) || (p.phone && p.phone.includes(rosterSearch)))
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()),
+    [profiles, rosterBatchFilter, rosterSearch]);
+
+  // 切換期數/搜尋時，重置回前 50 筆
+  useEffect(() => { setRosterVisibleCount(50); }, [rosterBatchFilter, rosterSearch]);
 
   // Duty Assignment State
   const [selectedSettingMemberId, setSelectedSettingMemberId] = useState<string>('');
@@ -4850,11 +4861,11 @@ export function AdminDashboard({
               </div>
             </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs text-left border-collapse min-w-[800px]">
+            <div className="overflow-x-auto md:overflow-x-visible">
+              <table className="w-full text-xs text-left border-collapse min-w-[800px] md:min-w-0">
                 <thead>
                   <tr className="bg-slate-950/60 text-slate-450 font-bold border-b border-white/5 light:bg-slate-100 light:border-slate-300 light:text-slate-600">
-                    <th className="p-3 sticky left-0 z-10 bg-slate-950 light:bg-slate-100">姓名</th>
+                    <th className="p-3">姓名</th>
                     <th className="p-3">手機</th>
                     <th className="p-3">期數</th>
                     <th className="p-3">角色/小隊</th>
@@ -4864,16 +4875,14 @@ export function AdminDashboard({
                   </tr>
                 </thead>
                 <tbody>
-                  {profiles
-                    .filter(p => rosterBatchFilter === 'all' || p.batch_id === rosterBatchFilter)
-                    .filter(p => p.name.includes(rosterSearch) || (p.phone && p.phone.includes(rosterSearch)))
-                    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+                  {rosterFiltered
+                    .slice(0, rosterVisibleCount)
                     .map(p => {
                       const isEditing = editingProfileId === p.id;
                       const batchName = batches.find(b => b.id === p.batch_id)?.name || '未指定';
                       const teamName = teams.find(t => t.id === p.team_id)?.name || '未分配';
                       return (
-                        <tr key={p.id} className="border-b border-white/5 hover:bg-white/5 transition-colors light:border-slate-200 light:hover:bg-slate-50">
+                        <tr key={p.id} className="border-b border-white/5 hover:bg-white/5 light:border-slate-200 light:hover:bg-slate-50">
                           {isEditing ? (
                             <>
                               <td className="p-3 sticky left-0 z-10 bg-slate-950 light:bg-white">
@@ -5055,6 +5064,16 @@ export function AdminDashboard({
                 </tbody>
               </table>
             </div>
+            {rosterVisibleCount < rosterFiltered.length && (
+              <div className="text-center pt-2">
+                <button
+                  onClick={() => setRosterVisibleCount(c => c + 50)}
+                  className="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-sm text-white font-bold transition-colors active:scale-95 light:bg-slate-100 light:hover:bg-slate-200 light:text-slate-700"
+                >
+                  載入更多（顯示 {Math.min(rosterVisibleCount, rosterFiltered.length)} / {rosterFiltered.length} 人）
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}

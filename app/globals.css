@@ -106,17 +106,8 @@ body {
   transition: background-color 0.3s, color 0.3s, border-color 0.3s;
   min-height: 100vh;
   /* 擋掉整頁橫向滑動，避免畫面整格被左右推走。
-     用 clip（非 hidden）：不會建立捲動容器，所以不會破壞 sticky 置頂列。 */
+     用 clip（非 hidden）：不會建立捲動容器，不破壞 sticky，也不影響垂直捲動。 */
   overflow-x: clip;
-}
-
-/* 框內可捲動的區塊（表格等）：捲動鎖在框內，框本身固定不亂移動。
-   overscroll-behavior:contain → 捲到底不會把外層/整頁一起帶著動。 */
-.overflow-x-auto,
-.overflow-y-auto,
-.overflow-auto {
-  overscroll-behavior: contain;
-  -webkit-overflow-scrolling: touch;
 }
 
 /* ── Glassmorphism 磨砂玻璃元件樣式 ── */
