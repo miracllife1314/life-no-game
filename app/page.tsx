@@ -112,6 +112,10 @@ export default function Home() {
 
   // --- UI States ---
   const [activeTab, setActiveTab] = useState<TabKey>('daily');
+  // 切換分頁時自動捲回頂端，避免新分頁停在上一頁的捲動位置（例如修行明細看不到上方標頭）
+  useEffect(() => {
+    if (typeof window !== 'undefined') window.scrollTo(0, 0);
+  }, [activeTab]);
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [isSyncing, setIsSyncing] = useState(false);
   const [adminSelectedTeamId, setAdminSelectedTeamId] = useState<string>('');
