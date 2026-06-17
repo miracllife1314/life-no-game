@@ -36,6 +36,12 @@ import { WitnessTab } from '@/components/Tabs/WitnessTab';
 // 預設開；若新流程出狀況，設環境變數 NEXT_PUBLIC_USE_REAL_AUTH=false 即可退回舊「假登入」。
 const USE_REAL_AUTH = process.env.NEXT_PUBLIC_USE_REAL_AUTH !== 'false';
 
+// 階段3 開關：是否「強制要有有效 Supabase session 才放行」。
+// 預設關（上傳程式但還沒開 RLS 時，學員無感、舊自動登入照常）。
+// 開 RLS 當天才設 NEXT_PUBLIC_REQUIRE_SESSION=true → 沒有效 session 的人會被帶回登入頁
+// 重新登入一次（避免卡在「進得去卻讀不到」的壞畫面）。
+const REQUIRE_SESSION = process.env.NEXT_PUBLIC_REQUIRE_SESSION === 'true';
+
 // lazy 後台組件載入中的暫時畫面
 function DashboardLoading() {
   return (
@@ -425,6 +431,28 @@ export default function Home() {
       
       let activeUserId = mockUserId;
       let loadedProfile: Profile | null = null;
+
+      // 階段3：開了 RLS 後，沒有效 Supabase session 的人若用舊的自動登入，
+      // 會卡在「進得去卻讀不到」的壞畫面。此時清掉舊登入、帶回登入頁重新登入一次。
+      if (REQUIRE_SESSION && activeUserId && typeof (supabase as any)?.auth?.getSession === 'function') {
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (!session) {
+            if (typeof window !== 'undefined') {
+              localStorage.removeItem('nlp_mock_user_id');
+              localStorage.removeItem('nlp_session');
+            }
+            activeUserId = null;
+          }
+        } catch {
+          // 取 session 失敗時保守起見也要求重新登入
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem('nlp_mock_user_id');
+            localStorage.removeItem('nlp_session');
+          }
+          activeUserId = null;
+        }
+      }
 
       if (activeUserId) {
         loadedProfile = await fetchData(activeUserId);
