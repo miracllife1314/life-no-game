@@ -14,11 +14,18 @@ import path from 'path';
 
 const env = fs.readFileSync('.env.local', 'utf8');
 const get = (k) => (env.match(new RegExp(`^${k}=(.*)$`, 'm')) || [])[1]?.trim();
-const SUPABASE_URL = get('NEXT_PUBLIC_SUPABASE_URL');
-const KEY = get('SUPABASE_SERVICE_ROLE_KEY') || get('NEXT_PUBLIC_SUPABASE_ANON_KEY');
+
+const isProd = process.argv.includes('--prod');
+const suffix = isProd ? '' : '_LOCAL';
+
+const SUPABASE_URL = get(`NEXT_PUBLIC_SUPABASE_URL${suffix}`) || get('NEXT_PUBLIC_SUPABASE_URL');
+const KEY = get('SUPABASE_SERVICE_ROLE_KEY') || get(`NEXT_PUBLIC_SUPABASE_ANON_KEY${suffix}`) || get('NEXT_PUBLIC_SUPABASE_ANON_KEY');
+
+console.log(`📡 目前使用環境：${isProd ? '🔴 正式區 (PROD)' : '🟢 測試區 (TEST)'}`);
+console.log(`📡 連線網址：${SUPABASE_URL}`);
 
 if (!SUPABASE_URL || !KEY) {
-  console.error('❌ 找不到 .env.local 裡的 Supabase 連線資訊，請確認檔案存在。');
+  console.error(`❌ 找不到 .env.local 裡的 Supabase 連線資訊 (Suffix: ${suffix})，請確認檔案存在。`);
   process.exit(1);
 }
 

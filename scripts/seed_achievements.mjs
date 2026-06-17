@@ -6,12 +6,18 @@ const env = {};
 envContent.split('\n').forEach(line => {
   const match = line.match(/^([^=]+)=(.*)$/);
   if (match) {
-    env[match[1]] = match[2];
+    env[match[1]] = match[2].trim();
   }
 });
 
-const supabaseUrl = env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseKey = env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const isProd = process.argv.includes('--prod');
+const suffix = isProd ? '' : '_LOCAL';
+
+const supabaseUrl = env[`NEXT_PUBLIC_SUPABASE_URL${suffix}`] || env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseKey = env[`NEXT_PUBLIC_SUPABASE_ANON_KEY${suffix}`] || env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+console.log(`📡 匯入成就環境：${isProd ? '🔴 正式區 (PROD)' : '🟢 測試區 (TEST)'}`);
+console.log(`📡 連線網址：${supabaseUrl}`);
 
 if (!supabaseUrl || !supabaseKey) {
   console.error('Missing Supabase credentials');

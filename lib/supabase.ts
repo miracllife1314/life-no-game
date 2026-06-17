@@ -7,10 +7,20 @@ import {
   Batch, MissionTemplate, BatchMissionTemplate, Mission, CaptainCandidate
 } from '@/types';
 
-// Detect if Supabase URL and Key are provided and valid
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+// Detect environment (development vs production)
+const isDev = process.env.NODE_ENV === 'development';
+
+const supabaseUrl = (isDev && process.env.NEXT_PUBLIC_SUPABASE_URL_LOCAL)
+  ? process.env.NEXT_PUBLIC_SUPABASE_URL_LOCAL
+  : (process.env.NEXT_PUBLIC_SUPABASE_URL || '');
+
+const supabaseKey = (isDev && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY_LOCAL)
+  ? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY_LOCAL
+  : (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '');
+
 export const isRealSupabase = !!(supabaseUrl && supabaseUrl !== 'your-supabase-url' && supabaseKey);
+
+console.log(`📡 [Supabase Client Init] Environment: ${process.env.NODE_ENV || 'unknown'}, Target URL: ${supabaseUrl}`);
 
 // Base real supabase client
 export const realSupabase = isRealSupabase ? createClient(supabaseUrl, supabaseKey, {
