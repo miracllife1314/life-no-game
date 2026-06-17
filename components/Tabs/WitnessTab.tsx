@@ -83,6 +83,9 @@ export function WitnessTab({ profiles, tasks, submissions, currentUserId, onRefr
   const [lightboxIndex, setLightboxIndex] = useState<number>(0);
   const [expandedText, setExpandedText] = useState<Set<string>>(new Set());
   const [hiddenIds,    setHiddenIds]    = useState<string[]>([]);
+  // 每次只渲染前 N 筆見證卡片（資料仍全載，僅畫面分頁，避免一次塞太多 DOM）
+  const PAGE_SIZE = 20;
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const commentInputRef = useRef<HTMLInputElement>(null);
 
   // Custom post form state
@@ -209,6 +212,9 @@ export function WitnessTab({ profiles, tasks, submissions, currentUserId, onRefr
 
     return result;
   }, [baseItems, category, currentBatchId, searchQuery, scopeFilter, sortBy, profiles, tasks, currentUser, likes, hiddenIds]);
+
+  // 切換分類/搜尋/排序時，回到第一頁
+  useEffect(() => { setVisibleCount(PAGE_SIZE); }, [category, searchQuery, scopeFilter, sortBy]);
 
   // ── like toggle ───────────────────────────────────────────────────
   const handleToggleLike = async (subId: string) => {
@@ -563,7 +569,7 @@ export function WitnessTab({ profiles, tasks, submissions, currentUserId, onRefr
         </div>
       ) : (
         <div className="space-y-5">
-          {filtered.map(s => {
+          {filtered.slice(0, visibleCount).map(s => {
             const profile     = profiles.find(p => p.id === s.student_id);
             const task        = tasks.find(t => t.id === s.mission_id);
             const isMine      = s.student_id === currentUserId;
@@ -884,6 +890,15 @@ export function WitnessTab({ profiles, tasks, submissions, currentUserId, onRefr
               </div>
             );
           })}
+
+          {filtered.length > visibleCount && (
+            <button
+              onClick={() => setVisibleCount(c => c + PAGE_SIZE)}
+              className="w-full py-4 rounded-2xl bg-purple-500/10 border border-purple-500/20 text-sm font-black text-purple-300 hover:bg-purple-500/15 active:scale-[0.98] transition-all"
+            >
+              載入更多（還有 {filtered.length - visibleCount} 則）
+            </button>
+          )}
         </div>
       )}
 

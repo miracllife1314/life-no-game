@@ -14,10 +14,11 @@ try {
 
   const env = fs.readFileSync('.env.local', 'utf8');
   const get = (k) => (env.match(new RegExp(`^${k}=(.*)$`, 'm')) || [])[1]?.trim();
-  const SUPABASE_URL = get('NEXT_PUBLIC_SUPABASE_URL');
+  // 與 lib/supabase.ts 一致：有 _LOCAL（測試庫）就優先用，否則 fallback 無後綴（正式庫）
+  const SUPABASE_URL = get('NEXT_PUBLIC_SUPABASE_URL_LOCAL') || get('NEXT_PUBLIC_SUPABASE_URL');
 
   if (!SUPABASE_URL) {
-    console.log('\n❌ 找不到 .env.local 中的 NEXT_PUBLIC_SUPABASE_URL！');
+    console.log('\n❌ 找不到 .env.local 中的 NEXT_PUBLIC_SUPABASE_URL_LOCAL 或 NEXT_PUBLIC_SUPABASE_URL！');
     process.exit(1);
   }
 

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useLayoutEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useCallback, useRef, lazy, Suspense } from 'react';
 import { supabase, uploadProofImage, isRealSupabase } from '@/lib/supabase';
 import { fetchAllTables } from '@/services/queries';
 import { CheckCircle2, Clock, AlertCircle } from 'lucide-react';
@@ -27,9 +27,20 @@ import { LeaderboardTab } from '@/components/Tabs/LeaderboardTab';
 import { AchievementsTab } from '@/components/Tabs/AchievementsTab';
 import { CourseTab } from '@/components/Tabs/CourseTab';
 import { HistoryTab } from '@/components/Tabs/HistoryTab';
-import { CaptainDashboard } from '@/components/Captain/CaptainDashboard';
-import { AdminDashboard } from '@/components/Admin/AdminDashboard';
+// 後台兩個大組件改用 lazy 載入：學員/隊長平常不會進，初次載入不必下載這幾千行 JS
+const CaptainDashboard = lazy(() => import('@/components/Captain/CaptainDashboard').then(m => ({ default: m.CaptainDashboard })));
+const AdminDashboard = lazy(() => import('@/components/Admin/AdminDashboard').then(m => ({ default: m.AdminDashboard })));
 import { WitnessTab } from '@/components/Tabs/WitnessTab';
+
+// lazy 後台組件載入中的暫時畫面
+function DashboardLoading() {
+  return (
+    <div className="flex flex-col items-center justify-center py-24 gap-4 text-center">
+      <div className="w-10 h-10 rounded-full border-2 border-purple-400/30 border-t-purple-400 animate-spin" />
+      <p className="text-sm font-black text-slate-400">載入後台中…</p>
+    </div>
+  );
+}
 
 export default function Home() {
   // --- Auth / User State ---
@@ -2820,6 +2831,7 @@ export default function Home() {
           </div>
         )}
         {activeTab === 'captain' && currentUiRole !== 'student' && (currentUiRole === 'admin' || selectedTeamForCaptainView) && (
+          <Suspense fallback={<DashboardLoading />}>
           <CaptainDashboard
             team={selectedTeamForCaptainView}
             allTeams={teams}
@@ -2867,9 +2879,11 @@ export default function Home() {
             onUpdateProfile={handleUpdateProfile}
             onViewAsStudent={(id) => { setViewAsUserId(id); setViewCanOperate(false); setEditAccountOpen(false); setActiveTab('daily'); }}
           />
+          </Suspense>
         )}
 
         {activeTab === 'admin' && currentUiRole === 'admin' && (
+          <Suspense fallback={<DashboardLoading />}>
           <AdminDashboard
             profiles={profiles}
             teams={teams}
@@ -2940,6 +2954,7 @@ export default function Home() {
             onQuickAssignCaptain={handleQuickAssignCaptain}
             isSyncing={isSyncing}
           />
+          </Suspense>
         )}
       </main>
       {/* Footer copyright select-none */}
