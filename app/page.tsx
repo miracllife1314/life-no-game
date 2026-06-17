@@ -349,6 +349,28 @@ export default function Home() {
         }
       }
 
+      // 階段3 強化：不只「有 session」，還要「session 與帳號綁定(auth_user_id)相符」才放行。
+      // 否則（未綁定 / 綁定對不上 / session 失效）一律強制重新登入，
+      // 避免「進得去 app 卻因 RLS 打不了卡」的壞狀態。
+      if (REQUIRE_SESSION && activeUserId && loadedProfile && typeof (supabase as any)?.auth?.getSession === 'function') {
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          const boundUid = (loadedProfile as any).auth_user_id;
+          if (!session || !boundUid || session.user?.id !== boundUid) {
+            if (typeof window !== 'undefined') {
+              localStorage.removeItem('nlp_mock_user_id');
+              localStorage.removeItem('nlp_session');
+            }
+            try { await supabase.auth.signOut(); } catch { /* 忽略 */ }
+            activeUserId = null;
+            loadedProfile = null;
+          }
+        } catch {
+          activeUserId = null;
+          loadedProfile = null;
+        }
+      }
+
       if (activeUserId) {
         setViewState('app');
         
