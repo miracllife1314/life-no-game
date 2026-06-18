@@ -129,6 +129,14 @@ export function RegisterForm({
               />
             </div>
 
+            {/* Multi-cohort mapping tip */}
+            <div className="bg-slate-900/50 border border-white/5 p-3.5 rounded-2xl text-[11px] text-slate-400 leading-relaxed text-left flex items-start gap-2 select-none">
+              <span className="text-amber-500 text-sm mt-0.5">💡</span>
+              <div>
+                <span className="font-bold text-amber-500">舊學員串接提示</span>：如果您曾參與過其他期數，請填寫與原先<span className="text-white font-bold">完全相同</span>的姓名與手機號碼進行註冊，系統將為您自動串接並啟用跨期切換功能。
+              </div>
+            </div>
+
 
             {/* Error messaging */}
             {errorMsg && (
