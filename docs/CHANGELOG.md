@@ -4,11 +4,16 @@
 
 ## [v1.8.0] - 2026-06-18
 
-### 📦 正式區部署狀態 (2026-06-18)
-- ✅ **程式碼已上正式站**：`staging → main` 快轉部署(共 35 個 commit，至 `449ca83`)，Vercel Production 部署 Ready，正式站(`nlp-game-beta.vercel.app`)煙霧測試通過(登入/打卡不被登出/見證發布/後台分頁)。涵蓋下方所有「程式面」變更：後台重構、UI 修正、見證發布靜默失敗修復、期數任務範本去重修正、session 安全強化。
-- ⏳ **資料庫層尚未上正式庫**(已在測試庫驗證，待執行)：索引、Storage 政策強化、RLS Tier1/2/3(25 張表)、正式庫重複任務清理。
-  - 原因：執行當下 Supabase 平台事故(DNS / project restore 故障)，為保留「還原」安全網，暫緩正式庫 SQL，待平台恢復後依 [docs/上正式區-部署計畫.md](上正式區-部署計畫.md) 順序執行。
-  - ⚠️ 注意：在這些 SQL 上正式庫前，正式區仍維持 6/17 的「只鎖 5 張表」狀態，下方第 2、3、4 點所述 RLS/索引/Storage 強化**尚未在正式區生效**。
+### 📦 正式區部署狀態 (2026-06-18) — ✅ 全數完成
+- ✅ **程式碼已上正式站**：`staging → main` 快轉部署(35 個 commit，至 `449ca83`)，Vercel Production Ready，正式站(`nlp-game-beta.vercel.app`)煙霧測試通過(登入/打卡不被登出/見證發布/按讚留言/後台分頁/圖片上傳顯示)。
+- ✅ **資料庫層已上正式庫並驗證**(`epolsiukauqfwxmjojia`)：
+  1. **索引**：16 條 `idx_*` 全數建立。
+  2. **RLS Tier1/2/3**：後台 16 表 + user_pets/course_attendance/missions 全數啟用 RLS。
+  3. **🔴 修補重大漏洞 `allow_all_anon`**：發現正式庫 20 張表殘留早期「`ALL` / `{anon,authenticated}` 全開」政策(會抵消所有 RLS 鎖)。先補齊 Tier1/2/3 正確政策，再以迴圈一次拆除全部 `allow_all_anon`(剩餘 0)。驗證:匿名讀正常、匿名寫後台表全被擋(HTTP 400)、學員/管理員正常寫入不受影響。
+  4. **Storage 強化**：拆除全開的 `proof_images_all`/`pet_images_all`，改為 proof-images(公開讀/登入上傳/覆蓋刪除限本人或管理員)、pet-images(上傳/覆蓋/刪除限管理員)。驗證:匿名上傳兩 bucket 皆被擋、公開讀圖與登入上傳正常。
+  5. **重複任務清理**：乾跑結果正式庫 0 筆重複(從未重複套用範本)，無需清理。
+- 過程備註:執行期間遇 Supabase 平台事故(DNS/restore)，待恢復後才動 RLS/Storage,全程每步驗證、保留 SQL 回滾。
+- ⚠️ Preview(測試站)曾因缺 `SUPABASE_SERVICE_ROLE_KEY_LOCAL` 環境變數導致登入無 session→打卡被登出，補上後恢復(正式站環境本就正確,不受影響)。
 
 ### 🚀 修改內容
 1. **後台 AdminDashboard.tsx 大幅重構與模組化**：
