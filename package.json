@@ -11,7 +11,8 @@
     "backup": "node scripts/backup-db.mjs",
     "restore": "node scripts/restore-db.mjs",
     "security-check": "node scripts/security-check.mjs",
-    "test-flows": "node scripts/test-flows.mjs"
+    "test-flows": "node scripts/test-flows.mjs",
+    "test-storage": "node scripts/test-storage.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.107.0",
