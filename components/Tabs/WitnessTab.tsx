@@ -92,6 +92,7 @@ export function WitnessTab({ profiles, tasks, submissions, currentUserId, onRefr
   const [customText, setCustomText] = useState('');
   const [customImgs, setCustomImgs] = useState<string[]>([]);
   const [isPublishing, setIsPublishing] = useState(false);
+  const [publishError, setPublishError] = useState<string | null>(null);
 
   // 從資料庫載入按讚/留言（跨裝置共享）
   const loadSocial = async () => {
@@ -299,6 +300,7 @@ export function WitnessTab({ profiles, tasks, submissions, currentUserId, onRefr
     if (!customText.trim() && customImgs.length === 0) return;
     if (!currentUser) return;
     setIsPublishing(true);
+    setPublishError(null);
 
     try {
       // 1. Guarantee that the custom task exists to satisfy foreign key constraints
@@ -328,18 +330,29 @@ export function WitnessTab({ profiles, tasks, submissions, currentUserId, onRefr
         created_at: new Date().toISOString()
       };
 
-      await supabase.from('submissions').insert(submissionData);
-      
+      const { error: insertError } = await supabase.from('submissions').insert(submissionData);
+      if (insertError) {
+        console.error('Error publishing custom witness post:', insertError);
+        // supabase insert 失敗不會 throw，錯誤在回傳值裡。安全鎖擋下通常代表登入身分失效/未綁定 → 引導重新登入
+        if (/\[安全\]|只能為自己|row-level security/i.test(insertError.message || '')) {
+          setPublishError('您的登入似乎已過期，請重新登入後再發佈 🙏');
+        } else {
+          setPublishError(`發佈失敗：${insertError.message}`);
+        }
+        return;
+      }
+
       // Reset form
       setCustomText('');
       setCustomImgs([]);
-      
+
       // Refresh parent state
       if (onRefresh) {
         await onRefresh();
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error publishing custom witness post:', err);
+      setPublishError(`發佈失敗：${err?.message || '請稍後再試，或重新登入'}`);
     } finally {
       setIsPublishing(false);
     }
@@ -551,6 +564,11 @@ export function WitnessTab({ profiles, tasks, submissions, currentUserId, onRefr
               )}
             </button>
           </div>
+          {publishError && (
+            <p className="mt-3 text-center text-[11px] font-bold text-rose-400 light:text-rose-600">
+              {publishError}
+            </p>
+          )}
         </div>
       )}
 
