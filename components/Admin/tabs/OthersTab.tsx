@@ -50,24 +50,26 @@ const COURSE_TEMPLATES = [
 ];
 
 const PRESET_BADGE_ICONS = [
-  'Brain', 'Eye', 'Map',
-  'Flame', 'Star', 'Wand', 'Rocket',
-  'Zap', 'Music', 'Globe',
-  'Sparkles', 'Lightbulb', 'Award', 'Unlock',
-  'BookOpen', 'Gift',
-  'Activity', 'Clock',
-  'UserPlus', 'HelpCircle',
-  'Users', 'Anchor', 'Mountain',
-  'Heart', 'Smile', 'HeartHandshake',
-  'MessageSquare', 'Mail', 'Video',
-  'Compass', 'Sun', 'Moon',
-  'Share2', 'Infinity',
-  'Trophy', 'Sword', 'Flag',
-  'Crown', 'Gem', 'Key',
-  'Shield', 'Lock',
-  'Target', 'Search', 'CheckCircle',
-  'Layers',
-  'GraduationCap', 'Tree', 'Coffee', 'Feather'
+  // 1-10
+  'Brain', 'Eye', 'Map', 'Flame', 'Star', 'Wand', 'Rocket', 'Zap', 'Music', 'Globe',
+  // 11-20
+  'Sparkles', 'Lightbulb', 'Award', 'Unlock', 'BookOpen', 'Gift', 'Activity', 'Clock', 'UserPlus', 'HelpCircle',
+  // 21-30
+  'Users', 'Anchor', 'Mountain', 'Heart', 'Smile', 'HeartHandshake', 'MessageSquare', 'Mail', 'Video', 'Compass',
+  // 31-40
+  'Sun', 'Moon', 'Share2', 'Infinity', 'Trophy', 'Sword', 'Flag', 'Crown', 'Gem', 'Key',
+  // 41-50
+  'Shield', 'Lock', 'Target', 'Search', 'CheckCircle', 'Layers', 'GraduationCap', 'Tree', 'Coffee', 'Feather',
+  // 51-60
+  'Sparkle', 'Briefcase', 'Laptop', 'Camera', 'TrendingUp', 'Coins', 'CheckSquare', 'MapPin', 'HeartPulse', 'UserCheck',
+  // 61-70
+  'SmilePlus', 'Glasses', 'Book', 'Library', 'Fingerprint', 'Timer', 'AlarmClock', 'Gamepad2', 'Dumbbell', 'Milestone',
+  // 71-80
+  'ShieldAlert', 'LockOpen', 'KeyRound', 'Hammer', 'Wrench', 'Cpu', 'Database', 'Terminal', 'Code2', 'Hash',
+  // 81-90
+  'Calculator', 'Bike', 'Navigation', 'Paperclip', 'Link', 'Send', 'Smartphone', 'Headphones', 'Mic', 'Cloud',
+  // 91-100
+  'CloudLightning', 'Wind', 'Sunrise', 'Sunset', 'Palette', 'Brush', 'PenTool', 'Scissors', 'Binoculars', 'Ghost'
 ];
 
 interface OthersTabProps {
@@ -879,9 +881,27 @@ export function OthersTab({ announcements, courses, achievements, batches, missi
                               </span>
                             </div>
                             <p className="text-[10px] text-slate-400 mt-1 line-clamp-1">{ach.description}</p>
-                            <span className="text-[8px] text-slate-500 font-mono">
-                              類型: {ach.condition_type}
-                              {ach.target_mission_id && ` | 任務: ${ach.target_mission_id}`}
+                            <span className="text-[10px] text-slate-400 font-mono">
+                               門檻：{
+                                 ach.condition_type === 'total_score' ? `${ach.condition_value.toLocaleString()} 分` :
+                                 ach.condition_type === 'consecutive_checkins' ? `連續修行 ${ach.condition_value} 天` :
+                                 ach.condition_type === 'mission_count' ? (
+                                   ach.title.includes('邀約') || 
+                                   ach.title.includes('推薦') || 
+                                   ach.title.includes('人') || 
+                                   (ach.target_mission_id && (
+                                     ach.target_mission_id.includes('invite') || 
+                                     ach.target_mission_id.includes('recom') || 
+                                     ach.target_mission_id.includes('2d77f56d') || 
+                                     ach.target_mission_id.includes('1bcc0eeb')
+                                   ))
+                                     ? `特定任務完成 ${ach.condition_value} 人`
+                                     : `特定任務完成 ${ach.condition_value} 次`
+                                 ) :
+                                 ach.condition_type === 'witness_post_count' ? `入選見證牆 ${ach.condition_value} 次` :
+                                 `神獸進化至第 ${ach.condition_value} 階段`
+                               }
+                               {ach.target_mission_id && ` | 任務: ${ach.target_mission_id}`}
                             </span>
                           </div>
                           <div className="flex flex-col gap-1 shrink-0">
