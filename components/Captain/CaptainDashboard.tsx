@@ -11,6 +11,9 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { nowTaipei, parseTaipei, taipeiDay } from '@/lib/time';
+import { getTaskTypeBadge } from '@/lib/captainLogic';
+import { ConfirmModal } from '@/components/Captain/modals/ConfirmModal';
+import { LightboxModal } from '@/components/Captain/modals/LightboxModal';
 
 interface SquadMemberWithRole {
   userId: string;
@@ -50,39 +53,6 @@ const QUEST_ROLES_DEFS = [
 
 const DEFAULT_CHARACTERS: Record<string, string> = {};
 
-function getCountdownText(endTimeStr: string | undefined): { text: string; isUrgent: boolean; isExpired: boolean } | null {
-  if (!endTimeStr) return null;
-  const endTime = parseTaipei(endTimeStr).getTime();
-  const now = nowTaipei().getTime();
-  const diff = endTime - now;
-  if (diff <= 0) {
-    return { text: '已截止', isUrgent: true, isExpired: true };
-  }
-  const diffDays = Math.floor(diff / (1000 * 60 * 60 * 24));
-  const diffHours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-  const diffMins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-
-  if (diffDays > 3) {
-    return { text: `剩餘 ${diffDays} 天`, isUrgent: false, isExpired: false };
-  } else if (diffDays > 0) {
-    return { text: `剩餘 ${diffDays} 天 ${diffHours} 小時`, isUrgent: false, isExpired: false };
-  } else {
-    return { text: `僅剩 ${diffHours} 小時 ${diffMins} 分`, isUrgent: true, isExpired: false };
-  }
-}
-
-function getTaskTypeBadge(task: Task) {
-  if (task.type === 'daily') {
-    return <span className="text-[8px] font-black text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded">每日</span>;
-  }
-  if (task.type === 'weekly') {
-    return <span className="text-[8px] font-black text-purple-400 bg-purple-500/10 px-1.5 py-0.5 rounded">每週</span>;
-  }
-  if (task.name.includes('限時') || task.name.includes('最後一週') || task.name.includes('限定')) {
-    return <span className="text-[8px] font-black text-red-400 bg-red-500/10 px-1.5 py-0.5 rounded">限時</span>;
-  }
-  return <span className="text-[8px] font-black text-teal-400 bg-teal-500/10 px-1.5 py-0.5 rounded">特殊</span>;
-}
 
 export function CaptainDashboard({
   team,
@@ -1820,86 +1790,15 @@ export function CaptainDashboard({
 
       {/* ⚠️ 補簽確認 Modal */}
       {showConfirmModal && confirmTask && confirmStudentId && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="glass-panel w-full max-w-md p-6 rounded-3xl border border-white/10 shadow-2xl relative animate-in zoom-in-95 duration-200">
-            <div className="flex flex-col items-center text-center space-y-4 py-4">
-              <div className="w-16 h-16 rounded-full bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-500 animate-bounce">
-                <CheckCircle2 size={32} />
-              </div>
-              
-              <div className="space-y-2">
-                <h3 className="text-lg font-black text-white">
-                  確認要幫組員補簽？
-                </h3>
-                <p className="text-sm font-bold text-amber-500">
-                  {profiles.find(p => p.id === confirmStudentId)?.name} 的「{confirmTask.name}」
-                </p>
-                <p className="text-xs text-slate-400 leading-relaxed max-w-xs mx-auto light:text-slate-600">
-                  補簽後，系統將直接核准該任務，並發放該組員 <span className="text-amber-500 font-bold">+{confirmTask.score}</span> 點經驗積分。
-                </p>
-              </div>
-            </div>
-
-            <div className="flex gap-3 mt-4">
-              <button
-                type="button"
-                onClick={() => {
-                  setShowConfirmModal(false);
-                  setConfirmTask(null);
-                  setConfirmStudentId(null);
-                }}
-                className="flex-1 py-3 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-white text-xs font-bold"
-              >
-                取消
-              </button>
-              <button
-                type="button"
-                onClick={async () => {
-                  if (confirmStudentId && confirmTask) {
-                    await handleToggleCell(confirmStudentId, confirmTask.id);
-                  }
-                  setShowConfirmModal(false);
-                  setConfirmTask(null);
-                  setConfirmStudentId(null);
-                }}
-                className="flex-1 py-3 rounded-xl bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-300 hover:to-orange-400 text-slate-950 text-xs font-black shadow-[0_0_15px_rgba(245,158,11,0.4)]"
-              >
-                確認完成
-              </button>
-            </div>
-          </div>
-        </div>
+        <ConfirmModal
+          confirmTask={confirmTask} confirmStudentId={confirmStudentId} profiles={profiles}
+          setShowConfirmModal={setShowConfirmModal} setConfirmTask={setConfirmTask} setConfirmStudentId={setConfirmStudentId}
+          handleToggleCell={handleToggleCell}
+        />
       )}
 
       {/* 🖼️ Lightbox Modal */}
-      {lightboxSrc && (
-        <div
-          className="fixed inset-0 bg-black/90 backdrop-blur-sm z-[60] flex items-center justify-center p-4"
-          onClick={() => setLightboxSrc(null)}
-        >
-          {/* Close button */}
-          <button
-            onClick={() => setLightboxSrc(null)}
-            className="absolute top-4 right-4 w-10 h-10 rounded-full bg-slate-900/80 border border-white/20 flex items-center justify-center text-white hover:bg-slate-800 transition-colors z-10 text-xl font-black"
-            aria-label="關閉"
-          >
-            ✕
-          </button>
-
-          {/* Back label */}
-          <div className="absolute top-4 left-4 flex items-center gap-2 text-slate-400 text-xs font-bold select-none">
-            <span className="text-lg">←</span> 點擊任意處返回
-          </div>
-
-          {/* Image */}
-          <img
-            src={lightboxSrc}
-            alt="佐證圖片"
-            className="max-w-full max-h-[85vh] rounded-2xl shadow-2xl object-contain"
-            onClick={e => e.stopPropagation()}
-          />
-        </div>
-      )}
+      {lightboxSrc && <LightboxModal lightboxSrc={lightboxSrc} setLightboxSrc={setLightboxSrc} />}
     </div>
   );
 }
