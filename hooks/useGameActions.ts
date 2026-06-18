@@ -27,6 +27,7 @@ interface Deps {
   petLines: PetLine[];
   missionTemplates: MissionTemplate[];
   batches: Batch[];
+  scoreLogs: ScoreLog[];
   // ref
   checkInLock: React.MutableRefObject<Set<string>>;
   // setters
@@ -51,7 +52,7 @@ export function useGameActions(d: Deps) {
   const {
     currentUser, viewAsUserId, profiles, tasks, missions, submissions, gmMode,
     notes, attendance, courses, userPets, petStages, petLines, missionTemplates, batches,
-    checkInLock,
+    scoreLogs, checkInLock,
     setSubmissions, setCurrentUser, setProfiles, setUserPets, setScoreLogs,
     setAttendance, setNotes, setViewState, setIsSyncing,
     showToast, triggerConfetti, triggerScoreFloat, fetchData,
@@ -331,9 +332,10 @@ export function useGameActions(d: Deps) {
 
       let witnessDiff = 0;
       if (newShared && !oldShared) {
-        witnessDiff = 300;
+        witnessDiff = 200;
       } else if (oldShared && !newShared) {
-        witnessDiff = -300;
+        const prevLog = scoreLogs.find(l => l.submission_id === submissionId && l.reason === '入選見證牆獎勵');
+        witnessDiff = prevLog ? -prevLog.amount : -200;
       }
 
       const totalDiff = scoreDiff + witnessDiff;
@@ -601,10 +603,13 @@ export function useGameActions(d: Deps) {
     if (gmMode) {
       const sub = submissions.find(s => s.id === submissionId);
       if (sub && sub.status === 'approved' && sub.share_to_witness && sub.mission_id !== 'task-custom-post') {
-        // Deduct 300 EXP
+        const prevLog = scoreLogs.find(l => l.submission_id === submissionId && l.reason === '入選見證牆獎勵');
+        const deductAmt = prevLog ? prevLog.amount : 200;
+
+        // Deduct EXP
         setProfiles(prev => prev.map(p => {
           if (p.id === sub.student_id) {
-            const nextScore = p.score - 300;
+            const nextScore = p.score - deductAmt;
             if (currentUser && p.id === currentUser.id) {
               setCurrentUser(prevUser => prevUser ? { ...prevUser, score: nextScore } : null);
             }
@@ -615,7 +620,7 @@ export function useGameActions(d: Deps) {
 
         setUserPets(prev => prev.map(up => {
           if (up.student_id === sub.student_id) {
-            const nextExp = up.total_exp - 300;
+            const nextExp = up.total_exp - deductAmt;
             const nextLv = Math.floor(nextExp / 700);
             return { ...up, total_exp: nextExp, level: nextLv, updated_at: new Date().toISOString() };
           }
@@ -625,7 +630,7 @@ export function useGameActions(d: Deps) {
         const newLog: ScoreLog = {
           id: `mock-log-${Date.now()}`,
           student_id: sub.student_id,
-          amount: -300,
+          amount: -deductAmt,
           reason: '取消入選見證牆獎勵',
           submission_id: submissionId,
           created_by: currentUser?.id || 'admin',
@@ -666,10 +671,13 @@ export function useGameActions(d: Deps) {
         // 任務打卡：只刪「照片」釋放空間，保留任務完成與經驗（不刪資料列、不碰分數）。
         // 但因為 share_to_witness 變 false，所以如果是 approved 且本來是 true，則要扣回 300
         if (sub.status === 'approved' && sub.share_to_witness && sub.mission_id !== 'task-custom-post') {
-          // Deduct 300 EXP
+          const prevLog = scoreLogs.find(l => l.submission_id === submissionId && l.reason === '入選見證牆獎勵');
+          const deductAmt = prevLog ? prevLog.amount : 200;
+
+          // Deduct EXP
           setProfiles(prev => prev.map(p => {
             if (p.id === sub.student_id) {
-              const nextScore = p.score - 300;
+              const nextScore = p.score - deductAmt;
               if (currentUser && p.id === currentUser.id) {
                 setCurrentUser(prevUser => prevUser ? { ...prevUser, score: nextScore } : null);
               }
@@ -680,7 +688,7 @@ export function useGameActions(d: Deps) {
 
           setUserPets(prev => prev.map(up => {
             if (up.student_id === sub.student_id) {
-              const nextExp = up.total_exp - 300;
+              const nextExp = up.total_exp - deductAmt;
               const nextLv = Math.floor(nextExp / 700);
               return { ...up, total_exp: nextExp, level: nextLv, updated_at: new Date().toISOString() };
             }
@@ -690,7 +698,7 @@ export function useGameActions(d: Deps) {
           const newLog: ScoreLog = {
             id: `mock-log-${Date.now()}`,
             student_id: sub.student_id,
-            amount: -300,
+            amount: -deductAmt,
             reason: '取消入選見證牆獎勵',
             submission_id: submissionId,
             created_by: currentUser?.id || 'admin',

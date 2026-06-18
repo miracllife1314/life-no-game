@@ -551,7 +551,7 @@ export default function Home() {
   } = useGameActions({
     currentUser, viewAsUserId, profiles, tasks, missions, submissions, gmMode,
     notes, attendance, courses, userPets, petStages, petLines, missionTemplates, batches,
-    checkInLock,
+    scoreLogs, checkInLock,
     setSubmissions, setCurrentUser, setProfiles, setUserPets, setScoreLogs,
     setAttendance, setNotes, setViewState, setIsSyncing,
     showToast, triggerConfetti, triggerScoreFloat, fetchData,
