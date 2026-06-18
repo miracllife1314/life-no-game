@@ -26,6 +26,18 @@ const srHeaders = {
   'Content-Type': 'application/json',
 };
 
+// GET：保溫探測端點。供 keep-warm 排程每幾分鐘戳一次，讓本登入函式與 Supabase 連線保持「熱」，
+// 避免學員登入時踩到 serverless 冷啟動(實測冷啟動約 +2 秒)。無副作用：只做一次極輕量查詢暖機，
+// 不寫入 login_attempts、不建用戶、不發 token。
+export async function GET() {
+  try {
+    if (SUPA_URL && SERVICE_KEY) {
+      await fetch(`${SUPA_URL}/rest/v1/batches?select=id&limit=1`, { headers: srHeaders });
+    }
+  } catch { /* 暖機失敗不影響 */ }
+  return NextResponse.json({ ok: true, warm: true });
+}
+
 export async function POST(req: Request) {
   try {
     if (!SUPA_URL || !SERVICE_KEY) {
