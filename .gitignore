@@ -48,3 +48,6 @@ backups/
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+
+# 暫存腳本(不進版控)
+/scratch/
