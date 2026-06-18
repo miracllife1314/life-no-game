@@ -70,13 +70,13 @@ export async function POST(req: Request) {
       }).catch(() => {});
     } catch { /* 限流不可用時不阻斷登入 */ }
 
-    // 1. 查 profiles（姓名+電話）。只取 id：auth user id 由下方 generate_link 回傳，
-    //    這裡不 select auth_user_id，避免階段0 SQL 尚未執行（欄位不存在）時整支查詢 400。
+    // 1. 查 profiles（姓名+電話）。取完整資料 → 連同 token 回傳前端，省去前端再查一次。
+    //    （auth_user_id 欄位正式/測試庫皆已存在；auth user id 仍以下方 generate_link 回傳為準。）
     const lookupUrl =
       `${SUPA_URL}/rest/v1/profiles` +
       `?name=eq.${encodeURIComponent(safeName)}` +
       `&phone=eq.${encodeURIComponent(safePhone)}` +
-      `&select=id&limit=1`;
+      `&select=*&limit=1`;
     const pr = await fetch(lookupUrl, { headers: srHeaders });
     const profiles = await pr.json().catch(() => []);
     if (!Array.isArray(profiles) || profiles.length === 0) {
@@ -122,8 +122,8 @@ export async function POST(req: Request) {
       ).catch(() => {});
     }
 
-    // 6. 回傳票給前端換 session
-    return NextResponse.json({ token_hash: link.hashed_token });
+    // 6. 回傳票 + 該學員 profile 給前端 → 前端免再查一次 profiles(省一趟往返)
+    return NextResponse.json({ token_hash: link.hashed_token, profile: profiles[0] });
   } catch (e: any) {
     return NextResponse.json({ error: 'server_error', detail: String(e?.message || e) }, { status: 500 });
   }

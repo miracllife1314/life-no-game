@@ -42,6 +42,7 @@ export function useAuth({
       const safeName = (name || '').trim();
       const safePhone = (phone || '').trim();
 
+      let apiProfile: any = null;
       if (USE_REAL_AUTH && typeof (supabase as any)?.auth?.verifyOtp === 'function') {
         try {
           const res = await fetch('/api/auth/login', {
@@ -50,26 +51,32 @@ export function useAuth({
             body: JSON.stringify({ name: safeName, phone: safePhone }),
           });
           if (res.ok) {
-            const { token_hash } = await res.json();
+            const { token_hash, profile: p } = await res.json();
             if (token_hash) {
               await supabase.auth.verifyOtp({ token_hash, type: 'email' });
             }
+            // 後端已回傳該學員 profile → 省下前端再查一次 profiles(實測約 -339ms)
+            apiProfile = p || null;
           }
         } catch (e) {
           console.warn('[auth] 後端核發 session 失敗，退回姓名+電話比對：', e);
         }
       }
 
-      const { data: profile, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('name', safeName)
-        .eq('phone', safePhone)
-        .limit(1)
-        .maybeSingle();
-
-      if (error || !profile) {
-        throw new Error('姓名與手機號碼不符，請再確認後重試');
+      // 只有「後端沒回 profile」(USE_REAL_AUTH 關閉或 API 失敗)才退回前端自查 —— 保留安全退路
+      let profile: any = apiProfile;
+      if (!profile) {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('name', safeName)
+          .eq('phone', safePhone)
+          .limit(1)
+          .maybeSingle();
+        if (error || !data) {
+          throw new Error('姓名與手機號碼不符，請再確認後重試');
+        }
+        profile = data;
       }
 
       if (typeof window !== 'undefined') {
