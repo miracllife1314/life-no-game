@@ -3,7 +3,9 @@
 // =====================================================================
 import { useState } from 'react';
 import { Calendar, Edit2, ImageIcon, Megaphone, ShieldCheck, Trophy, Trash2, X } from 'lucide-react';
-import { Announcement, Course, Achievement, Batch } from '@/types';
+import * as Icons from 'lucide-react';
+import { Announcement, Course, Achievement, Batch, Mission } from '@/types';
+import { BadgeIcon } from '../../BadgeIcon';
 
 const ANNOUNCEMENT_TEMPLATES = [
   {
@@ -47,11 +49,33 @@ const COURSE_TEMPLATES = [
   }
 ];
 
+const PRESET_BADGE_ICONS = [
+  'Brain', 'Eye', 'Map',
+  'Flame', 'Star', 'Wand', 'Rocket',
+  'Zap', 'Music', 'Globe',
+  'Sparkles', 'Lightbulb', 'Award', 'Unlock',
+  'BookOpen', 'Gift',
+  'Activity', 'Clock',
+  'UserPlus', 'HelpCircle',
+  'Users', 'Anchor', 'Mountain',
+  'Heart', 'Smile', 'HeartHandshake',
+  'MessageSquare', 'Mail', 'Video',
+  'Compass', 'Sun', 'Moon',
+  'Share2', 'Infinity',
+  'Trophy', 'Sword', 'Flag',
+  'Crown', 'Gem', 'Key',
+  'Shield', 'Lock',
+  'Target', 'Search', 'CheckCircle',
+  'Layers',
+  'GraduationCap', 'Tree', 'Coffee', 'Feather'
+];
+
 interface OthersTabProps {
   announcements: Announcement[];
   courses: Course[];
   achievements: Achievement[];
   batches: Batch[];
+  missions: Mission[];
   isSyncing: boolean;
   onCreateAnnouncement: (title: string, content: string, batchId?: string | null, publishAt?: string | null) => Promise<void>;
   onUpdateAnnouncement?: (id: string, updates: Partial<Announcement>) => Promise<void>;
@@ -59,12 +83,19 @@ interface OthersTabProps {
   onCreateCourse: (name: string, description: string, classDate: string, batchId?: string | null, registerUrl?: string | null) => Promise<void>;
   onUpdateCourse?: (id: string, updates: Partial<Course>) => Promise<void>;
   onDeleteCourse?: (courseId: string) => Promise<void>;
-  onCreateAchievement: (title: string, description: string, value: number, iconUrl?: string | null) => Promise<void>;
+  onCreateAchievement: (
+    title: string, 
+    description: string, 
+    value: number, 
+    iconUrl?: string | null,
+    conditionType?: 'total_score' | 'consecutive_checkins' | 'mission_count' | 'witness_post_count' | 'pet_stage',
+    targetMissionId?: string | null
+  ) => Promise<void>;
   onUpdateAchievement?: (id: string, updates: Partial<Achievement>) => Promise<void>;
   onDeleteAchievement?: (id: string) => Promise<void>;
 }
 
-export function OthersTab({ announcements, courses, achievements, batches, isSyncing, onCreateAnnouncement, onUpdateAnnouncement, onDeleteAnnouncement, onCreateCourse, onUpdateCourse, onDeleteCourse, onCreateAchievement, onUpdateAchievement, onDeleteAchievement }: OthersTabProps) {
+export function OthersTab({ announcements, courses, achievements, batches, missions, isSyncing, onCreateAnnouncement, onUpdateAnnouncement, onDeleteAnnouncement, onCreateCourse, onUpdateCourse, onDeleteCourse, onCreateAchievement, onUpdateAchievement, onDeleteAchievement }: OthersTabProps) {
   const [editingAnnouncement, setEditingAnnouncement] = useState<Announcement | null>(null);
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
   const [announcementFilterBatch, setAnnouncementFilterBatch] = useState<string>('all');
@@ -80,22 +111,35 @@ export function OthersTab({ announcements, courses, achievements, batches, isSyn
   const [courseBatchId, setCourseBatchId] = useState('');
   const [courseRegisterUrl, setCourseRegisterUrl] = useState('');
   const [courseTemplate, setCourseTemplate] = useState('');
+  
   const [achTitle, setAchTitle] = useState('');
   const [achDesc, setAchDesc] = useState('');
-  const [achValue, setAchValue] = useState(5000);
+  const [achValue, setAchValue] = useState<number | string>('');
   const [achIconUrl, setAchIconUrl] = useState<string | null>(null);
+  const [achConditionType, setAchConditionType] = useState<'total_score' | 'consecutive_checkins' | 'mission_count' | 'witness_post_count' | 'pet_stage'>('total_score');
+  const [achTargetMissionId, setAchTargetMissionId] = useState<string>('');
+
   // 編輯既有成就
   const [editingAchId, setEditingAchId] = useState<string | null>(null);
   const [editAchTitle, setEditAchTitle] = useState('');
   const [editAchDesc, setEditAchDesc] = useState('');
-  const [editAchValue, setEditAchValue] = useState(5000);
+  const [editAchValue, setEditAchValue] = useState<number | string>('');
   const [editAchIconUrl, setEditAchIconUrl] = useState<string | null>(null);
+  const [editAchConditionType, setEditAchConditionType] = useState<'total_score' | 'consecutive_checkins' | 'mission_count' | 'witness_post_count' | 'pet_stage'>('total_score');
+  const [editAchTargetMissionId, setEditAchTargetMissionId] = useState<string>('');
+
+  const isIconUsed = (iconName: string) => {
+    return achievements.some(ach => ach.icon_url === iconName);
+  };
+
   const handleStartEditAch = (ach: Achievement) => {
     setEditingAchId(ach.id);
     setEditAchTitle(ach.title);
     setEditAchDesc(ach.description || '');
     setEditAchValue(ach.condition_value);
     setEditAchIconUrl(ach.icon_url || null);
+    setEditAchConditionType(ach.condition_type || 'total_score');
+    setEditAchTargetMissionId(ach.target_mission_id || '');
   };
   const handleCancelEditAch = () => setEditingAchId(null);
   const handleSaveEditAch = async (id: string) => {
@@ -105,6 +149,8 @@ export function OthersTab({ announcements, courses, achievements, batches, isSyn
         description: editAchDesc || null,
         condition_value: Number(editAchValue),
         icon_url: editAchIconUrl || 'Flame',
+        condition_type: editAchConditionType,
+        target_mission_id: editAchConditionType === 'mission_count' ? editAchTargetMissionId : null
       });
     }
     setEditingAchId(null);
@@ -242,11 +288,20 @@ export function OthersTab({ announcements, courses, achievements, batches, isSyn
   const handleCreateAchievement = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!achTitle || !achValue) return;
-    await onCreateAchievement(achTitle, achDesc, Number(achValue), achIconUrl);
+    await onCreateAchievement(
+      achTitle, 
+      achDesc, 
+      Number(achValue), 
+      achIconUrl, 
+      achConditionType, 
+      achConditionType === 'mission_count' ? achTargetMissionId : null
+    );
     setAchTitle('');
     setAchDesc('');
-    setAchValue(5000);
+    setAchValue('');
     setAchIconUrl(null);
+    setAchConditionType('total_score');
+    setAchTargetMissionId('');
     alert('成就建立成功！');
   };
 
@@ -552,7 +607,7 @@ export function OthersTab({ announcements, courses, achievements, batches, isSyn
           <section className="glass-panel p-6 rounded-3xl border border-white/5 space-y-4 light:bg-white light:border-slate-200">
             <h3 className="font-black text-white text-sm flex items-center gap-1.5">
               <Trophy size={16} className="text-red-500" />
-              建立經驗成就
+              建立修行成就
             </h3>
             
             <form onSubmit={handleCreateAchievement} className="space-y-4">
@@ -571,35 +626,98 @@ export function OthersTab({ announcements, courses, achievements, batches, isSyn
                 placeholder="成就解鎖描述..."
                 className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white outline-none"
               />
+              
+              <div>
+                <label className="block text-[10px] text-slate-400 font-bold mb-1">選擇解鎖條件類型</label>
+                <select
+                  value={achConditionType}
+                  onChange={e => setAchConditionType(e.target.value as any)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white outline-none"
+                >
+                  <option value="total_score">總修行分數達標 (total_score)</option>
+                  <option value="consecutive_checkins">連續修行天數達標 (consecutive_checkins)</option>
+                  <option value="mission_count">特定任務完成次數 (mission_count)</option>
+                  <option value="witness_post_count">見證牆入選數 (witness_post_count)</option>
+                  <option value="pet_stage">神獸進化至指定階段 (pet_stage)</option>
+                </select>
+              </div>
+
+              {achConditionType === 'mission_count' && (
+                <div>
+                  <label className="block text-[10px] text-slate-400 font-bold mb-1">選擇目標任務</label>
+                  <select
+                    required
+                    value={achTargetMissionId}
+                    onChange={e => setAchTargetMissionId(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white outline-none"
+                  >
+                    <option value="">-- 請選擇一項任務 --</option>
+                    {Array.from(new Map(missions.map(m => [m.template_id || m.id, m])).values()).map(m => (
+                      <option key={m.template_id || m.id} value={m.template_id || m.id}>
+                        {m.title} ({m.mission_type})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
               <input
                 required
                 type="number"
                 onFocus={(e) => e.target.select()}
                 value={achValue}
-                onChange={e => setAchValue(Number(e.target.value))}
-                placeholder="所需經驗分數門檻"
+                onChange={e => setAchValue(e.target.value === '' ? '' : Number(e.target.value))}
+                placeholder={
+                  achConditionType === 'total_score' ? '所需經驗分數門檻 (分)' :
+                  achConditionType === 'consecutive_checkins' ? '所需連續定課天數 (天)' :
+                  achConditionType === 'mission_count' ? '任務需要完成次數 (次)' :
+                  achConditionType === 'witness_post_count' ? '入選見證牆門檻 (次)' :
+                  '神獸所需最小階段代號 (1-4)'
+                }
                 className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white outline-none"
               />
               
-              <div className="space-y-1">
-                <label className="block text-[10px] text-slate-400 font-bold mb-1">成就徽章圖片 (選填)</label>
-                <div className="flex items-center gap-2 select-none">
-                  {achIconUrl ? (
-                    <div className="relative w-10 h-10 rounded-xl overflow-hidden border border-white/10">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
+              <div className="space-y-2">
+                <label className="block text-[10px] text-slate-400 font-bold">金色發光徽章圖標選取 (50款預設，已用者為金色)</label>
+                <div className="grid grid-cols-5 sm:grid-cols-10 gap-2 bg-slate-950 p-3 rounded-xl border border-slate-800 max-h-64 overflow-y-auto custom-scrollbar">
+                  {PRESET_BADGE_ICONS.map(iconName => {
+                    const selected = achIconUrl === iconName;
+                    const used = isIconUsed(iconName);
+                    return (
+                      <button
+                        type="button"
+                        key={iconName}
+                        onClick={() => setAchIconUrl(iconName)}
+                        title={`${iconName}${used ? ' (已使用)' : ''}`}
+                        className={`w-10 h-10 rounded-full flex items-center justify-center bg-slate-950 transition-all hover:scale-110 cursor-pointer overflow-visible ${
+                          selected 
+                            ? 'ring-2 ring-amber-400 ring-offset-2 ring-offset-slate-950 scale-110' 
+                            : 'hover:bg-slate-900/50'
+                        }`}
+                      >
+                        <BadgeIcon name={iconName} unlocked={selected || used} size={38} />
+                      </button>
+                    );
+                  })}
+                </div>
+                
+                <div className="flex items-center gap-2 select-none mt-2">
+                  <span className="text-[10px] text-slate-500 font-bold">或自訂圖片上傳:</span>
+                  {achIconUrl && (achIconUrl.startsWith('data:') || achIconUrl.startsWith('http')) ? (
+                    <div className="relative w-8 h-8 rounded-lg overflow-hidden border border-white/10 shrink-0">
                       <img src={achIconUrl} alt="Preview" className="w-full h-full object-cover" />
                       <button
                         type="button"
                         onClick={() => setAchIconUrl(null)}
-                        className="absolute top-0.5 right-0.5 bg-black/75 hover:bg-black text-white p-0.5 rounded-full"
+                        className="absolute top-0 right-0 bg-black/75 hover:bg-black text-white p-0.5 rounded-bl"
                       >
                         <X size={8} />
                       </button>
                     </div>
                   ) : (
-                    <label className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 border border-white/5 text-[10px] font-bold text-slate-300 cursor-pointer hover:border-red-500/30 hover:text-red-300 transition-all">
-                      <ImageIcon size={12} className="text-red-400" />
-                      <span>上傳徽章圖片</span>
+                    <label className="flex items-center gap-1.5 px-2 py-1 rounded bg-slate-900 border border-white/5 text-[9px] font-bold text-slate-300 cursor-pointer hover:border-red-500/30 hover:text-red-300 transition-all">
+                      <ImageIcon size={10} className="text-red-400" />
+                      <span>上傳</span>
                       <input
                         type="file"
                         accept="image/*"
@@ -610,8 +728,8 @@ export function OthersTab({ announcements, courses, achievements, batches, isSyn
                               const rawBase64 = await new Promise<string>((resolve, reject) => {
                                 const r = new FileReader();
                                 r.onload = (ev) => resolve(ev.target?.result as string);
-                                r.onerror = () => reject(new Error('檔案讀取失敗'));
-                                r.readAsDataURL(file);
+                                r.onerror = () => reject(new Error('檔案'));
+                                  r.readAsDataURL(file);
                               });
                               setAchIconUrl(rawBase64);
                             } catch (err) {
@@ -629,9 +747,9 @@ export function OthersTab({ announcements, courses, achievements, batches, isSyn
               <button
                 type="submit"
                 disabled={isSyncing}
-                className="w-full btn-action py-2.5 rounded-xl bg-red-500 hover:bg-red-600 text-white text-xs font-black"
+                className="w-full btn-action py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-black shadow-[0_0_15px_rgba(245,158,11,0.2)]"
               >
-                建立成就
+                發布全新成就
               </button>
             </form>
 
@@ -658,78 +776,113 @@ export function OthersTab({ announcements, courses, achievements, batches, isSyn
                             className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-white outline-none"
                             placeholder="成就描述"
                           />
+                          
+                          <div>
+                            <label className="block text-[10px] text-slate-500 font-bold mb-1">條件類型</label>
+                            <select
+                              value={editAchConditionType}
+                              onChange={e => setEditAchConditionType(e.target.value as any)}
+                              className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-white outline-none"
+                            >
+                              <option value="total_score">總修行分數達標</option>
+                              <option value="consecutive_checkins">連續修行天數達標</option>
+                              <option value="mission_count">特定任務完成次數</option>
+                              <option value="witness_post_count">見證牆入選數</option>
+                              <option value="pet_stage">神獸進化至指定階段</option>
+                            </select>
+                          </div>
+
+                          {editAchConditionType === 'mission_count' && (
+                            <div>
+                              <label className="block text-[10px] text-slate-500 font-bold mb-1">選擇目標任務</label>
+                              <select
+                                required
+                                value={editAchTargetMissionId}
+                                onChange={e => setEditAchTargetMissionId(e.target.value)}
+                                className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-white outline-none"
+                              >
+                                <option value="">-- 請選擇一項任務 --</option>
+                                {Array.from(new Map(missions.map(m => [m.template_id || m.id, m])).values()).map(m => (
+                                  <option key={m.template_id || m.id} value={m.template_id || m.id}>
+                                    {m.title}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                          )}
+
                           <input
                             type="number"
                             onFocus={(e) => e.target.select()}
                             value={editAchValue}
-                            onChange={e => setEditAchValue(Number(e.target.value))}
+                            onChange={e => setEditAchValue(e.target.value === '' ? '' : Number(e.target.value))}
                             className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-white outline-none"
-                            placeholder="分數門檻"
+                            placeholder="數值門檻"
                           />
+                          
+                          <div className="space-y-1">
+                            <label className="block text-[10px] text-slate-500 font-bold">選取圖標 (50款預設，已用者為金色)</label>
+                            <div className="grid grid-cols-5 sm:grid-cols-10 gap-1.5 bg-slate-950 p-2 rounded-lg border border-slate-800 max-h-48 overflow-y-auto custom-scrollbar">
+                              {PRESET_BADGE_ICONS.map(iconName => {
+                                const selected = editAchIconUrl === iconName;
+                                const used = isIconUsed(iconName);
+                                return (
+                                  <button
+                                    type="button"
+                                    key={iconName}
+                                    onClick={() => setEditAchIconUrl(iconName)}
+                                    title={`${iconName}${used ? ' (已使用)' : ''}`}
+                                    className={`w-8 h-8 rounded-full flex items-center justify-center bg-slate-950 transition-all cursor-pointer overflow-visible ${
+                                      selected 
+                                        ? 'ring-2 ring-amber-400 ring-offset-2 ring-offset-slate-950 scale-110' 
+                                        : 'hover:bg-slate-900/50'
+                                    }`}
+                                  >
+                                    <BadgeIcon name={iconName} unlocked={selected || used} size={32} />
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+
                           <div className="flex items-center gap-2">
-                            {editAchIconUrl ? (
-                              <div className="relative w-8 h-8 rounded-lg overflow-hidden border border-white/10 shrink-0">
-                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img src={editAchIconUrl} alt="Preview" className="w-full h-full object-cover" />
-                                <button
-                                  type="button"
-                                  onClick={() => setEditAchIconUrl(null)}
-                                  className="absolute top-0 right-0 bg-black/75 hover:bg-black text-white p-0.5 rounded-bl-lg"
-                                >
-                                  <X size={8} />
-                                </button>
-                              </div>
-                            ) : (
-                              <label className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-slate-950 border border-white/5 text-[10px] font-bold text-slate-300 cursor-pointer hover:border-red-500/30 hover:text-red-300 transition-all shrink-0">
-                                <ImageIcon size={10} className="text-red-400" />
-                                <span>上傳圖片</span>
-                                <input
-                                  type="file"
-                                  accept="image/*"
-                                  onChange={async (e) => {
-                                    const file = e.target.files?.[0];
-                                    if (file) {
-                                      try {
-                                        const rawBase64 = await new Promise<string>((resolve, reject) => {
-                                          const r = new FileReader();
-                                          r.onload = (ev) => resolve(ev.target?.result as string);
-                                          r.onerror = () => reject(new Error('檔案讀取失敗'));
-                                          r.readAsDataURL(file);
-                                        });
-                                        setEditAchIconUrl(rawBase64);
-                                      } catch (err) {
-                                        console.error(err);
-                                      }
-                                    }
-                                  }}
-                                  className="hidden"
-                                />
-                              </label>
-                            )}
-                            <div className="flex-1 flex justify-end gap-2">
-                              <button onClick={handleCancelEditAch} className="px-3 py-1 rounded-lg bg-slate-800 text-xs text-white hover:bg-slate-700">取消</button>
-                              <button onClick={() => handleSaveEditAch(ach.id)} className="px-3 py-1 rounded-lg bg-red-500 text-xs text-white font-bold hover:bg-red-600">儲存</button>
+                            <div className="flex-1 flex justify-end gap-2 mt-2">
+                              <button onClick={handleCancelEditAch} className="px-3 py-1 rounded-lg bg-slate-850 text-xs text-slate-300 hover:bg-slate-800">取消</button>
+                              <button onClick={() => handleSaveEditAch(ach.id)} className="px-3 py-1 rounded-lg bg-amber-500 text-xs text-slate-950 font-bold hover:bg-amber-600">儲存</button>
                             </div>
                           </div>
                         </div>
                       ) : (
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-lg bg-slate-800 flex items-center justify-center shrink-0 border border-white/5">
-                            {ach.icon_url && (ach.icon_url.startsWith('data:') || ach.icon_url.startsWith('http')) ? (
-                              // eslint-disable-next-line @next/next/no-img-element
-                              <img src={ach.icon_url} alt="icon" className="w-6 h-6 object-contain" />
-                            ) : (
-                              <Trophy size={16} className="text-amber-500" />
-                            )}
-                          </div>
+                          <BadgeIcon name={ach.icon_url} unlocked={true} size={40} className="shrink-0" />
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between gap-2">
                               <p className="text-sm font-bold text-white truncate">{ach.title}</p>
                               <span className="text-[10px] text-amber-400 font-mono bg-amber-500/10 px-2 py-0.5 rounded-full shrink-0">
-                                {ach.condition_value} 分
+                                {ach.condition_type === 'total_score' ? `${ach.condition_value} 分` :
+                                 ach.condition_type === 'consecutive_checkins' ? `${ach.condition_value} 天` :
+                                 ach.condition_type === 'mission_count' ? (
+                                   ach.title.includes('邀約') || 
+                                   ach.title.includes('推薦') || 
+                                   ach.title.includes('人') || 
+                                   (ach.target_mission_id && (
+                                     ach.target_mission_id.includes('invite') || 
+                                     ach.target_mission_id.includes('recom') || 
+                                     ach.target_mission_id.includes('2d77f56d') || 
+                                     ach.target_mission_id.includes('1bcc0eeb')
+                                   ))
+                                     ? `${ach.condition_value} 人`
+                                     : `${ach.condition_value} 次`
+                                 ) :
+                                 ach.condition_type === 'witness_post_count' ? `${ach.condition_value} 次` :
+                                 `第 ${ach.condition_value} 階段`}
                               </span>
                             </div>
                             <p className="text-[10px] text-slate-400 mt-1 line-clamp-1">{ach.description}</p>
+                            <span className="text-[8px] text-slate-500 font-mono">
+                              類型: {ach.condition_type}
+                              {ach.target_mission_id && ` | 任務: ${ach.target_mission_id}`}
+                            </span>
                           </div>
                           <div className="flex flex-col gap-1 shrink-0">
                             <button onClick={() => handleStartEditAch(ach)} className="p-1.5 rounded-lg bg-slate-800/50 hover:bg-slate-700 text-slate-300 transition-colors">
