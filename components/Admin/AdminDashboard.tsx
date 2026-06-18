@@ -470,6 +470,7 @@ export function AdminDashboard({
           courses={courses}
           achievements={achievements}
           batches={batches}
+          missions={missions}
           isSyncing={isSyncing}
           onCreateAnnouncement={onCreateAnnouncement}
           onUpdateAnnouncement={onUpdateAnnouncement}

@@ -180,20 +180,22 @@ create table if not exists public.course_attendance (
 -- ---------- 成就 ----------
 
 create table if not exists public.achievements (
-  id              text primary key default gen_random_uuid()::text,
-  title           text not null,
-  description     text,
-  icon_url        text,
-  condition_type  text default 'total_score',
-  condition_value integer default 0,
-  created_at      timestamptz default now()
+  id                text primary key default gen_random_uuid()::text,
+  title             text not null,
+  description       text,
+  icon_url          text,
+  condition_type    text default 'total_score',
+  condition_value   integer default 0,
+  target_mission_id text,
+  created_at        timestamptz default now()
 );
 
 create table if not exists public.user_achievements (
   id             text primary key default gen_random_uuid()::text,
   student_id     text,
   achievement_id text,
-  unlocked_at    timestamptz default now()
+  unlocked_at    timestamptz default now(),
+  notified       boolean not null default false
 );
 
 -- ---------- 公告 / 小隊長筆記 / 隊長候選 ----------
@@ -414,7 +416,114 @@ alter table public.profiles add column if not exists profile_id text;
 -- 既有資料回填：每筆現有 profile 自己就是一個「人」
 update public.profiles set profile_id = id where profile_id is null;
 
--- ---------- 2. 內部加分函式（核心邏輯，集中一處）----------
+-- ---------- 2. 內部加分函式與成就解鎖核心邏輯 ----------
+create or replace function public._check_unlock_achievements(p_student_id text, p_score integer)
+returns void language plpgsql security definer set search_path = public as $$
+declare
+  v_pet_stage integer := 0;
+  v_witness_count integer := 0;
+  v_streak integer := 0;
+begin
+  -- 2a. 取得神獸目前階段
+  select coalesce(max(current_stage_index), 0) into v_pet_stage
+    from public.user_pets
+   where student_id = p_student_id;
+
+  -- 2b. 取得見證牆入選數 (不含 custom-post 且已 approved)
+  select count(*) into v_witness_count
+    from public.submissions
+   where student_id = p_student_id
+     and status = 'approved'
+     and share_to_witness = true
+     and mission_id <> 'task-custom-post';
+
+  -- 2c. 取得連續打卡天數 (以台灣時間為準)
+  with dates as (
+    select distinct (m.publish_at at time zone 'Asia/Taipei')::date as d
+      from public.submissions s
+      join public.missions m on s.mission_id = m.id
+     where s.student_id = p_student_id
+       and s.status <> 'rejected'
+       and m.mission_type = 'daily'
+  ),
+  ordered_dates as (
+    select d, d - (row_number() over (order by d))::integer as grp
+      from dates
+  ),
+  streaks as (
+    select grp, count(*) as streak_length, max(d) as max_d
+      from ordered_dates
+     group by grp
+  )
+  select coalesce(max(streak_length), 0) into v_streak
+    from streaks
+   where max_d >= (now() at time zone 'Asia/Taipei')::date - 1;
+
+  -- A. total_score
+  insert into public.user_achievements (student_id, achievement_id, unlocked_at, notified)
+  select p_student_id, a.id, now(), false
+    from public.achievements a
+   where a.condition_type = 'total_score'
+     and a.condition_value <= coalesce(p_score, 0)
+     and not exists (
+       select 1 from public.user_achievements ua
+        where ua.student_id = p_student_id and ua.achievement_id = a.id
+     );
+
+  -- B. consecutive_checkins
+  insert into public.user_achievements (student_id, achievement_id, unlocked_at, notified)
+  select p_student_id, a.id, now(), false
+    from public.achievements a
+   where a.condition_type = 'consecutive_checkins'
+     and a.condition_value <= v_streak
+     and not exists (
+       select 1 from public.user_achievements ua
+        where ua.student_id = p_student_id and ua.achievement_id = a.id
+     );
+
+  -- C. mission_count
+  insert into public.user_achievements (student_id, achievement_id, unlocked_at, notified)
+  select p_student_id, a.id, now(), false
+    from public.achievements a
+   where a.condition_type = 'mission_count'
+     and a.target_mission_id is not null
+     and a.condition_value <= (
+       select count(*)
+         from public.submissions s
+         left join public.missions m on s.mission_id = m.id
+        where s.student_id = p_student_id
+          and (s.mission_id = a.target_mission_id or m.template_id = a.target_mission_id)
+          and s.status = 'approved'
+     )
+     and not exists (
+       select 1 from public.user_achievements ua
+        where ua.student_id = p_student_id and ua.achievement_id = a.id
+     );
+
+  -- D. witness_post_count
+  insert into public.user_achievements (student_id, achievement_id, unlocked_at, notified)
+  select p_student_id, a.id, now(), false
+    from public.achievements a
+   where a.condition_type = 'witness_post_count'
+     and a.condition_value <= v_witness_count
+     and not exists (
+       select 1 from public.user_achievements ua
+        where ua.student_id = p_student_id and ua.achievement_id = a.id
+     );
+
+  -- E. pet_stage
+  insert into public.user_achievements (student_id, achievement_id, unlocked_at, notified)
+  select p_student_id, a.id, now(), false
+    from public.achievements a
+   where a.condition_type = 'pet_stage'
+     and a.condition_value <= v_pet_stage
+     and not exists (
+       select 1 from public.user_achievements ua
+        where ua.student_id = p_student_id and ua.achievement_id = a.id
+     );
+end;
+$$;
+
 create or replace function public._apply_score_delta(
   p_student_id   text,
   p_amount       integer,
@@ -473,16 +582,8 @@ begin
     );
   end if;
 
-  -- 2e. 依總分自動解鎖成就（total_score 類型）
-  insert into public.user_achievements (student_id, achievement_id, unlocked_at)
-  select p_student_id, a.id, now()
-    from public.achievements a
-   where a.condition_type = 'total_score'
-     and a.condition_value <= coalesce(v_new_score, 0)
-     and not exists (
-       select 1 from public.user_achievements ua
-        where ua.student_id = p_student_id and ua.achievement_id = a.id
-     );
+  -- 2e. 執行多維度解鎖檢查
+  perform public._check_unlock_achievements(p_student_id, v_new_score);
 end;
 $$;
 
@@ -875,16 +976,8 @@ begin
     );
   end if;
 
-  -- 依總分自動解鎖成就（total_score 類型）
-  insert into public.user_achievements (student_id, achievement_id, unlocked_at)
-  select p_student_id, a.id, now()
-    from public.achievements a
-   where a.condition_type = 'total_score'
-     and a.condition_value <= coalesce(v_new_score, 0)
-     and not exists (
-       select 1 from public.user_achievements ua
-        where ua.student_id = p_student_id and ua.achievement_id = a.id
-     );
+  -- 執行多維度解鎖檢查
+  perform public._check_unlock_achievements(p_student_id, v_new_score);
 end;
 $$;
 
@@ -1079,4 +1172,15 @@ CREATE POLICY "允許查看所有提交" ON public.submissions
 
 -- 說明：此設定適合開發/測試環境或無 Auth 的課程系統。
 -- 若未來要加 Auth，請改回 student_id = auth.uid() 的嚴格版本。
+
+-- 4. 新增 RPC 以供學員端呼叫更新 notified (繞過只准管理員寫的 RLS)
+create or replace function public.mark_achievements_notified(p_student_id text)
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  update public.user_achievements
+     set notified = true
+   where student_id = p_student_id and notified = false;
+end; $$;
+
+grant execute on function public.mark_achievements_notified(text) to anon, authenticated;
 

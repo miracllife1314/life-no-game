@@ -173,20 +173,22 @@ create table if not exists public.course_attendance (
 -- ---------- 成就 ----------
 
 create table if not exists public.achievements (
-  id              text primary key default gen_random_uuid()::text,
-  title           text not null,
-  description     text,
-  icon_url        text,
-  condition_type  text default 'total_score',
-  condition_value integer default 0,
-  created_at      timestamptz default now()
+  id                text primary key default gen_random_uuid()::text,
+  title             text not null,
+  description       text,
+  icon_url          text,
+  condition_type    text default 'total_score',
+  condition_value   integer default 0,
+  target_mission_id text,
+  created_at        timestamptz default now()
 );
 
 create table if not exists public.user_achievements (
   id             text primary key default gen_random_uuid()::text,
   student_id     text,
   achievement_id text,
-  unlocked_at    timestamptz default now()
+  unlocked_at    timestamptz default now(),
+  notified       boolean not null default false
 );
 
 -- ---------- 公告 / 小隊長筆記 / 隊長候選 ----------

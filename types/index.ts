@@ -123,8 +123,9 @@ export interface Achievement {
   title: string;
   description: string | null;
   icon_url: string | null;
-  condition_type: 'total_score';
+  condition_type: 'total_score' | 'consecutive_checkins' | 'mission_count' | 'witness_post_count' | 'pet_stage';
   condition_value: number;
+  target_mission_id?: string | null;
   created_at: string;
 }
 
@@ -133,6 +134,7 @@ export interface UserAchievement {
   student_id: string;
   achievement_id: string;
   unlocked_at: string;
+  notified?: boolean;
   // Joined fields
   achievement?: Achievement;
 }

@@ -13,12 +13,15 @@ import { useAdminPeople } from '@/hooks/useAdminPeople';
 import { useMissionGen } from '@/hooks/useMissionGen';
 import { useGameActions } from '@/hooks/useGameActions';
 import { CheckCircle2, Clock, AlertCircle } from 'lucide-react';
+import * as Icons from 'lucide-react';
 import {
   Profile, Team, Task, Submission, ScoreLog,
   Course, CourseAttendance, Achievement, UserAchievement, 
   Announcement, StudentNote, UserRole,
   Pet, UserPet, Card, Deck, DeckCard, UserDeck, Batch, MissionTemplate, BatchMissionTemplate, Mission, PetLine, PetStage, CaptainCandidate, SquadRoleDef
 } from '@/types';
+
+import { BadgeIcon } from '@/components/BadgeIcon';
 
 // Import layout components
 import { Header } from '@/components/Layout/Header';
@@ -118,6 +121,7 @@ export default function Home() {
   const [petStages, setPetStages] = useState<PetStage[]>([]);
   const [captainCandidates, setCaptainCandidates] = useState<CaptainCandidate[]>([]);
   const [squadRoles, setSquadRoles] = useState<SquadRoleDef[]>([]);
+  const [pendingAchievements, setPendingAchievements] = useState<UserAchievement[]>([]);
 
   // --- UI States ---
   const [activeTab, setActiveTab] = useState<TabKey>('daily');
@@ -543,6 +547,45 @@ export default function Home() {
     }
   }, [teams, adminSelectedTeamId]);
 
+  // 監聽是否有未通知的已解鎖成就，推入彈窗佇列
+  useEffect(() => {
+    if (!currentUser || gmMode) return; // GM Mode (模擬特定學員) 下不彈窗，避免管理員切換學員時被洗版
+    const unnotified = userAchievements.filter(
+      ua => ua.student_id === currentUser.id && ua.notified === false
+    );
+    if (unnotified.length > 0) {
+      setPendingAchievements(prev => {
+        const existingIds = new Set(prev.map(p => p.id));
+        const newPending = unnotified.filter(p => !existingIds.has(p.id));
+        if (newPending.length === 0) return prev;
+        return [...prev, ...newPending];
+      });
+    }
+  }, [userAchievements, currentUser, gmMode]);
+
+  const handleAcceptAchievementBlessing = async () => {
+    if (pendingAchievements.length === 0 || !currentUser) return;
+    
+    // trigger confetti for visual celebration
+    triggerConfetti();
+
+    // Call RPC to mark all unnotified as notified in backend
+    try {
+      await supabase.rpc('mark_achievements_notified', { p_student_id: currentUser.id });
+    } catch (err) {
+      console.error('Failed to mark achievements notified:', err);
+    }
+
+    // Update local state for userAchievements to prevent re-triggering
+    setUserAchievements(prev => 
+      prev.map(ua => ua.student_id === currentUser.id ? { ...ua, notified: true } : ua)
+    );
+
+    // Pop the active one from queue
+    setPendingAchievements(prev => prev.slice(1));
+  };
+
+
 
   const {
     handleCheckIn, handleRegisterCourse, handleSaveNote, handleReviewSubmission,
@@ -895,6 +938,8 @@ export default function Home() {
             profiles={profiles}
             teams={teams}
             batches={batches}
+            submissions={submissions}
+            missions={missions}
             currentUser={currentUser}
             currentUiRole={currentUiRole}
             onToggleRankingsVisible={async (batchId, visible) => {
@@ -1185,6 +1230,50 @@ export default function Home() {
           </div>
         ))}
       </div>
+
+      {/* 🏆 成就解鎖即時通知彈窗 */}
+      {pendingAchievements.length > 0 && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-md animate-in fade-in duration-300">
+          {/* Neon-glow glass card */}
+          <div className="relative w-full max-w-sm mx-4 p-8 rounded-[2.5rem] border border-amber-500/50 bg-[#090806]/90 shadow-[0_0_50px_rgba(245,158,11,0.25)] text-center space-y-6 select-none overflow-hidden animate-in zoom-in-95 duration-300">
+            {/* Ambient glow in card background */}
+            <div className="absolute -inset-10 bg-gradient-to-r from-amber-500/10 to-transparent blur-2xl pointer-events-none rounded-full" />
+            
+            {/* Congratulations title */}
+            <div className="space-y-1">
+              <h4 className="text-[10px] font-black tracking-widest text-amber-500 uppercase">
+                🎉 恭喜解鎖全新成就 🎉
+              </h4>
+              <h2 className="text-2xl font-black text-white">
+                {pendingAchievements[0].achievement?.title}
+              </h2>
+            </div>
+
+            {/* Circular gold-neon icon container */}
+            <div className="flex justify-center py-4">
+              <BadgeIcon 
+                name={pendingAchievements[0].achievement?.icon_url || 'Trophy'} 
+                unlocked={true} 
+                size={96} 
+                className="transition-transform hover:scale-105" 
+              />
+            </div>
+
+            {/* Description */}
+            <p className="text-xs text-slate-300 leading-relaxed max-w-[260px] mx-auto">
+              {pendingAchievements[0].achievement?.description}
+            </p>
+
+            {/* Button */}
+            <button
+              onClick={handleAcceptAchievementBlessing}
+              className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 text-slate-950 text-xs font-black shadow-[0_4px_12px_rgba(245,158,11,0.3)] hover:brightness-110 active:scale-98 transition-all cursor-pointer"
+            >
+              收下修煉祝福
+            </button>
+          </div>
+        </div>
+      )}
 
     </div>
   );

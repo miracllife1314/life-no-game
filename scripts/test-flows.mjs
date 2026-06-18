@@ -164,6 +164,63 @@ async function main() {
   const bDeleted = (await j(await sr('GET', `batches?id=eq.${bId}&select=id`)))?.length === 0;
   check('刪除期數', bDeleted);
 
+  // ===== 6. 遊戲化成就系統 =====
+  console.log('\n【6】遊戲化成就解鎖與通知狀態 (V3)');
+  const testAchId = 'ach-test-' + Math.random().toString(36).slice(2, 8);
+  // 新增測試成就：需要完成 autoM.id 任務 1 次
+  r = await fetch(`${URL}/rest/v1/achievements`, {
+    method: 'POST',
+    headers: adH,
+    body: JSON.stringify({
+      id: testAchId,
+      title: '【自動測試】特定任務次數成就',
+      description: '測試解鎖自動打卡任務解鎖成就',
+      icon_url: 'Brain',
+      condition_type: 'mission_count',
+      condition_value: 1,
+      target_mission_id: autoM.id
+    })
+  });
+  check('新增測試成就', r.status < 400);
+
+  // 清除舊打卡與成就解鎖紀錄
+  await sr('DELETE', `user_achievements?achievement_id=eq.${testAchId}`);
+  await cleanSubs(stu.id, autoM.id);
+
+  // 學員免審核打卡 -> 自動 approved 觸發解鎖
+  r = await fetch(`${URL}/rest/v1/submissions`, {
+    method: 'POST',
+    headers: sH,
+    body: JSON.stringify({
+      mission_id: autoM.id,
+      student_id: stu.id,
+      status: 'pending',
+      score_awarded: 0
+    })
+  });
+  
+  // 檢查成就解鎖與 notified 預設狀態
+  let userAchs = await j(await sr('GET', `user_achievements?student_id=eq.${stu.id}&achievement_id=eq.${testAchId}`));
+  check('任務數達標 -> 成就解鎖', userAchs?.length === 1);
+  check('解鎖後 notified 預設為 false', userAchs?.[0]?.notified === false);
+
+  // 學員呼叫 mark_achievements_notified RPC
+  if (userAchs?.length === 1) {
+    r = await fetch(`${URL}/rest/v1/rpc/mark_achievements_notified`, {
+      method: 'POST',
+      headers: sH,
+      body: JSON.stringify({ p_student_id: stu.id })
+    });
+    userAchs = await j(await sr('GET', `user_achievements?student_id=eq.${stu.id}&achievement_id=eq.${testAchId}`));
+    check('呼叫 RPC 後 notified 設為 true', r.status < 400 && userAchs?.[0]?.notified === true);
+  } else {
+    check('呼叫 RPC 後 notified 設為 true', false, '成就未成功解鎖');
+  }
+
+  // 清理測試成就與紀錄
+  await sr('DELETE', `user_achievements?achievement_id=eq.${testAchId}`);
+  await fetch(`${URL}/rest/v1/achievements?id=eq.${testAchId}`, { method: 'DELETE', headers: adH });
+
   // ---- 收尾：強制清理殘留 + 還原分數 ----
   await sr('DELETE', `profiles?id=eq.${pId}`);
   await sr('DELETE', `batches?id=eq.${bId}`);

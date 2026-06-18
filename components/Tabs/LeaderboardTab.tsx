@@ -8,6 +8,8 @@ interface LeaderboardTabProps {
   profiles: Profile[];
   teams: Team[];
   batches: Batch[];
+  submissions?: any[];
+  missions?: any[];
   currentUser: Profile;
   currentUiRole: string;
   onToggleRankingsVisible?: (batchId: string, visible: boolean) => void;
@@ -17,12 +19,19 @@ export function LeaderboardTab({
   profiles,
   teams,
   batches,
+  submissions = [],
+  missions = [],
   currentUser,
   currentUiRole,
   onToggleRankingsVisible
 }: LeaderboardTabProps) {
-  // Sub-tabs: 'individual' | 'team' | 'hall_individual' | 'hall_team'
-  const [subTab, setSubTab] = useState<'individual' | 'team' | 'hall_individual' | 'hall_team'>('individual');
+  // 兩層導覽:範圍(當期/歷屆) × 榜別(神人/神隊/邀約王者/影響力之神)
+  const [scope, setScope] = useState<'current' | 'hall'>('current');
+  const [rankType, setRankType] = useState<'individual' | 'team' | 'invite' | 'influence'>('individual');
+  // 沿用既有渲染:把(範圍×榜別)映射回原本的 subTab 值(個人/小隊用);邀約/影響力另走新區塊
+  const subTab = scope === 'current'
+    ? (rankType === 'individual' ? 'individual' : rankType === 'team' ? 'team' : '')
+    : (rankType === 'individual' ? 'hall_individual' : rankType === 'team' ? 'hall_team' : '');
 
   const now = new Date();
 
@@ -151,6 +160,37 @@ export function LeaderboardTab({
     };
   }).sort((a, b) => b.averageScore - a.averageScore).slice(0, 30);
 
+  // 5. 邀約王者 / 影響力之神:依「任務名稱關鍵字」數該學員「審核通過」的提交筆數(= 人數)
+  //    邀約王者 = 任務名含「邀約」;影響力之神 = 任務名含「推薦」或「成交」
+  const inviteMissionIds = new Set(
+    (missions as any[]).filter(m => (m.title || '').includes('邀約')).map(m => m.id)
+  );
+  const influenceMissionIds = new Set(
+    (missions as any[]).filter(m => /推薦|成交/.test(m.title || '')).map(m => m.id)
+  );
+  const inviteCountByStudent: Record<string, number> = {};
+  const influenceCountByStudent: Record<string, number> = {};
+  for (const s of submissions as any[]) {
+    if (s.status !== 'approved') continue;
+    if (inviteMissionIds.has(s.mission_id)) {
+      inviteCountByStudent[s.student_id] = (inviteCountByStudent[s.student_id] || 0) + 1;
+    } else if (influenceMissionIds.has(s.mission_id)) {
+      influenceCountByStudent[s.student_id] = (influenceCountByStudent[s.student_id] || 0) + 1;
+    }
+  }
+  // 範圍名單:當期=本期學員;歷屆=全部(皆排除大隊長/停用)
+  const scopeProfiles = scope === 'current'
+    ? currentBatchProfiles
+    : profiles.filter(p => p.role !== 'admin' && p.status !== 'inactive');
+  const buildCountRanking = (counts: Record<string, number>) =>
+    scopeProfiles
+      .map(p => ({ p, count: counts[p.id] || 0 }))
+      .filter(x => x.count > 0)
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 50);
+  const inviteRanking = buildCountRanking(inviteCountByStudent);
+  const influenceRanking = buildCountRanking(influenceCountByStudent);
+
   return (
     <div className="w-full max-w-2xl mx-auto space-y-6 animate-in fade-in duration-300 select-none text-left">
       
@@ -204,52 +244,42 @@ export function LeaderboardTab({
         </div>
       )}
 
-      {/* Sub-tabs switch (個人榜 / 小隊榜 / 神人榜 / 神隊榜) */}
-      <div className="flex flex-wrap bg-slate-900 p-1 rounded-2xl border border-white/5 gap-1 select-none light:bg-slate-100 light:border-slate-300/50">
-        <button
-          onClick={() => setSubTab('individual')}
-          className={`flex-1 min-w-[100px] py-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1 cursor-pointer ${
-            subTab === 'individual'
-              ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 shadow-md font-black'
-              : 'text-slate-400 hover:text-white light:text-slate-500 light:hover:text-slate-900'
-          }`}
-        >
-          當期個人榜
-        </button>
-        <button
-          onClick={() => setSubTab('team')}
-          className={`flex-1 min-w-[100px] py-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1 cursor-pointer ${
-            subTab === 'team'
-              ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 shadow-md font-black'
-              : 'text-slate-400 hover:text-white light:text-slate-500 light:hover:text-slate-900'
-          }`}
-        >
-          當期小隊榜
-        </button>
-        <button
-          onClick={() => setSubTab('hall_individual')}
-          className={`flex-1 min-w-[100px] py-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1 cursor-pointer ${
-            subTab === 'hall_individual'
-              ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 shadow-md font-black'
-              : 'text-slate-400 hover:text-white light:text-slate-500 light:hover:text-slate-900'
-          }`}
-        >
-          歷屆神人榜
-        </button>
-        <button
-          onClick={() => setSubTab('hall_team')}
-          className={`flex-1 min-w-[100px] py-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1 cursor-pointer ${
-            subTab === 'hall_team'
-              ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 shadow-md font-black'
-              : 'text-slate-400 hover:text-white light:text-slate-500 light:hover:text-slate-900'
-          }`}
-        >
-          歷屆神隊榜
-        </button>
+      {/* 第一層:範圍(當期排行榜 / 歷屆排行榜) */}
+      <div className="flex bg-slate-900 p-1 rounded-2xl border border-white/5 gap-1 select-none light:bg-slate-100 light:border-slate-300/50">
+        {([['current', '當期排行榜'], ['hall', '歷屆排行榜']] as const).map(([key, label]) => (
+          <button
+            key={key}
+            onClick={() => setScope(key)}
+            className={`flex-1 py-2.5 rounded-xl text-sm font-black transition-all cursor-pointer ${
+              scope === key
+                ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 shadow-md'
+                : 'text-slate-400 hover:text-white light:text-slate-500 light:hover:text-slate-900'
+            }`}
+          >
+            {label}
+          </button>
+        ))}
       </div>
 
-      {/* ⚠️ HIDE BANNER FOR SPRINT PHASE */}
-      {isRankingsLocked && (subTab === 'individual' || subTab === 'team') ? (
+      {/* 第二層:榜別(神人榜 / 神隊榜 / 邀約王者 / 影響力之神) */}
+      <div className="flex flex-wrap bg-slate-900/60 p-1 rounded-2xl border border-white/5 gap-1 select-none light:bg-slate-100/70 light:border-slate-300/50">
+        {([['individual', '神人榜'], ['team', '神隊榜'], ['invite', '邀約王者'], ['influence', '影響力之神']] as const).map(([key, label]) => (
+          <button
+            key={key}
+            onClick={() => setRankType(key)}
+            className={`flex-1 min-w-[80px] py-2 rounded-xl text-xs font-black transition-all cursor-pointer ${
+              rankType === key
+                ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 shadow-md'
+                : 'text-slate-400 hover:text-white light:text-slate-500 light:hover:text-slate-900'
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {/* ⚠️ HIDE BANNER FOR SPRINT PHASE：當期所有榜都受封印,歷屆不受影響 */}
+      {isRankingsLocked && scope === 'current' ? (
         <div className="glass-panel p-12 rounded-3xl border border-white/5 text-center flex flex-col items-center justify-center gap-4 light:bg-white light:border-slate-200 py-16 animate-in zoom-in duration-300">
           <div className="w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center border border-red-500/20 text-red-500 mb-2">
             <Lock size={32} />
@@ -692,6 +722,58 @@ export function LeaderboardTab({
                       <tr>
                         <td colSpan={6} className="p-8 text-center text-slate-500 font-bold">
                           目前尚無任何神隊排行。
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          )}
+
+          {(rankType === 'invite' || rankType === 'influence') && (
+            /* 🤝 邀約王者 / ✨ 影響力之神:依任務名稱關鍵字數「審核通過」筆數 */
+            <section className="glass-panel p-6 rounded-3xl border border-white/5 space-y-4 light:bg-white light:border-slate-200">
+              <h3 className="text-center font-black text-white text-base tracking-widest flex items-center justify-center gap-1.5 mb-1 light:text-slate-900">
+                {rankType === 'invite'
+                  ? <><Users size={18} className="text-emerald-400" /> 邀約王者</>
+                  : <><Zap size={18} className="text-purple-400" /> 影響力之神</>}
+              </h3>
+              <p className="text-center text-[10px] font-bold text-slate-500 -mt-1">
+                {rankType === 'invite' ? '邀約入門課人數排名' : '推薦報名初階人數排名'}（{scope === 'current' ? activeBatchName : '歷屆'}）
+              </p>
+              <div className="overflow-x-auto select-none pt-2">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="border-b border-white/5 text-slate-500 font-bold uppercase light:border-slate-200">
+                      <th className="p-3 w-12 text-center">排行</th>
+                      <th className="p-3">期數</th>
+                      <th className="p-3">姓名</th>
+                      <th className="p-3 text-right">{rankType === 'invite' ? '邀約人數' : '推薦人數'}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5 light:divide-slate-200">
+                    {(rankType === 'invite' ? inviteRanking : influenceRanking).map((x, idx) => {
+                      const rank = idx + 1;
+                      const isSelf = x.p.id === currentUser.id;
+                      return (
+                        <tr key={x.p.id} className={`hover:bg-white/[0.01] light:hover:bg-slate-100/30 ${isSelf ? 'bg-amber-500/5' : ''}`}>
+                          <td className="p-3 text-center font-bold">
+                            <span className={`inline-block w-6 h-6 rounded-full text-center leading-6 text-[10px] ${rank <= 3 ? 'bg-amber-500 text-slate-950 font-black' : 'bg-slate-800/40 text-slate-400'}`}>{rank}</span>
+                          </td>
+                          <td className="p-3 font-bold text-slate-300 light:text-slate-700">{getBatchName(x.p.batch_id)}</td>
+                          <td className="p-3 font-bold text-white light:text-slate-900 flex items-center gap-1">
+                            {x.p.name}
+                            {isSelf && <span className="text-[8px] bg-amber-500/10 text-amber-500 border border-amber-500/20 px-1 py-0.2 rounded">您</span>}
+                          </td>
+                          <td className="p-3 text-right font-black text-amber-500 font-mono">{x.count} 人</td>
+                        </tr>
+                      );
+                    })}
+                    {(rankType === 'invite' ? inviteRanking : influenceRanking).length === 0 && (
+                      <tr>
+                        <td colSpan={4} className="p-8 text-center text-slate-500 font-bold">
+                          目前尚無{rankType === 'invite' ? '邀約' : '推薦'}紀錄。
                         </td>
                       </tr>
                     )}

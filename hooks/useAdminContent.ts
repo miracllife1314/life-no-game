@@ -95,15 +95,23 @@ export function useAdminContent({ currentUser, setIsSyncing, fetchData, setAchie
   };
 
   // ---- 成就 ----
-  const handleCreateAchievement = async (title: string, description: string, value: number, iconUrl?: string | null) => {
+  const handleCreateAchievement = async (
+    title: string, 
+    description: string, 
+    value: number, 
+    iconUrl?: string | null,
+    conditionType?: 'total_score' | 'consecutive_checkins' | 'mission_count' | 'witness_post_count' | 'pet_stage',
+    targetMissionId?: string | null
+  ) => {
     // 若 icon 是上傳的 base64 圖片，先上傳 Storage 換 URL；若是 lucide 圖示名稱則原樣保留
     const uploadedIcon = await uploadProofImage(iconUrl);
     await supabase.from('achievements').insert({
       title,
       description: description || null,
       icon_url: uploadedIcon || 'Flame',
-      condition_type: 'total_score',
-      condition_value: value
+      condition_type: conditionType || 'total_score',
+      condition_value: value,
+      target_mission_id: targetMissionId || null
     });
     await fetchData();
   };
