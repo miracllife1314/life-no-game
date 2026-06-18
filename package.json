@@ -12,7 +12,8 @@
     "restore": "node scripts/restore-db.mjs",
     "security-check": "node scripts/security-check.mjs",
     "test-flows": "node scripts/test-flows.mjs",
-    "test-storage": "node scripts/test-storage.mjs"
+    "test-storage": "node scripts/test-storage.mjs",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.107.0",
@@ -23,6 +24,7 @@
     "react-dom": "19.2.4"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
