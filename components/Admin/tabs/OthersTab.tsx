@@ -2,8 +2,7 @@
 // 後台「公告 / 課程 / 成就」分頁 —— 從 AdminDashboard.tsx 抽出，行為/UI 完全不變。
 // =====================================================================
 import { useState } from 'react';
-import { Calendar, Edit2, ImageIcon, Megaphone, ShieldCheck, Trophy, Trash2, X } from 'lucide-react';
-import * as Icons from 'lucide-react';
+import { Calendar, Edit2, ImageIcon, Megaphone, Trophy, Trash2, X } from 'lucide-react';
 import { Announcement, Course, Achievement, Batch, Mission } from '@/types';
 import { BadgeIcon } from '../../BadgeIcon';
 
@@ -98,8 +97,6 @@ interface OthersTabProps {
 }
 
 export function OthersTab({ announcements, courses, achievements, batches, missions, isSyncing, onCreateAnnouncement, onUpdateAnnouncement, onDeleteAnnouncement, onCreateCourse, onUpdateCourse, onDeleteCourse, onCreateAchievement, onUpdateAchievement, onDeleteAchievement }: OthersTabProps) {
-  const [editingAnnouncement, setEditingAnnouncement] = useState<Announcement | null>(null);
-  const [editingCourse, setEditingCourse] = useState<Course | null>(null);
   const [announcementFilterBatch, setAnnouncementFilterBatch] = useState<string>('all');
   const [courseFilterBatch, setCourseFilterBatch] = useState<string>('all');
   const [annTitle, setAnnTitle] = useState('');
@@ -633,7 +630,7 @@ export function OthersTab({ announcements, courses, achievements, batches, missi
                 <label className="block text-[10px] text-slate-400 font-bold mb-1">選擇解鎖條件類型</label>
                 <select
                   value={achConditionType}
-                  onChange={e => setAchConditionType(e.target.value as any)}
+                  onChange={e => setAchConditionType(e.target.value as Achievement['condition_type'])}
                   className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white outline-none"
                 >
                   <option value="total_score">總修行分數達標 (total_score)</option>
@@ -783,7 +780,7 @@ export function OthersTab({ announcements, courses, achievements, batches, missi
                             <label className="block text-[10px] text-slate-500 font-bold mb-1">條件類型</label>
                             <select
                               value={editAchConditionType}
-                              onChange={e => setEditAchConditionType(e.target.value as any)}
+                              onChange={e => setEditAchConditionType(e.target.value as Achievement['condition_type'])}
                               className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-white outline-none"
                             >
                               <option value="total_score">總修行分數達標</option>

@@ -33,15 +33,13 @@ export function BadgeIcon({ name, unlocked = true, size = 48, className = '' }: 
 
   const iconKey = name || 'Trophy';
 
-  // Base colors and effects based on unlock status
-  const glowColor = unlocked ? 'rgba(245, 158, 11, 0.6)' : 'rgba(115, 115, 115, 0.2)';
   const strokeColor = unlocked ? '#fbbf24' : '#52525b';
   const innerStrokeColor = unlocked ? '#d97706' : '#3f3f46';
   const fillColor = unlocked ? '#0e0b06' : '#18181b';
   const iconColor = unlocked ? '#fef08a' : '#71717a';
 
   // Find the matching Lucide icon as the central emblem
-  const LucideIcon = (Icons as any)[iconKey] || Award;
+  const LucideIcon = (Icons as unknown as Record<string, React.ComponentType<{ size?: number; className?: string }>>)[iconKey] || Award;
 
   // Custom frame geometries for 20 different badge designs
   // This ensures they all look unique, yet share the premium golden neon theme.
