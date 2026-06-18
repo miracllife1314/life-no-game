@@ -425,6 +425,28 @@ export function DailyQuestsTab({
   const now = nowTaipei();
   const isUsingMissions = profile.role !== 'admin' && !!profile.batch_id;
 
+  // 🔥 連續修行天數：該學員「每日定課」連續有打卡(approved/pending)的台灣日期天數。
+  // 今天還沒打卡不算斷(從昨天起算)；斷一整天才歸零。純由現有資料計算，不動 DB。
+  const dailyStreak = (() => {
+    const dailyIds = new Set(missions.filter((m: any) => m.mission_type === 'daily').map((m: any) => m.id));
+    if (dailyIds.size === 0) return 0;
+    const dateOfMission = new Map(missions.map((m: any) => [m.id, m.publish_at]));
+    const dayKey = (dt: Date) => `${dt.getFullYear()}-${dt.getMonth()}-${dt.getDate()}`;
+    const done = new Set<string>();
+    for (const s of submissions) {
+      if (s.student_id !== activeProfile.id || s.status === 'rejected') continue;
+      if (!dailyIds.has(s.mission_id)) continue;
+      const pub = dateOfMission.get(s.mission_id);
+      if (!pub) continue;
+      done.add(dayKey(parseLocalTime(pub)));
+    }
+    const cursor = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    if (!done.has(dayKey(cursor))) cursor.setDate(cursor.getDate() - 1); // 今天還沒打 → 從昨天起算
+    let streak = 0;
+    while (done.has(dayKey(cursor))) { streak++; cursor.setDate(cursor.getDate() - 1); }
+    return streak;
+  })();
+
   const getTaskProgress = (taskId: string) => {
     let limit = 1;
     if (isUsingMissions) {
@@ -755,7 +777,12 @@ export function DailyQuestsTab({
             <span className="text-[10px] font-black text-slate-500 bg-slate-950 px-2 py-0.5 rounded-full mt-1 inline-block light:bg-slate-100">
               成長等級：LV.{userLevel}
             </span>
-            
+            {dailyStreak > 0 && (
+              <span className="text-[10px] font-black text-orange-400 bg-orange-500/10 border border-orange-500/30 px-2.5 py-0.5 rounded-full mt-1.5 inline-flex items-center gap-1 light:bg-orange-50 light:text-orange-600 light:border-orange-200">
+                🔥 連續修行 {dailyStreak} 天
+              </span>
+            )}
+
             <p className="text-xs text-slate-400 mt-2 leading-relaxed light:text-slate-500 max-w-xs text-center">
               {((userPet?.has_pending_evolution) || (userLevel >= 5 && (!userPet || userPet.current_stage_index <= 1))) && (!userPet || userPet.current_stage_index <= 1) ? (
                 <span className="text-amber-400 font-bold block animate-pulse">
