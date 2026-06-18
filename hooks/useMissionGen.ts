@@ -203,9 +203,12 @@ export function useMissionGen({ setIsSyncing, fetchData, batches, missionTemplat
 
       if (previews.length > 0) {
         const { data: existingMissions } = await supabase.from('missions').select('*').eq('batch_id', batchId);
-        const existingKeys = new Set((existingMissions || []).map((m: any) => `${m.template_id}_${m.publish_at}`));
+        // 去重以「範本 + 發布日期(YYYY-MM-DD)」為 key —— 不可用完整 publish_at：
+        // DB 存回的時間字串格式(含時區)與前端組的字串不同，會比不到 → 重套用就重複新增。
+        // 與 handleGenerateMissions 的去重邏輯一致。
+        const existingKeys = new Set((existingMissions || []).map((m: any) => `${m.template_id}_${String(m.publish_at).substring(0, 10)}`));
 
-        const missionsToInsert = previews.filter(p => !existingKeys.has(`${p.template_id}_${p.publish_at}`));
+        const missionsToInsert = previews.filter(p => !existingKeys.has(`${p.template_id}_${String(p.publish_at).substring(0, 10)}`));
         if (missionsToInsert.length > 0) {
           await supabase.from('missions').insert(missionsToInsert);
         }

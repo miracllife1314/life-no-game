@@ -22,9 +22,15 @@
    - 連同先前（步驟）已封掉的「匿名上傳/刪除」，至此 Storage 兩個 bucket 的寫入/刪除破口全數補齊。
    - 驗收：學員刪他人圖 → 被擋；本人刪自己 / 管理員刪任意 → 正常；security-check 16/16、test-flows 14/14。
 
+5. **修正：套用期數任務範本會產生重複任務**：
+   - `handleSaveBatchMissionTemplates` 去重 key 原本用「完整 `publish_at`」，但 DB 存回的時間字串格式(含時區)與前端組的字串不同 → 比不到 → **重套用範本時重複新增任務**(學員端同一任務同一天出現兩次)。
+   - 改為以「範本 + 發布日期(YYYY-MM-DD)」為 key(與 `handleGenerateMissions` 一致)→ 重套用具冪等性、不再重複。
+   - 並清理測試庫既有的 31 筆「空重複」任務(保留有打卡的那筆，只刪 0 打卡的重複)。
+
 ### 📂 修改檔案
 - [components/Admin/AdminDashboard.tsx](file:///Users/leo/Desktop/定課系統/NLP_GAME/components/Admin/AdminDashboard.tsx)
 - [components/Admin/tabs/](file:///Users/leo/Desktop/定課系統/NLP_GAME/components/Admin/tabs/)
+- [hooks/useMissionGen.ts](file:///Users/leo/Desktop/定課系統/NLP_GAME/hooks/useMissionGen.ts)
 - [docs/階段1-步驟3-storage政策.sql / docs/storage安全強化-計畫書.md](file:///Users/leo/Desktop/定課系統/NLP_GAME/docs/)
 - [docs/CHANGELOG.md](file:///Users/leo/Desktop/定課系統/NLP_GAME/docs/CHANGELOG.md)
 
