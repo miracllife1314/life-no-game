@@ -1,8 +1,17 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Achievement, UserAchievement } from '@/types';
-import { Flame, Sparkles, Trophy, Award, Lock, Zap, Crown, Target, Infinity, Brain, Gem } from 'lucide-react';
+import { Award, Lock, Zap } from 'lucide-react';
+import { BadgeIcon } from '../BadgeIcon';
+
+const TYPE_ORDER: Record<string, number> = {
+  total_score: 1,
+  consecutive_checkins: 2,
+  mission_count: 3,
+  witness_post_count: 4,
+  pet_stage: 5,
+};
 
 interface AchievementsTabProps {
   achievements: Achievement[];
@@ -11,6 +20,8 @@ interface AchievementsTabProps {
 }
 
 export function AchievementsTab({ achievements, userAchievements, studentScore }: AchievementsTabProps) {
+  const [filter, setFilter] = useState<'all' | 'completed' | 'uncompleted'>('all');
+
   // Helper to check if an achievement is unlocked
   const isUnlocked = (achId: string) => {
     return userAchievements.some(ua => ua.achievement_id === achId);
@@ -21,35 +32,25 @@ export function AchievementsTab({ achievements, userAchievements, studentScore }
     return ua ? new Date(ua.unlocked_at).toLocaleDateString() : '';
   };
 
-  // Maps custom icon strings to Lucide components
-  const renderIcon = (iconName: string | null, unlocked: boolean) => {
-    if (iconName && (iconName.startsWith('http') || iconName.startsWith('data:image'))) {
-      return (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img 
-          src={iconName} 
-          alt="Achievement Badge" 
-          className={`w-8 h-8 md:w-10 md:h-10 object-contain rounded-full ${unlocked ? '' : 'grayscale opacity-30 contrast-75'}`} 
-        />
-      );
-    }
-
-    const iconClass = unlocked ? 'text-amber-400 filter drop-shadow-[0_0_5px_rgba(251,191,36,0.6)]' : 'text-slate-600';
-    switch (iconName) {
-      case 'Flame': return <Flame className={iconClass} size={24} />;
-      case 'Sparkles': return <Sparkles className={iconClass} size={24} />;
-      case 'Trophy': return <Trophy className={iconClass} size={24} />;
-      case 'Zap': return <Zap className={iconClass} size={24} />;
-      case 'Crown': return <Crown className={iconClass} size={24} />;
-      case 'Target': return <Target className={iconClass} size={24} />;
-      case 'Infinity': return <Infinity className={iconClass} size={24} />;
-      case 'Brain': return <Brain className={iconClass} size={24} />;
-      case 'Gem': return <Gem className={iconClass} size={24} />;
-      default: return <Award className={iconClass} size={24} />;
-    }
-  };
-
   const unlockedCount = achievements.filter(ach => isUnlocked(ach.id)).length;
+
+  // 1. Sort: 同類型一起，門檻少到多
+  const sortedAchievements = [...achievements].sort((a, b) => {
+    const orderA = TYPE_ORDER[a.condition_type || ''] || 99;
+    const orderB = TYPE_ORDER[b.condition_type || ''] || 99;
+    if (orderA !== orderB) {
+      return orderA - orderB;
+    }
+    return a.condition_value - b.condition_value;
+  });
+
+  // 2. Filter: 全部、已完成、未完成
+  const filteredAchievements = sortedAchievements.filter(ach => {
+    const unlocked = isUnlocked(ach.id);
+    if (filter === 'completed') return unlocked;
+    if (filter === 'uncompleted') return !unlocked;
+    return true;
+  });
 
   return (
     <div className="w-full max-w-4xl mx-auto space-y-6 animate-in fade-in duration-300 p-6 bg-[#030303] text-white rounded-[2.5rem] border border-zinc-900 select-none shadow-[0_0_50px_rgba(0,0,0,0.85)]">
@@ -112,10 +113,49 @@ export function AchievementsTab({ achievements, userAchievements, studentScore }
         </div>
       </div>
 
+      {/* 🎛️ Filter Tabs */}
+      <div className="flex items-center justify-center gap-3 bg-zinc-950/60 p-1.5 rounded-2xl border border-zinc-900/80 w-fit mx-auto select-none">
+        <button
+          onClick={() => setFilter('all')}
+          className={`px-5 py-2 rounded-xl text-xs font-black tracking-wider transition-all duration-200 cursor-pointer ${
+            filter === 'all'
+              ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-black shadow-[0_0_12px_rgba(245,158,11,0.25)] scale-105'
+              : 'text-zinc-400 hover:text-white hover:bg-zinc-900/50'
+          }`}
+        >
+          全部 ({achievements.length})
+        </button>
+        <button
+          onClick={() => setFilter('completed')}
+          className={`px-5 py-2 rounded-xl text-xs font-black tracking-wider transition-all duration-200 cursor-pointer ${
+            filter === 'completed'
+              ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-black shadow-[0_0_12px_rgba(245,158,11,0.25)] scale-105'
+              : 'text-zinc-400 hover:text-white hover:bg-zinc-900/50'
+          }`}
+        >
+          已完成 ({unlockedCount})
+        </button>
+        <button
+          onClick={() => setFilter('uncompleted')}
+          className={`px-5 py-2 rounded-xl text-xs font-black tracking-wider transition-all duration-200 cursor-pointer ${
+            filter === 'uncompleted'
+              ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-black shadow-[0_0_12px_rgba(245,158,11,0.25)] scale-105'
+              : 'text-zinc-400 hover:text-white hover:bg-zinc-900/50'
+          }`}
+        >
+          未完成 ({achievements.length - unlockedCount})
+        </button>
+      </div>
+
       {/* 🏆 Horizontal Achievements List */}
       <div className="flex flex-col gap-4">
-        {achievements.map((ach) => {
-          const unlocked = isUnlocked(ach.id);
+        {filteredAchievements.length === 0 ? (
+          <div className="text-center py-12 text-zinc-500 text-xs font-bold bg-[#0a0a0c] border border-zinc-900 rounded-[2rem] border-dashed">
+            沒有符合條件的成就徽章
+          </div>
+        ) : (
+          filteredAchievements.map((ach) => {
+            const unlocked = isUnlocked(ach.id);
           
           return (
             <div
@@ -131,17 +171,7 @@ export function AchievementsTab({ achievements, userAchievements, studentScore }
               <div className="flex-1 flex flex-col justify-between z-20 space-y-3 h-full pr-2 md:pr-4">
                 <div className="flex items-center gap-3 md:gap-5">
                   {/* Double Circle Icon Frame */}
-                  <div className={`w-12 h-12 md:w-16 md:h-16 rounded-full flex items-center justify-center border-2 shrink-0 transition-all p-0.5 ${
-                    unlocked 
-                      ? 'border-amber-500 bg-black shadow-[0_0_10px_rgba(245,158,11,0.3)]' 
-                      : 'border-zinc-800 bg-[#161618]'
-                  }`}>
-                    <div className={`w-full h-full rounded-full border flex items-center justify-center ${
-                      unlocked ? 'border-amber-500/40 bg-[#0a0907]' : 'border-zinc-900 bg-[#1f1f23]'
-                    }`}>
-                      {renderIcon(ach.icon_url, unlocked)}
-                    </div>
-                  </div>
+                  <BadgeIcon name={ach.icon_url} unlocked={unlocked} size={64} className="shrink-0" />
 
                   {/* Title & Description */}
                   <div>
@@ -160,7 +190,25 @@ export function AchievementsTab({ achievements, userAchievements, studentScore }
                 {/* Bottom Meta Information */}
                 <div className="flex justify-between items-center text-[10px] md:text-xs font-mono select-none">
                   <span style={{ color: unlocked ? '#f59e0b' : '#64748b' }}>
-                    門檻：{ach.condition_value.toLocaleString()} 分
+                    門檻：{
+                      ach.condition_type === 'total_score' ? `${ach.condition_value.toLocaleString()} 分` :
+                      ach.condition_type === 'consecutive_checkins' ? `連續修行 ${ach.condition_value} 天` :
+                      ach.condition_type === 'mission_count' ? (
+                        ach.title.includes('邀約') || 
+                        ach.title.includes('推薦') || 
+                        ach.title.includes('人') || 
+                        (ach.target_mission_id && (
+                          ach.target_mission_id.includes('invite') || 
+                          ach.target_mission_id.includes('recom') || 
+                          ach.target_mission_id.includes('2d77f56d') || 
+                          ach.target_mission_id.includes('1bcc0eeb')
+                        ))
+                          ? `特定任務完成 ${ach.condition_value} 人`
+                          : `特定任務完成 ${ach.condition_value} 次`
+                      ) :
+                      ach.condition_type === 'witness_post_count' ? `入選見證牆 ${ach.condition_value} 次` :
+                      `神獸進化至第 ${ach.condition_value} 階段`
+                    }
                   </span>
                   {unlocked && (
                     <span style={{ color: '#d97706' }}>
@@ -256,8 +304,9 @@ export function AchievementsTab({ achievements, userAchievements, studentScore }
               </div>
             </div>
           );
-        })}
-      </div>
+        })
+      )}
     </div>
-  );
+  </div>
+);
 }
