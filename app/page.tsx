@@ -198,13 +198,16 @@ export default function Home() {
       // 2. 分流讀取（P0）：學員/隊長只撈本期資料、跳過後台表；大隊長全撈。詳見 services/queries.ts
       const isAdminUser = loadedProfile?.role === 'admin';
       const userBatchId = loadedProfile?.batch_id || null;
+
+      // 把「AllTables → 畫面 state」抽成函式，供 SWR 兩次呼叫(先快取、後最新)。行為與原本完全一致。
+      const applyTables = (t: any) => {
       const {
         batchesList, templatesList, rulesList, profilesList, teamsList, tasksList,
         subsList, coursesList, attendanceList, achsList, userAchsList, annsList,
         notesList, scoreLogsList, petsList, userPetsList, cardsList, decksList,
         deckCardsList, userDecksList, missionsList, petLinesList, petStagesList,
         candidatesList, squadRolesList,
-      } = await fetchAllTables({ batchId: userBatchId, isAdmin: isAdminUser });
+      } = t;
 
       if (batchesList) setBatches(batchesList);
       if (templatesList) setMissionTemplates(templatesList);
@@ -274,7 +277,36 @@ export default function Home() {
       if (squadRolesList) setSquadRoles(squadRolesList);
 
       setCaptainCandidates(joinedCandidates);
-      
+      }; // end applyTables
+
+      // 2a. SWR：先用上次快取把畫面「秒畫」出來(僅學員/非 admin；admin 需即時看到自己後台編輯，不快取)
+      const cacheKey = (!isAdminUser && targetUserId) ? `nlp_tables_${targetUserId}` : null;
+      if (cacheKey && typeof window !== 'undefined') {
+        try {
+          const raw = localStorage.getItem(cacheKey);
+          if (raw) {
+            const cached = JSON.parse(raw);
+            if (cached?.t && cached.tables && (Date.now() - cached.t) < 24 * 60 * 60 * 1000) {
+              applyTables(cached.tables);
+              setIsSyncing(false); // 畫面先出來，不卡「載入中」轉圈
+            }
+          }
+        } catch { /* 快取壞了就忽略，照常往下撈最新 */ }
+      }
+
+      // 2b. 撈最新資料覆蓋畫面（背景刷新）
+      const fresh = await fetchAllTables({ batchId: userBatchId, isAdmin: isAdminUser });
+      applyTables(fresh);
+
+      // 2c. 更新快取(大小防護：超過上限就不存，避免塞爆 localStorage)
+      if (cacheKey && typeof window !== 'undefined') {
+        try {
+          const s = JSON.stringify({ t: Date.now(), tables: fresh });
+          if (s.length < 3_500_000) localStorage.setItem(cacheKey, s);
+          else localStorage.removeItem(cacheKey);
+        } catch { /* 容量不足等 → 放棄快取，不影響功能 */ }
+      }
+
       return loadedProfile;
     } catch (err) {
       console.error('Error fetching data:', err);

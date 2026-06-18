@@ -172,6 +172,10 @@ export function useAuth({
     if (typeof window !== 'undefined') {
       localStorage.removeItem('nlp_session');
       localStorage.removeItem('nlp_mock_user_id');
+      // 清掉 SWR 表格快取(共用裝置隱私：下一個人登入不會先看到上一個人的快取畫面)
+      Object.keys(localStorage)
+        .filter((k) => k.startsWith('nlp_tables_'))
+        .forEach((k) => localStorage.removeItem(k));
     }
     setCurrentUser(null);
     setCurrentTeam(null);
