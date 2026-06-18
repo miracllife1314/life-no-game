@@ -2,6 +2,32 @@
 
 本文件紀錄「NLP人性溝通術課程計分系統」的所有版本變更與功能修改紀錄。
 
+## [v1.8.0] - 2026-06-18
+
+### 🚀 修改內容
+1. **後台 AdminDashboard.tsx 大幅重構與模組化**：
+   - 將單檔高達 `6,493` 行的龐大控制面板 `AdminDashboard.tsx` 精簡至 `584` 行的乾淨外殼組件。
+   - 將原有的分頁功能拆分為 12 個職責單一、高內聚的獨立子元件，置於 `components/Admin/tabs/`（如 `RosterTab`, `TeamsTab`, `PetsTab`, `DecksTab`, `BatchesTab`, `TasksTab`, `MissionTemplatesTab`, `BatchRulesTab`, `SchedulePreviewTab`, `ReviewsTab`, `AdjustTab`, `OthersTab`）。
+2. **全資料庫 25 張表全面啟用 RLS 上鎖 (Tier 3 安全防護落地)**：
+   - 對 Supabase 資料庫中的所有 25 張表全面啟用 Row Level Security (RLS) 安全保護政策。
+   - 防堵匿名/未授權使用者透過 F12 控制台對 `tasks`、`missions`、`mission_templates`、`announcements`、`courses` 等 20 多張中繼資料表進行惡意 `INSERT`、`UPDATE`、`DELETE` 竄改。
+   - 確保學員在神獸進化路徑時，擁有正確權限動態插入其考驗任務挑戰，且不破壞原有進化機制。
+   - 收緊社交按讚與留言表（`witness_likes`、`witness_comments`）的 RLS 政策，限定僅能新增、修改與刪除「本人」的互動資料，防範偽造身分與惡意破壞。
+   - 收緊 Storage `pet-images` 的權限，防止學員惡意覆蓋或刪除他人的神獸圖片。
+3. **資料庫效能優化 (Indexes 建立)**：
+   - 在關鍵外鍵及篩選欄位上新增索引，解決全表掃描瓶頸，降低打卡高峰期的資料庫 CPU 負載。
+4. **Storage 權限全面強化（proof-images / pet-images）**：
+   - `proof-images`（打卡證明 / 見證牆貼文圖）：公開讀、登入學員可上傳；**覆蓋與刪除限「檔案擁有者（owner = auth.uid()）或管理員」**，防止學員透過 F12/API 刪除或覆蓋他人的打卡證明圖。
+   - `pet-images`（神獸圖）：公開讀；**上傳/覆蓋/刪除一律限管理員 (`is_admin()`)**，防止學員竄改他人神獸圖。
+   - 連同先前（步驟）已封掉的「匿名上傳/刪除」，至此 Storage 兩個 bucket 的寫入/刪除破口全數補齊。
+   - 驗收：學員刪他人圖 → 被擋；本人刪自己 / 管理員刪任意 → 正常；security-check 16/16、test-flows 14/14。
+
+### 📂 修改檔案
+- [components/Admin/AdminDashboard.tsx](file:///Users/leo/Desktop/定課系統/NLP_GAME/components/Admin/AdminDashboard.tsx)
+- [components/Admin/tabs/](file:///Users/leo/Desktop/定課系統/NLP_GAME/components/Admin/tabs/)
+- [docs/階段1-步驟3-storage政策.sql / docs/storage安全強化-計畫書.md](file:///Users/leo/Desktop/定課系統/NLP_GAME/docs/)
+- [docs/CHANGELOG.md](file:///Users/leo/Desktop/定課系統/NLP_GAME/docs/CHANGELOG.md)
+
 ## [v1.7.0] - 2026-06-11
 
 ### 🚀 修改內容
