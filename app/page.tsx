@@ -855,7 +855,6 @@ export default function Home() {
             petLines={petLines}
             missionTemplates={missionTemplates}
             onSelectEvolutionLine={vSelectLine}
-            onTabChange={setActiveTab}
           />
         )}
 
