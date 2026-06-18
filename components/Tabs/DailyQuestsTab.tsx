@@ -933,8 +933,8 @@ export function DailyQuestsTab({
                               <span>⏱️ 認真修行版 (均速 300 EXP/天)</span>
                             </div>
                             <ul className="list-disc pl-4 text-slate-400 space-y-0.5 font-medium light:text-slate-500">
-                              <li><span className="text-slate-300 light:text-slate-700">每日五感恩</span>：堅持每日打卡 ➔ <span className="text-amber-500 font-bold">+100 EXP/天</span></li>
-                              <li><span className="text-slate-300 light:text-slate-700">每週主題任務或心得</span>：每週完成 1~2 項 ➔ <span className="text-amber-500 font-bold">+500 EXP/次</span></li>
+                              <li><span className="text-slate-300 light:text-slate-700">每日五感恩</span>：堅持每日感恩打卡 ➔ <span className="text-amber-500 font-bold">+100 EXP/天</span></li>
+                              <li><span className="text-slate-300 light:text-slate-700">每週實作打卡</span>：每週完成 1~2 項實作 ➔ <span className="text-amber-500 font-bold">+500 ~ +1000 EXP/週</span></li>
                             </ul>
                           </div>
 
@@ -944,8 +944,8 @@ export function DailyQuestsTab({
                               <span>⚡ 積極挑戰版 (均速 700 EXP/天)</span>
                             </div>
                             <ul className="list-disc pl-4 text-slate-400 space-y-0.5 font-medium light:text-slate-500">
-                              <li><span className="text-slate-300 light:text-slate-700">全數打卡</span>：每日定課 + 每週任務全通（感恩/主題/通話）➔ <span className="text-amber-500 font-bold">平均 +314 EXP/天</span></li>
-                              <li><span className="text-slate-300 light:text-slate-700">高分加碼</span>：締結產品（3000元以上）➔ <span className="text-amber-500 font-bold">+300 EXP/天</span></li>
+                              <li><span className="text-slate-300 light:text-slate-700">全數打卡</span>：每日定課 + 每週任務全通（主題任務/小組通話）➔ <span className="text-amber-500 font-bold">平均 +314 EXP/天</span></li>
+                              <li><span className="text-slate-300 light:text-slate-700">高分加碼</span>：締結產品 (3000元以上)、填寫限時問卷等</li>
                             </ul>
                           </div>
 
@@ -968,8 +968,8 @@ export function DailyQuestsTab({
                                 時間立減 <span className="text-emerald-400 font-black light:text-emerald-600">4.2 天</span>！讓破殼修行一鍵飛越！
                               </div>
                               <div className="p-1.5 rounded bg-white/[0.02] border border-white/5 light:bg-slate-100/50 light:border-slate-200 col-span-2">
-                                <span className="text-slate-300 block font-bold light:text-slate-800">混沌之卵神獸進化</span>
-                                達到 <span className="text-emerald-400 font-black light:text-emerald-600">5 級</span>即可解鎖神獸破殼進化與被動分數加成！
+                                <span className="text-slate-300 block font-bold light:text-slate-800">報名 NLP 複訓 (+1000 EXP)</span>
+                                時間立減 <span className="text-emerald-400 font-black light:text-emerald-600">2.8 天</span>！
                               </div>
                             </div>
                           </div>
@@ -983,8 +983,8 @@ export function DailyQuestsTab({
                               <span>⏱️ 認真修行版 (均速 300 EXP/天)</span>
                             </div>
                             <ul className="list-disc pl-4 text-slate-400 space-y-0.5 font-medium light:text-slate-500">
-                              <li><span className="text-slate-300 light:text-slate-700">雙定課打卡</span>：每日五感恩 + 肯定伴侶/父母 ➔ <span className="text-amber-500 font-bold">+100 EXP/天</span></li>
-                              <li><span className="text-slate-300 light:text-slate-700">每週實作或影片</span>：每週完成心錨/卓越圈實作或拍攝影片 ➔ <span className="text-amber-500 font-bold">+500 EXP/次</span></li>
+                              <li><span className="text-slate-300 light:text-slate-700">每日感恩與肯定</span>：堅持每日雙定課打卡 ➔ <span className="text-amber-500 font-bold">+100 EXP/天</span></li>
+                              <li><span className="text-slate-300 light:text-slate-700">每週實作打卡</span>：每週完成 1~2 項實作 ➔ <span className="text-amber-500 font-bold">+500 ~ +1000 EXP/週</span></li>
                             </ul>
                           </div>
 
@@ -994,8 +994,8 @@ export function DailyQuestsTab({
                               <span>⚡ 積極挑戰版 (均速 700 EXP/天)</span>
                             </div>
                             <ul className="list-disc pl-4 text-slate-400 space-y-0.5 font-medium light:text-slate-500">
-                              <li><span className="text-slate-300 light:text-slate-700">全數打卡</span>：雙定課 + 每週心錨/卓越圈 + 影片全通 ➔ <span className="text-amber-500 font-bold">平均 +350 EXP/天</span></li>
-                              <li><span className="text-slate-300 light:text-slate-700">高分加碼</span>：完成次感元個案、推薦初階等 ➔ <span className="text-amber-500 font-bold">單次 +1000 ~ +1500 EXP</span></li>
+                              <li><span className="text-slate-300 light:text-slate-700">全數打卡</span>：每日定課 + 每週任務全通（影片/心錨/卓越圈）➔ <span className="text-amber-500 font-bold">平均 +314 EXP/天</span></li>
+                              <li><span className="text-slate-300 light:text-slate-700">高分加碼</span>：完成次感元個案、填寫限時問卷等</li>
                             </ul>
                           </div>
 
@@ -1006,7 +1006,7 @@ export function DailyQuestsTab({
                             </div>
                             <div className="grid grid-cols-2 gap-2 text-slate-400 font-medium light:text-slate-600">
                               <div className="p-1.5 rounded bg-white/[0.02] border border-white/5 light:bg-slate-100/50 light:border-slate-200">
-                                <span className="text-slate-300 block font-bold light:text-slate-800">自媒體影片分享 (+500 EXP)</span>
+                                <span className="text-slate-300 block font-bold light:text-slate-800">每週實作任務 (+500 EXP)</span>
                                 時間立減 <span className="text-emerald-400 font-black light:text-emerald-600">1.5 天</span>！
                               </div>
                               <div className="p-1.5 rounded bg-white/[0.02] border border-white/5 light:bg-slate-100/50 light:border-slate-200">
@@ -1015,15 +1015,11 @@ export function DailyQuestsTab({
                               </div>
                               <div className="p-1.5 rounded bg-white/[0.02] border border-white/5 light:bg-slate-100/50 light:border-slate-200 col-span-2">
                                 <span className="text-slate-300 block font-bold light:text-slate-800">推薦報名初階課 (+1500 EXP)</span>
-                                時間立減 <span className="text-emerald-400 font-black light:text-emerald-600">4.2 天</span>！一鍵飛越修行天數！
+                                時間立減 <span className="text-emerald-400 font-black light:text-emerald-600">4.2 天</span>！讓破殼修行一鍵飛越！
                               </div>
                               <div className="p-1.5 rounded bg-white/[0.02] border border-white/5 light:bg-slate-100/50 light:border-slate-200 col-span-2">
                                 <span className="text-slate-300 block font-bold light:text-slate-800">次感元個案 3 次 (+1000 EXP)</span>
                                 時間立減 <span className="text-emerald-400 font-black light:text-emerald-600">2.8 天</span>！
-                              </div>
-                              <div className="p-1.5 rounded bg-white/[0.02] border border-white/5 light:bg-slate-100/50 light:border-slate-200 col-span-2">
-                                <span className="text-slate-300 block font-bold light:text-slate-800">牌組屬性共鳴</span>
-                                搭配同元素卡牌，每次打卡被動獲得 <span className="text-emerald-400 font-black light:text-emerald-600">10%~20%</span> 打卡分數加成！
                               </div>
                             </div>
                           </div>
