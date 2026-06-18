@@ -10,6 +10,8 @@ import {
 } from '@/lib/dailyQuestLogic';
 import { SuccessModal } from '@/components/Tabs/quests/SuccessModal';
 import { LevelUpModal } from '@/components/Tabs/quests/LevelUpModal';
+import { ProofModal } from '@/components/Tabs/quests/ProofModal';
+import { ConfirmModal } from '@/components/Tabs/quests/ConfirmModal';
 import {
   CheckCircle2, Circle, Clock, MessageSquare,
   AlertCircle, FileText, Send, Flame, Sparkles, 
@@ -1578,200 +1580,21 @@ export function DailyQuestsTab({
 
       {/* 📝 簽到證明上傳 Modal */}
       {showProofModal && selectedTask && (
-        <div className="fixed inset-0 z-[60] bg-black/80 overflow-y-auto overscroll-none modal-force-dark" onClick={(e) => { if (e.target === e.currentTarget) { setShowProofModal(false); setSelectedTask(null); }}}>
-          <div className="min-h-full flex items-center justify-center p-4" onClick={(e) => { if (e.target === e.currentTarget) { setShowProofModal(false); setSelectedTask(null); }}}>
-            <div className="glass-panel w-full max-w-md p-6 rounded-3xl border border-white/10 shadow-2xl relative animate-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
-              <h3 className="text-lg font-black text-white mb-4">
-              提交修行證明：{selectedTask.name || selectedTask.title}
-            </h3>
-            
-            <form onSubmit={handleModalSubmit} className="space-y-4">
-              <div>
-                <label className="block text-xs text-slate-400 font-bold mb-2">
-                  心得回報與發現 (必填)
-                </label>
-                <textarea
-                  required
-                  rows={4}
-                  value={proofText}
-                  onChange={(e) => setProofText(e.target.value)}
-                  placeholder="請分享您今天的練習經過、體驗或對應的溝通發現..."
-                  className="w-full rounded-xl p-3 text-sm outline-none focus:border-amber-500 transition-colors select-text border"
-                  style={{color:'var(--text-primary)', backgroundColor:'var(--input-bg)', borderColor:'var(--input-border)', userSelect:'text', WebkitUserSelect:'text'}}
-                />
-              </div>
-
-              {/* 📷 選擇圖片 / 抓相簿 */}
-              <div>
-                <label className="block text-xs font-bold mb-2">
-                  {isEvolutionTask(selectedTask) ? (
-                    <span className="text-amber-500">上傳修行圖片 / 對話截圖（進化任務必附）📸</span>
-                  ) : (
-                    <span className="text-slate-400">上傳修行圖片 / 對話截圖 (選填)</span>
-                  )}
-                </label>
-                
-                {proofImg ? (
-                  <div className="relative w-full h-40 rounded-xl overflow-hidden border border-slate-800 bg-slate-950">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img 
-                      src={proofImg} 
-                      alt="預覽圖片" 
-                      className="w-full h-full object-contain"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setProofImg('')}
-                      className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/75 hover:bg-black flex items-center justify-center text-white transition-colors cursor-pointer"
-                    >
-                      <X size={14} />
-                    </button>
-                  </div>
-                ) : (
-                  <div className="relative">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      id="proof-image-upload"
-                      onChange={handleFileChange}
-                      className="hidden"
-                      disabled={compressing}
-                    />
-                    <label
-                      htmlFor="proof-image-upload"
-                      className={`w-full h-24 border border-dashed border-slate-800 hover:border-amber-500/50 rounded-xl flex flex-col items-center justify-center gap-1.5 cursor-pointer bg-slate-950/50 hover:bg-slate-950 transition-all select-none ${
-                        compressing ? 'opacity-50 cursor-not-allowed' : ''
-                      }`}
-                    >
-                      {compressing ? (
-                        <>
-                          <div className="w-5 h-5 rounded-full border-2 border-amber-500 border-t-transparent animate-spin" />
-                          <span className="text-[10px] text-slate-400 font-bold">圖片壓縮處理中...</span>
-                        </>
-                      ) : (
-                        <>
-                          <ImageIcon size={20} className="text-slate-500" />
-                          <span className="text-[10px] text-slate-400 font-bold">點擊上傳圖片 / 抓取相簿</span>
-                        </>
-                      )}
-                    </label>
-                  </div>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-xs text-slate-400 font-bold mb-2">
-                  參考連結 (選填)
-                </label>
-                <input
-                  type="url"
-                  value={proofLink}
-                  onChange={(e) => setProofLink(e.target.value)}
-                  placeholder="如 Google Docs、對話截圖網址..."
-                  className="w-full rounded-xl p-3 text-sm outline-none focus:border-amber-500 transition-colors select-text border"
-                  style={{color:'var(--text-primary)', backgroundColor:'var(--input-bg)', borderColor:'var(--input-border)', userSelect:'text', WebkitUserSelect:'text'}}
-                />
-              </div>
-
-              <div className="bg-slate-900/50 border border-white/5 p-3 rounded-xl flex items-start gap-2 light:bg-slate-100 light:border-slate-300">
-                <AlertCircle size={16} className="text-amber-500 shrink-0 mt-0.5" />
-                <p className="text-[10px] text-slate-400 leading-normal font-bold light:text-slate-600">
-                  送出後，系統小隊長或大隊長將會進行手動審核。審核通過即可獲得 {selectedTask.score !== undefined ? selectedTask.score : selectedTask.points} 經驗積分。
-                </p>
-              </div>
-
-              {/* 告知：是否上見證牆由審核者決定，學員端僅提示 */}
-              <div className="bg-purple-500/10 border border-purple-500/30 p-3 rounded-xl flex items-start gap-2">
-                <Sparkles size={16} className="text-purple-400 shrink-0 mt-0.5" />
-                <p className="text-[10px] text-purple-200 leading-normal font-bold light:text-purple-700">
-                  審核通過後，你的成果有機會被分享到見證牆，讓大家一起見證！建議附上清楚的修行照片 📸
-                </p>
-              </div>
-
-              <div className="flex gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowProofModal(false);
-                    setSelectedTask(null);
-                  }}
-                  className="flex-1 btn-action py-3 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-white text-xs font-bold"
-                >
-                  取消
-                </button>
-                <button
-                  type="submit"
-                  disabled={submitting || (isEvolutionTask(selectedTask) && !proofImg)}
-                  className="flex-1 btn-action py-3 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-black flex items-center justify-center gap-1 shimmer-btn disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <Send size={14} />
-                  {submitting ? '提交中...' : (isEvolutionTask(selectedTask) && !proofImg ? '請先上傳照片' : '提交證明')}
-                </button>
-              </div>
-            </form>
-            </div>
-          </div>
-        </div>
+        <ProofModal
+          selectedTask={selectedTask} proofText={proofText} proofImg={proofImg} proofLink={proofLink}
+          setProofText={setProofText} setProofImg={setProofImg} setProofLink={setProofLink}
+          setShowProofModal={setShowProofModal} setSelectedTask={setSelectedTask}
+          handleModalSubmit={handleModalSubmit} handleFileChange={handleFileChange}
+          compressing={compressing} submitting={submitting}
+        />
       )}
 
       {/* ⚠️ 免證明直接簽到確認 Modal */}
       {showConfirmModal && confirmTask && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] flex items-center justify-center p-4 modal-force-dark">
-          <div className="glass-panel w-full max-w-md p-6 rounded-3xl border border-white/10 shadow-2xl relative animate-in zoom-in-95 duration-200">
-            <div className="flex flex-col items-center text-center space-y-4 py-4">
-              <div className="w-16 h-16 rounded-full bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-500 animate-bounce">
-                <CheckCircle2 size={32} />
-              </div>
-              
-              <div className="space-y-2">
-                <h3 className="text-lg font-black text-white">
-                  確認完成此項任務？
-                </h3>
-                <p className="text-base font-bold text-amber-500">
-                  {confirmTask.name || confirmTask.title}
-                </p>
-                <p className="text-xs text-slate-400 leading-relaxed max-w-xs mx-auto light:text-slate-600">
-                  此任務為「免證明簽到」，確認後將直接完成打卡，並獲得 <span className="text-amber-500 font-bold">+{confirmTask.score !== undefined ? confirmTask.score : confirmTask.points}</span> 經驗積分。
-                </p>
-              </div>
-            </div>
-
-            <div className="flex gap-3 mt-4">
-              <button
-                type="button"
-                onClick={() => {
-                  setShowConfirmModal(false);
-                  setConfirmTask(null);
-                }}
-                className="flex-1 btn-action py-3 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-white text-xs font-bold"
-              >
-                尚未完成
-              </button>
-              <button
-                type="button"
-                onClick={async () => {
-                  if (confirmTask) {
-                    const task = confirmTask;
-                    // 立即關閉對話框並清空狀態，避免非同步重渲染時對話框閃爍
-                    setShowConfirmModal(false);
-                    setConfirmTask(null);
-                    try {
-                      await onCheckIn(task.id);
-                    } catch (err) {
-                      console.error(err);
-                      // 若失敗，則重新還原對話框
-                      setConfirmTask(task);
-                      setShowConfirmModal(true);
-                    }
-                  }
-                }}
-                className="flex-1 btn-action py-3 rounded-xl bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-300 hover:to-orange-400 text-slate-950 text-xs font-black shadow-[0_0_15px_rgba(245,158,11,0.4)] shimmer-btn"
-              >
-                確認完成
-              </button>
-            </div>
-          </div>
-        </div>
+        <ConfirmModal
+          confirmTask={confirmTask} setShowConfirmModal={setShowConfirmModal}
+          setConfirmTask={setConfirmTask} onCheckIn={onCheckIn}
+        />
       )}
 
       {/* 🔮 準備進化確認 Modal */}
