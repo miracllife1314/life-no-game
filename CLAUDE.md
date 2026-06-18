@@ -76,10 +76,27 @@ Never perform database queries inside a loop or `.map()` in React client-side co
 
 ---
 
-## Environment Variables
+## Environments & Database Routing (重要)
 
-Requires `.env.local` with:
-- `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-- `SUPABASE_SERVICE_ROLE_KEY`
-- `NEXT_PUBLIC_APP_URL`
+本專案有兩個資料庫：**測試庫** 與 **正式庫**，靠環境變數區分。
+
+連線優先序（`lib/supabase.ts`）：**只要有設 `_LOCAL` 變數就優先用 `_LOCAL`（測試庫），否則 fallback 到無後綴變數（正式庫）。**
+
+| 環境 | 連哪個資料庫 | 設哪組變數 |
+|---|---|---|
+| 本機 `npm run dev` | 🟢 測試庫 | `.env.local` 的 `_LOCAL` 那組 |
+| Vercel **`staging`（Preview）** | 🟢 測試庫 | Vercel Preview 設 `_LOCAL` 那組 |
+| Vercel **`main`（Production）** | 🔴 正式庫 | Vercel Production 設無後綴那組（**絕不可設 `_LOCAL`**） |
+
+`.env.local` 需要：
+- `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY`（正式庫）
+- `NEXT_PUBLIC_SUPABASE_URL_LOCAL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY_LOCAL`（測試庫，本機 dev 用）
+- `SUPABASE_SERVICE_ROLE_KEY`、`NEXT_PUBLIC_APP_URL`
+
+⚠️ **絕不可在 Vercel Production 設定 `_LOCAL` 變數**，否則正式站會連到測試庫、污染學員資料。
+
+## Deployment Workflow (部署規則)
+
+- `main` 分支 → 正式站（正式庫，學員正在使用）。`staging` 分支 → Preview 預覽站（測試庫）。
+- **每次要 push 到伺服器(GitHub/Vercel)時，必要時必須先問使用者：要放到 `main`（正式）還是 `staging`（測試）。不要自作主張直接推 `main`。**
+- 備份/還原腳本（`npm run backup` / `npm run restore`）：預設操作 **`_LOCAL`（測試庫）**；加 `--prod` 旗標才操作**正式庫**。動手前先確認目標環境。
