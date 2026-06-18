@@ -107,13 +107,13 @@ export function LeaderboardTab({
   const getRankBadge = (rank: number) => {
     switch (rank) {
       case 1:
-        return 'bg-gradient-to-r from-yellow-400 to-amber-500 text-slate-950 font-black';
+        return 'bg-gradient-to-br from-yellow-350 via-amber-400 to-amber-600 text-slate-950 font-black shadow-[0_0_8px_rgba(245,158,11,0.6)] border border-yellow-300/30 scale-110';
       case 2:
-        return 'bg-gradient-to-r from-slate-300 to-slate-400 text-slate-950 font-black';
+        return 'bg-gradient-to-br from-slate-200 via-slate-350 to-slate-500 text-slate-950 font-black shadow-[0_0_8px_rgba(203,213,225,0.4)] border border-slate-200/30 scale-105';
       case 3:
-        return 'bg-gradient-to-r from-orange-400 to-orange-500 text-slate-950 font-black';
+        return 'bg-gradient-to-br from-orange-300 via-orange-450 to-orange-600 text-slate-950 font-black shadow-[0_0_8px_rgba(249,115,22,0.4)] border border-orange-400/20';
       default:
-        return 'bg-slate-900 border border-white/10 text-slate-400 light:bg-slate-100 light:border-slate-300';
+        return 'bg-slate-900/60 border border-white/5 text-slate-400 light:bg-slate-100 light:border-slate-300';
     }
   };
 
@@ -638,15 +638,32 @@ export function LeaderboardTab({
                       const isSelf = p.id === currentUser.id;
 
                       return (
-                        <tr key={p.id} className={`hover:bg-white/[0.01] light:hover:bg-slate-100/30 ${isSelf ? 'bg-amber-500/5' : ''}`}>
+                        <tr 
+                          key={p.id} 
+                          className={`transition-all ${
+                            isSelf 
+                              ? 'bg-amber-500/10 border-l-2 border-l-amber-500' 
+                              : rank === 1 
+                                ? 'bg-yellow-500/5 border-l-2 border-l-yellow-500/50'
+                                : rank === 2 
+                                  ? 'bg-slate-300/5 border-l-2 border-l-slate-400/50'
+                                  : rank === 3 
+                                    ? 'bg-orange-400/5 border-l-2 border-l-orange-500/50'
+                                    : 'hover:bg-white/[0.01] light:hover:bg-slate-100/30'
+                          }`}
+                        >
                           <td className="p-3 text-center font-bold">
-                            <span className={`inline-block w-6 h-6 rounded-full text-center leading-6 text-[10px] ${
-                              rank <= 3 
-                                ? 'bg-amber-500 text-slate-950 font-black' 
-                                : 'bg-slate-800/40 text-slate-400'
-                            }`}>
-                              {rank}
-                            </span>
+                            {rank === 1 ? (
+                              <span className="text-base filter drop-shadow-[0_0_4px_rgba(251,191,36,0.6)]">🥇</span>
+                            ) : rank === 2 ? (
+                              <span className="text-base filter drop-shadow-[0_0_4px_rgba(203,213,225,0.5)]">🥈</span>
+                            ) : rank === 3 ? (
+                              <span className="text-base filter drop-shadow-[0_0_4px_rgba(249,115,22,0.5)]">🥉</span>
+                            ) : (
+                              <span className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-center text-[10px] ${getRankBadge(rank)}`}>
+                                {rank}
+                              </span>
+                            )}
                           </td>
                           <td className="p-3 font-bold text-slate-300 light:text-slate-700">{getBatchName(p.batch_id)}</td>
                           <td className="p-3 font-bold text-white light:text-slate-900 flex items-center gap-1">
@@ -697,15 +714,30 @@ export function LeaderboardTab({
                       const captainName = profiles.find(p => p.id === team.captain_id)?.name || '未指定';
                       
                       return (
-                        <tr key={team.id} className="hover:bg-white/[0.01] light:hover:bg-slate-100/30">
+                        <tr 
+                          key={team.id} 
+                          className={`transition-all ${
+                            rank === 1 
+                              ? 'bg-yellow-500/5 border-l-2 border-l-yellow-500/50'
+                              : rank === 2 
+                                ? 'bg-slate-300/5 border-l-2 border-l-slate-400/50'
+                                : rank === 3 
+                                  ? 'bg-orange-400/5 border-l-2 border-l-orange-500/50'
+                                  : 'hover:bg-white/[0.01] light:hover:bg-slate-100/30'
+                          }`}
+                        >
                           <td className="p-3 text-center font-bold">
-                            <span className={`inline-block w-6 h-6 rounded-full text-center leading-6 text-[10px] ${
-                              rank <= 3 
-                                ? 'bg-amber-500 text-slate-950 font-black' 
-                                : 'bg-slate-800/40 text-slate-400'
-                            }`}>
-                              {rank}
-                            </span>
+                            {rank === 1 ? (
+                              <span className="text-base filter drop-shadow-[0_0_4px_rgba(251,191,36,0.6)]">🥇</span>
+                            ) : rank === 2 ? (
+                              <span className="text-base filter drop-shadow-[0_0_4px_rgba(203,213,225,0.5)]">🥈</span>
+                            ) : rank === 3 ? (
+                              <span className="text-base filter drop-shadow-[0_0_4px_rgba(249,115,22,0.5)]">🥉</span>
+                            ) : (
+                              <span className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-center text-[10px] ${getRankBadge(rank)}`}>
+                                {rank}
+                              </span>
+                            )}
                           </td>
                           <td className="p-3 font-bold text-slate-300 light:text-slate-700">{getBatchName(team.batch_id)}</td>
                           <td className="p-3 font-bold text-white light:text-slate-900">{getSubTeamNameOnly(team.name, getBatchName(team.batch_id))}</td>
@@ -757,9 +789,32 @@ export function LeaderboardTab({
                       const rank = idx + 1;
                       const isSelf = x.p.id === currentUser.id;
                       return (
-                        <tr key={x.p.id} className={`hover:bg-white/[0.01] light:hover:bg-slate-100/30 ${isSelf ? 'bg-amber-500/5' : ''}`}>
+                        <tr 
+                          key={x.p.id} 
+                          className={`transition-all ${
+                            isSelf 
+                              ? 'bg-amber-500/10 border-l-2 border-l-amber-500' 
+                              : rank === 1 
+                                ? 'bg-yellow-500/5 border-l-2 border-l-yellow-500/50'
+                                : rank === 2 
+                                  ? 'bg-slate-300/5 border-l-2 border-l-slate-400/50'
+                                  : rank === 3 
+                                    ? 'bg-orange-400/5 border-l-2 border-l-orange-500/50'
+                                    : 'hover:bg-white/[0.01] light:hover:bg-slate-100/30'
+                          }`}
+                        >
                           <td className="p-3 text-center font-bold">
-                            <span className={`inline-block w-6 h-6 rounded-full text-center leading-6 text-[10px] ${rank <= 3 ? 'bg-amber-500 text-slate-950 font-black' : 'bg-slate-800/40 text-slate-400'}`}>{rank}</span>
+                            {rank === 1 ? (
+                              <span className="text-base filter drop-shadow-[0_0_4px_rgba(251,191,36,0.6)]">🥇</span>
+                            ) : rank === 2 ? (
+                              <span className="text-base filter drop-shadow-[0_0_4px_rgba(203,213,225,0.5)]">🥈</span>
+                            ) : rank === 3 ? (
+                              <span className="text-base filter drop-shadow-[0_0_4px_rgba(249,115,22,0.5)]">🥉</span>
+                            ) : (
+                              <span className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-center text-[10px] ${getRankBadge(rank)}`}>
+                                {rank}
+                              </span>
+                            )}
                           </td>
                           <td className="p-3 font-bold text-slate-300 light:text-slate-700">{getBatchName(x.p.batch_id)}</td>
                           <td className="p-3 font-bold text-white light:text-slate-900 flex items-center gap-1">
