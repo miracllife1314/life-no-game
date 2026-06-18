@@ -2,6 +2,24 @@
 
 本文件紀錄「NLP人性溝通術課程計分系統」的所有版本變更與功能修改紀錄。
 
+## [v1.9.0] - 2026-06-18
+
+### 🚀 修改內容
+1. **修行加速攻略分級指南系統實作**：
+   - 建立並配置設定檔 [lib/guideConfig.ts](file:///Users/leo/Desktop/定課系統/NLP_GAME/lib/guideConfig.ts)，為初階與進階學員規劃量身打造的修煉加分攻略與具體實作建議。
+   - 升級 [DailyQuestsTab.tsx](file:///Users/leo/Desktop/定課系統/NLP_GAME/components/Tabs/DailyQuestsTab.tsx) 的 UI：
+     - 將靜態的加速攻略文字重構為 Segmented Control Tab（初階日常攻略 / 進階修煉心法），學員可手動切換閱讀。
+     - 根據學員目前的班級名稱（`activeBatch.name` 中含有「進階/高階/班長班」等字眼）自動預設選取最適當的攻略分級。
+     - 攻略卡片全面套用極致暗黑玻璃微光（Glassmorphism）配色（初階為「翡翠綠 ➔ 冰晶藍」邊框與圖標，進階為「烈焰橘 ➔ 玄金黃」邊框與圖標）。
+     - 支援前往跳轉按鈕：點擊卡片動作按鈕時，引導呼叫 `onTabChange` 自動切換大分頁，如見證分享、個人面板、課程資訊、神獸與卡牌組裝等，提升遊戲化體驗。
+   - 修改 [page.tsx](file:///Users/leo/Desktop/定課系統/NLP_GAME/app/page.tsx)：傳遞 `onTabChange={setActiveTab}` 給 `DailyQuestsTab` 以支援跳轉。
+
+### 📂 修改檔案
+- [lib/guideConfig.ts](file:///Users/leo/Desktop/定課系統/NLP_GAME/lib/guideConfig.ts) [NEW]
+- [components/Tabs/DailyQuestsTab.tsx](file:///Users/leo/Desktop/定課系統/NLP_GAME/components/Tabs/DailyQuestsTab.tsx) [MODIFY]
+- [app/page.tsx](file:///Users/leo/Desktop/定課系統/NLP_GAME/app/page.tsx) [MODIFY]
+- [docs/CHANGELOG.md](file:///Users/leo/Desktop/定課系統/NLP_GAME/docs/CHANGELOG.md) [MODIFY]
+
 ## [v1.8.0] - 2026-06-18
 
 ### 📦 正式區部署狀態 (2026-06-18) — ✅ 全數完成

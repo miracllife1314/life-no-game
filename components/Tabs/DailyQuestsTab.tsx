@@ -17,6 +17,8 @@ import {
   AlertCircle, FileText, Send, Flame, Sparkles, 
   Star, Timer, ExternalLink, ChevronDown, ChevronUp, X, ImageIcon, Upload
 } from 'lucide-react';
+import { TabKey } from '@/components/Layout/Navigation';
+import { BEGINNER_GUIDES, ADVANCED_GUIDES, GuideItem } from '@/lib/guideConfig';
 
 interface DailyQuestsTabProps {
   profile: Profile;
@@ -37,6 +39,7 @@ interface DailyQuestsTabProps {
   petLines: PetLine[];
   missionTemplates: MissionTemplate[];
   onSelectEvolutionLine: (studentId: string, lineKey: string) => Promise<void>;
+  onTabChange?: (tab: TabKey) => void;
 }
 
 
@@ -58,7 +61,8 @@ export function DailyQuestsTab({
   batches = [],
   petLines = [],
   missionTemplates = [],
-  onSelectEvolutionLine
+  onSelectEvolutionLine,
+  onTabChange
 }: DailyQuestsTabProps) {
   const [activeCategory, setActiveCategory] = useState<'daily' | 'weekly' | 'special' | 'temporary'>('daily');
   const [selectedTask, setSelectedTask] = useState<any | null>(null);
@@ -89,6 +93,8 @@ export function DailyQuestsTab({
   const userPet = allUserPets.find(up => up.student_id === activeProfile.id) || propUserPet;
   const batchStartDate = activeBatch ? activeBatch.start_date : propBatchStartDate;
   const isCohortEnded = profile.status === 'ended' || profile.status === 'inactive' || (activeBatch ? activeBatch.status === 'ended' : false);
+  const isUserAdvanced = !!(activeBatch?.name?.includes('進階') || activeBatch?.name?.includes('高階') || activeBatch?.name?.includes('班長班'));
+  const isAdmin = profile.role === 'admin';
 
   // Level and Pet stage logic
   const totalExp = userPet ? userPet.total_exp : activeProfile.score;
@@ -276,6 +282,15 @@ export function DailyQuestsTab({
   const [showLevelUpModal, setShowLevelUpModal] = useState<any | null>(null);
   const [selectedTempLine, setSelectedTempLine] = useState<string | null>(null);
   const [showStrategy, setShowStrategy] = useState(false);
+  const [guideLevel, setGuideLevel] = useState<'beginner' | 'advanced'>('beginner');
+
+  // 自動根據班次名稱決定預設攻略級別
+  React.useEffect(() => {
+    if (activeBatch?.name) {
+      const isAdvanced = activeBatch.name.includes('進階') || activeBatch.name.includes('高階') || activeBatch.name.includes('班長班');
+      setGuideLevel(isAdvanced ? 'advanced' : 'beginner');
+    }
+  }, [activeBatch?.name]);
 
   const getEvolutionDetails = () => {
     if (!userPet || !batchStartDate) return null;
@@ -919,58 +934,114 @@ export function DailyQuestsTab({
                   </div>
 
                   {/* 攻略內容 */}
-                  {showStrategy && (
-                    <div className="mt-2 text-[10px] space-y-3 p-3 rounded-xl border border-white/5 bg-slate-950/80 animate-in slide-in-from-top-2 duration-300 light:bg-white/80 light:border-slate-200">
-                      
-                      {/* 認真修行版 */}
-                      <div className="space-y-1">
-                        <div className="font-extrabold text-indigo-400 flex items-center gap-1 light:text-indigo-600">
-                          <span>⏱️ 認真修行版 (均速 300 EXP/天)</span>
-                        </div>
-                        <ul className="list-disc pl-4 text-slate-400 space-y-0.5 font-medium light:text-slate-500">
-                          <li><span className="text-slate-300 light:text-slate-700">每日感恩與肯定</span>：堅持每日雙定課打卡 ➔ <span className="text-amber-500 font-bold">+100 EXP/天</span></li>
-                          <li><span className="text-slate-300 light:text-slate-700">每週實作打卡</span>：每週完成 1~2 項實作 ➔ <span className="text-amber-500 font-bold">+500 ~ +1000 EXP/週</span></li>
-                        </ul>
-                      </div>
+                  {showStrategy && (() => {
+                    const currentLevel = isAdmin ? guideLevel : (isUserAdvanced ? 'advanced' : 'beginner');
+                    const isBeginnerTheme = currentLevel === 'beginner';
+                    return (
+                      <div className="mt-3 space-y-4 p-4 rounded-2xl border border-white/5 bg-slate-950/80 animate-in slide-in-from-top-2 duration-300 light:bg-white/80 light:border-slate-200">
+                        {/* 頂部切換 Tab (僅限管理員預覽切換，學員端隱藏以實現分級隔離) */}
+                        {isAdmin && (
+                          <div className="flex gap-2 p-1 rounded-xl bg-white/[0.03] border border-white/5 light:bg-slate-100 light:border-slate-200">
+                            <button
+                              type="button"
+                              onClick={() => setGuideLevel('beginner')}
+                              className={`flex-1 py-2 rounded-lg text-[10px] font-black tracking-wider transition-all duration-300 cursor-pointer active:scale-95 ${
+                                currentLevel === 'beginner'
+                                  ? 'bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.15)] light:bg-emerald-100 light:text-emerald-800 light:border-emerald-300'
+                                  : 'text-slate-400 hover:text-slate-200 light:text-slate-600 light:hover:text-slate-900'
+                              }`}
+                            >
+                              🟢 初階日常攻略
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setGuideLevel('advanced')}
+                              className={`flex-1 py-2 rounded-lg text-[10px] font-black tracking-wider transition-all duration-300 cursor-pointer active:scale-95 ${
+                                currentLevel === 'advanced'
+                                  ? 'bg-amber-500/20 border border-amber-500/30 text-amber-400 shadow-[0_0_10px_rgba(245,158,11,0.15)] light:bg-amber-100 light:text-amber-800 light:border-amber-300'
+                                  : 'text-slate-400 hover:text-slate-200 light:text-slate-600 light:hover:text-slate-900'
+                              }`}
+                            >
+                              🔥 進階修煉心法
+                            </button>
+                          </div>
+                        )}
 
-                      {/* 積極挑戰版 */}
-                      <div className="space-y-1 border-t border-white/5 pt-2.5 light:border-slate-150">
-                        <div className="font-extrabold text-amber-400 flex items-center gap-1 light:text-amber-600">
-                          <span>⚡ 積極挑戰版 (均速 700 EXP/天)</span>
+                        {/* 攻略說明提示 */}
+                        <div className="text-[9px] text-slate-400 light:text-slate-500 font-medium leading-relaxed bg-white/[0.01] border border-white/5 rounded-lg p-2.5 light:bg-slate-50 light:border-slate-200">
+                          {currentLevel === 'beginner' ? (
+                            <span>✨ 系統已為您偵測：<b>初階日常指南</b>。專注於不漏分、培養定課習慣，解鎖混沌之卵！</span>
+                          ) : (
+                            <span>✨ 系統已為您偵測：<b>進階修煉心法</b>。專注於高分大任務、神獸進化流派、卡牌共鳴共創！</span>
+                          )}
                         </div>
-                        <ul className="list-disc pl-4 text-slate-400 space-y-0.5 font-medium light:text-slate-500">
-                          <li><span className="text-slate-300 light:text-slate-700">全數打卡</span>：每日定課 + 每週任務全通（影片/心錨/卓越圈）➔ <span className="text-amber-500 font-bold">平均 +314 EXP/天</span></li>
-                          <li><span className="text-slate-300 light:text-slate-700">高分加碼</span>：完成次感元個案、填寫限時問卷等</li>
-                        </ul>
-                      </div>
 
-                      {/* 時間折抵對照表 */}
-                      <div className="space-y-1 border-t border-white/5 pt-2.5 light:border-slate-150">
-                        <div className="font-extrabold text-pink-400 flex items-center gap-1 light:text-pink-600">
-                          <span>✨ 攻略秘笈：高分任務「天數直接折抵」</span>
-                        </div>
-                        <div className="grid grid-cols-2 gap-2 text-slate-400 font-medium light:text-slate-600">
-                          <div className="p-1.5 rounded bg-white/[0.02] border border-white/5 light:bg-slate-100/50 light:border-slate-200">
-                            <span className="text-slate-300 block font-bold light:text-slate-800">每週實作任務 (+500 EXP)</span>
-                            時間立減 <span className="text-emerald-400 font-black light:text-emerald-600">1.5 天</span>！
-                          </div>
-                          <div className="p-1.5 rounded bg-white/[0.02] border border-white/5 light:bg-slate-100/50 light:border-slate-200">
-                            <span className="text-slate-300 block font-bold light:text-slate-800">邀約入門體驗課 (+500 EXP)</span>
-                            時間立減 <span className="text-emerald-400 font-black light:text-emerald-600">1.5 天</span>！
-                          </div>
-                          <div className="p-1.5 rounded bg-white/[0.02] border border-white/5 light:bg-slate-100/50 light:border-slate-200 col-span-2">
-                            <span className="text-slate-300 block font-bold light:text-slate-800">推薦報名初階課 (+1500 EXP)</span>
-                            時間立減 <span className="text-emerald-400 font-black light:text-emerald-600">4.2 天</span>！讓破殼修行一鍵飛越！
-                          </div>
-                          <div className="p-1.5 rounded bg-white/[0.02] border border-white/5 light:bg-slate-100/50 light:border-slate-200 col-span-2">
-                            <span className="text-slate-300 block font-bold light:text-slate-800">次感元個案 3 次 (+1000 EXP)</span>
-                            時間立減 <span className="text-emerald-400 font-black light:text-emerald-600">2.8 天</span>！
-                          </div>
+                        {/* 卡片列表 */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          {(currentLevel === 'beginner' ? BEGINNER_GUIDES : ADVANCED_GUIDES).map((item: GuideItem) => {
+                            return (
+                              <div
+                                key={item.id}
+                                className={`flex flex-col justify-between p-3.5 rounded-xl border bg-slate-900/40 backdrop-blur-sm transition-all duration-300 light:bg-slate-50/50 ${
+                                  isBeginnerTheme
+                                    ? 'border-emerald-500/10 hover:border-emerald-500/30 hover:shadow-[0_0_15px_rgba(16,185,129,0.08)] light:border-emerald-200 light:hover:border-emerald-400'
+                                    : 'border-amber-500/10 hover:border-amber-500/30 hover:shadow-[0_0_15px_rgba(245,158,11,0.08)] light:border-amber-200 light:hover:border-amber-400'
+                                }`}
+                              >
+                                <div className="space-y-1.5">
+                                  {/* 標題與分數標籤 */}
+                                  <div className="flex justify-between items-start gap-2">
+                                    <h4 className="font-extrabold text-slate-100 text-[11px] light:text-slate-900">
+                                      {item.title}
+                                    </h4>
+                                    <span className={`shrink-0 px-2 py-0.5 rounded-full text-[9px] font-black border ${
+                                      isBeginnerTheme
+                                        ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400 light:bg-emerald-100 light:text-emerald-700 light:border-emerald-200'
+                                        : 'bg-amber-500/10 border-amber-500/20 text-amber-400 light:bg-amber-100 light:text-amber-700 light:border-amber-200'
+                                    }`}>
+                                      {item.scoreLabel}
+                                    </span>
+                                  </div>
+
+                                  {/* 任務描述 */}
+                                  <p className="text-slate-400 text-[10px] leading-relaxed light:text-slate-600">
+                                    {item.description}
+                                  </p>
+
+                                  {/* 修煉建議 */}
+                                  <div className={`text-[9.5px] p-2 rounded-lg leading-relaxed ${
+                                    isBeginnerTheme
+                                      ? 'bg-emerald-500/[0.03] border border-emerald-500/5 text-emerald-300/90 light:bg-emerald-50/50 light:border-emerald-100 light:text-emerald-800'
+                                      : 'bg-amber-500/[0.03] border border-amber-500/5 text-amber-300/90 light:bg-amber-50/50 light:border-amber-100 light:text-amber-800'
+                                  }`}>
+                                    {item.recommendation}
+                                  </div>
+                                </div>
+
+                                {/* 前往按鈕 */}
+                                {item.actionTab && (
+                                  <div className="pt-2.5 mt-auto flex justify-end">
+                                    <button
+                                      type="button"
+                                      onClick={() => { if (item.actionTab) onTabChange?.(item.actionTab); }}
+                                      className={`px-3 py-1.5 rounded-lg text-[9px] font-black tracking-wider transition-all duration-300 cursor-pointer active:scale-95 flex items-center gap-1 border ${
+                                        isBeginnerTheme
+                                          ? 'bg-emerald-500/10 hover:bg-emerald-500/20 border-emerald-500/20 hover:border-emerald-500/40 text-emerald-400 light:bg-emerald-100 light:text-emerald-800 light:border-emerald-300'
+                                          : 'bg-amber-500/10 hover:bg-amber-500/20 border-amber-500/20 hover:border-amber-500/40 text-amber-400 light:bg-amber-100 light:text-amber-800 light:border-amber-300'
+                                      }`}
+                                    >
+                                      <span>{item.actionText}</span>
+                                      <ExternalLink size={9} />
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
-
-                    </div>
-                  )}
+                    );
+                  })()}
 
                 </div>
               );
