@@ -1238,9 +1238,9 @@ export default function Home() {
 
       {/* 🏆 成就解鎖即時通知彈窗 —— 等升級/進化彈窗都關掉後才跳(排最後、不重疊) */}
       {pendingAchievements.length > 0 && !questModalActive && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-md animate-in fade-in duration-300">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-md animate-in fade-in duration-300 modal-force-dark">
           {/* Neon-glow glass card */}
-          <div className="relative w-full max-w-sm mx-4 p-8 rounded-[2.5rem] border border-amber-500/50 bg-[#090806]/90 shadow-[0_0_50px_rgba(245,158,11,0.25)] text-center space-y-6 select-none overflow-hidden animate-in zoom-in-95 duration-300">
+          <div className="relative w-full max-w-sm mx-4 p-8 rounded-[2.5rem] border border-amber-500/50 bg-[#090806]/95 shadow-[0_0_50px_rgba(245,158,11,0.35)] text-center space-y-6 select-none overflow-hidden animate-in zoom-in-95 duration-300">
             {/* Ambient glow in card background */}
             <div className="absolute -inset-10 bg-gradient-to-r from-amber-500/10 to-transparent blur-2xl pointer-events-none rounded-full" />
             
@@ -1255,24 +1255,27 @@ export default function Home() {
             </div>
 
             {/* Circular gold-neon icon container */}
-            <div className="flex justify-center py-4">
-              <BadgeIcon 
-                name={pendingAchievements[0].achievement?.icon_url || 'Trophy'} 
-                unlocked={true} 
-                size={96} 
-                className="transition-transform hover:scale-105" 
-              />
+            <div className="flex justify-center py-4 relative">
+              <div className="absolute w-24 h-24 rounded-full bg-amber-500/10 blur-xl scale-110 animate-pulse pointer-events-none" />
+              <div className="relative z-10">
+                <BadgeIcon 
+                  name={pendingAchievements[0].achievement?.icon_url || 'Trophy'} 
+                  unlocked={true} 
+                  size={96} 
+                  className="transition-transform hover:scale-105" 
+                />
+              </div>
             </div>
 
             {/* Description */}
-            <p className="text-xs text-slate-300 leading-relaxed max-w-[260px] mx-auto">
+            <p className="text-xs text-slate-300 leading-relaxed max-w-[260px] mx-auto font-medium">
               {pendingAchievements[0].achievement?.description}
             </p>
 
             {/* Button */}
             <button
               onClick={handleAcceptAchievementBlessing}
-              className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 text-slate-950 text-xs font-black shadow-[0_4px_12px_rgba(245,158,11,0.3)] hover:brightness-110 active:scale-98 transition-all cursor-pointer"
+              className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 text-slate-950 text-xs font-black shadow-[0_4px_12px_rgba(245,158,11,0.3)] hover:brightness-110 active:scale-98 transition-all cursor-pointer shimmer-btn"
             >
               收下修煉祝福
             </button>
