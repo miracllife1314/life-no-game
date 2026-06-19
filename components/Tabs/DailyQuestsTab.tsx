@@ -1479,9 +1479,9 @@ export function DailyQuestsTab({
               <button
                 key={key}
                 onClick={() => setActiveCategory(key as typeof activeCategory)}
-                className={`relative flex-shrink-0 sm:flex-initial flex flex-row items-center justify-center gap-1.5 px-5 py-2.5 rounded-xl text-sm sm:text-xs font-black transition-all duration-300 select-none whitespace-nowrap cursor-pointer ${
+                className={`relative flex-1 sm:flex-initial flex flex-row items-center justify-center gap-1.5 px-2 sm:px-4 py-2.5 rounded-xl text-sm sm:text-xs font-black transition-colors duration-200 select-none whitespace-nowrap cursor-pointer ${
                   activeCategory === key
-                    ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 shadow-[0_0_15px_rgba(245,158,11,0.35)] scale-[1.02]'
+                    ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 shadow-[0_0_15px_rgba(245,158,11,0.35)]'
                     : 'text-slate-400 hover:text-white hover:bg-slate-800/40 light:hover:bg-slate-200/50'
                 }`}
               >
