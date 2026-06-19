@@ -361,29 +361,29 @@ export function LeaderboardTab({
                   {topIndividual[1] && (
                     <div className="flex flex-col items-center animate-in fade-in slide-in-from-bottom-4 duration-500">
                       <div className="relative">
-                        <div className="min-w-[4rem] px-2.5 h-14 rounded-2xl bg-gradient-to-br from-slate-300 to-slate-400 text-slate-950 font-black flex items-center justify-center text-[11px] shadow-[0_0_15px_rgba(203,213,225,0.3)] border border-white/20 select-none text-center">
-                          {topIndividual[1].name}
+                        <div className="w-[84px] sm:w-24 h-14 rounded-2xl bg-gradient-to-br from-slate-300 to-slate-400 text-slate-950 font-black flex items-center justify-center shadow-[0_0_15px_rgba(203,213,225,0.3)] border border-white/20 select-none text-center">
+                          <span className="truncate w-full block text-center px-0.5 text-[11px] sm:text-xs">{topIndividual[1].name}</span>
                         </div>
                         <span className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-slate-400 text-slate-950 text-[10px] font-black flex items-center justify-center border border-slate-900">
                           2
                         </span>
+                        {studentStreaks[topIndividual[1].id] && (
+                          <span className="absolute -top-2.5 -left-2 text-[9px] font-extrabold text-orange-400 bg-slate-950/90 border border-orange-500/20 px-1 py-0.5 rounded-md shadow flex items-center gap-0.25 select-none animate-pulse" title={`連續打卡 ${studentStreaks[topIndividual[1].id]} 天`}>
+                            🔥{studentStreaks[topIndividual[1].id]}
+                          </span>
+                        )}
                       </div>
                       <span className="font-black text-white text-xs mt-2 truncate w-20 text-center light:text-slate-900">
                         第二名
                       </span>
-                      <span className="text-[10px] font-bold text-slate-400 flex items-center gap-1">
-                        <span>{topIndividual[1].score.toLocaleString()} XP</span>
-                        {studentStreaks[topIndividual[1].id] && (
-                          <span className="text-orange-400 font-extrabold text-[10px] flex items-center gap-0.5 animate-pulse" title={`連續打卡 ${studentStreaks[topIndividual[1].id]} 天`}>
-                            🔥{studentStreaks[topIndividual[1].id]}
-                          </span>
-                        )}
+                      <span className="text-[10px] font-bold text-slate-400 whitespace-nowrap">
+                        {topIndividual[1].score.toLocaleString()} XP
                       </span>
                       
                       {/* Pedestal with Level inside */}
-                      <div className="h-16 w-20 mt-3 rounded-t-xl bg-gradient-to-t from-slate-800/80 to-slate-700/30 border border-slate-700/40 flex flex-col items-center justify-center shadow-lg light:from-slate-200 light:to-slate-100">
+                      <div className="h-16 w-[84px] sm:w-24 mt-3 rounded-t-xl bg-gradient-to-t from-slate-800/80 to-slate-700/30 border border-slate-700/40 flex flex-col items-center justify-center shadow-lg light:from-slate-200 light:to-slate-100">
                         <span className="text-slate-500 font-extrabold text-xs font-mono">II</span>
-                        <span className="text-[9px] font-bold text-slate-400 mt-0.5">LV.{Math.floor(topIndividual[1].score / 700)}</span>
+                        <span className="text-[9px] font-bold text-slate-400 mt-0.5 whitespace-nowrap">LV.{Math.floor(topIndividual[1].score / 700)}</span>
                       </div>
                     </div>
                   )}
@@ -393,30 +393,30 @@ export function LeaderboardTab({
                     <div className="flex flex-col items-center animate-in fade-in slide-in-from-bottom-8 duration-700 relative z-10 -mt-4">
                       <div className="absolute -top-6 text-xl animate-bounce">👑</div>
                       <div className="relative">
-                        <div className="min-w-[4.5rem] px-3 h-16 rounded-2xl bg-gradient-to-br from-yellow-400 via-amber-400 to-amber-500 text-slate-950 font-black flex items-center justify-center text-xs shadow-[0_0_20px_rgba(251,191,36,0.4)] border border-yellow-300/30 select-none text-center">
-                          {topIndividual[0].name}
+                        <div className="w-[96px] sm:w-28 h-16 rounded-2xl bg-gradient-to-br from-yellow-400 via-amber-400 to-amber-500 text-slate-950 font-black flex items-center justify-center shadow-[0_0_20px_rgba(251,191,36,0.4)] border border-yellow-300/30 select-none text-center">
+                          <span className="truncate w-full block text-center px-0.5 text-xs font-black">{topIndividual[0].name}</span>
                         </div>
                         <span className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-amber-500 text-slate-950 text-[10px] font-black flex items-center justify-center border border-slate-900">
                           1
                         </span>
+                        {studentStreaks[topIndividual[0].id] && (
+                          <span className="absolute -top-2.5 -left-2 text-[9px] font-extrabold text-orange-400 bg-slate-950/90 border border-orange-500/20 px-1 py-0.5 rounded-md shadow flex items-center gap-0.25 select-none animate-pulse" title={`連續打卡 ${studentStreaks[topIndividual[0].id]} 天`}>
+                            🔥{studentStreaks[topIndividual[0].id]}
+                          </span>
+                        )}
                       </div>
                       <span className="font-black text-amber-200 text-sm mt-2 truncate w-24 text-center light:text-amber-600">
                         第一名
                       </span>
-                      <span className="text-[10px] font-bold text-amber-400 flex items-center gap-1">
-                        <span>{topIndividual[0].score.toLocaleString()} XP</span>
-                        {studentStreaks[topIndividual[0].id] && (
-                          <span className="text-orange-400 font-extrabold text-[10px] flex items-center gap-0.5 animate-pulse" title={`連續打卡 ${studentStreaks[topIndividual[0].id]} 天`}>
-                            🔥{studentStreaks[topIndividual[0].id]}
-                          </span>
-                        )}
+                      <span className="text-[10px] font-bold text-amber-400 whitespace-nowrap">
+                        {topIndividual[0].score.toLocaleString()} XP
                       </span>
                       
                       {/* Pedestal with Level inside */}
-                      <div className="h-24 w-24 mt-3 rounded-t-xl bg-gradient-to-t from-amber-600/80 to-amber-500/30 border border-amber-500/40 flex flex-col items-center justify-center shadow-2xl relative overflow-hidden light:from-amber-100 light:to-amber-50">
+                      <div className="h-24 w-[96px] sm:w-28 mt-3 rounded-t-xl bg-gradient-to-t from-amber-600/80 to-amber-500/30 border border-amber-500/40 flex flex-col items-center justify-center shadow-2xl relative overflow-hidden light:from-amber-100 light:to-amber-50">
                         <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent animate-pulse" />
                         <span className="text-amber-500/70 font-extrabold text-lg font-mono z-10">I</span>
-                        <span className="text-[9px] font-black text-amber-400 mt-0.5 z-10">LV.{Math.floor(topIndividual[0].score / 700)}</span>
+                        <span className="text-[9px] font-black text-amber-400 mt-0.5 z-10 whitespace-nowrap">LV.{Math.floor(topIndividual[0].score / 700)}</span>
                       </div>
                     </div>
                   )}
@@ -425,29 +425,29 @@ export function LeaderboardTab({
                   {topIndividual[2] && (
                     <div className="flex flex-col items-center animate-in fade-in slide-in-from-bottom-3 duration-400">
                       <div className="relative">
-                        <div className="min-w-[3.5rem] px-2 h-12 rounded-2xl bg-gradient-to-br from-orange-400 to-orange-600 text-slate-950 font-black flex items-center justify-center text-[10px] shadow-[0_0_10px_rgba(249,115,22,0.3)] border border-white/20 select-none text-center">
-                          {topIndividual[2].name}
+                        <div className="w-[84px] sm:w-24 h-12 rounded-2xl bg-gradient-to-br from-orange-400 to-orange-600 text-slate-950 font-black flex items-center justify-center shadow-[0_0_10px_rgba(249,115,22,0.3)] border border-white/20 select-none text-center">
+                          <span className="truncate w-full block text-center px-0.5 text-[10px] sm:text-xs">{topIndividual[2].name}</span>
                         </div>
                         <span className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-orange-500 text-slate-950 text-[9px] font-black flex items-center justify-center border border-slate-900">
                           3
                         </span>
+                        {studentStreaks[topIndividual[2].id] && (
+                          <span className="absolute -top-2.5 -left-2 text-[9px] font-extrabold text-orange-400 bg-slate-950/90 border border-orange-500/20 px-1 py-0.5 rounded-md shadow flex items-center gap-0.25 select-none animate-pulse" title={`連續打卡 ${studentStreaks[topIndividual[2].id]} 天`}>
+                            🔥{studentStreaks[topIndividual[2].id]}
+                          </span>
+                        )}
                       </div>
                       <span className="font-black text-white text-xs mt-2 truncate w-20 text-center light:text-slate-900">
                         第三名
                       </span>
-                      <span className="text-[10px] font-bold text-slate-400 flex items-center gap-1">
-                        <span>{topIndividual[2].score.toLocaleString()} XP</span>
-                        {studentStreaks[topIndividual[2].id] && (
-                          <span className="text-orange-400 font-extrabold text-[10px] flex items-center gap-0.5 animate-pulse" title={`連續打卡 ${studentStreaks[topIndividual[2].id]} 天`}>
-                            🔥{studentStreaks[topIndividual[2].id]}
-                          </span>
-                        )}
+                      <span className="text-[10px] font-bold text-slate-400 whitespace-nowrap">
+                        {topIndividual[2].score.toLocaleString()} XP
                       </span>
                       
                       {/* Pedestal with Level inside */}
-                      <div className="h-12 w-20 mt-3 rounded-t-xl bg-gradient-to-t from-orange-900/60 to-orange-850/30 border border-orange-800/40 flex flex-col items-center justify-center shadow-md light:from-orange-100 light:to-orange-50">
+                      <div className="h-12 w-[84px] sm:w-24 mt-3 rounded-t-xl bg-gradient-to-t from-orange-900/60 to-orange-850/30 border border-orange-800/40 flex flex-col items-center justify-center shadow-md light:from-orange-100 light:to-orange-50">
                         <span className="text-orange-600/70 font-extrabold text-sm font-mono">III</span>
-                        <span className="text-[9px] font-bold text-orange-500 mt-0.5">LV.{Math.floor(topIndividual[2].score / 700)}</span>
+                        <span className="text-[9px] font-bold text-orange-500 mt-0.5 whitespace-nowrap">LV.{Math.floor(topIndividual[2].score / 700)}</span>
                       </div>
                     </div>
                   )}
@@ -465,42 +465,46 @@ export function LeaderboardTab({
                   return (
                     <div
                       key={p.id}
-                      className={`flex items-center justify-between py-3.5 ${
+                      className={`grid grid-cols-12 items-center py-3.5 gap-2 ${
                         isSelf ? 'bg-amber-500/5 -mx-4 px-4 rounded-xl' : ''
                       }`}
                     >
-                      <div className="flex items-center gap-4">
-                        <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs ${getRankBadge(rank)}`}>
+                      {/* Left: Rank & Name (col-span-6) */}
+                      <div className="col-span-6 flex items-center gap-3 min-w-0">
+                        <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs shrink-0 ${getRankBadge(rank)}`}>
                           {rank}
                         </div>
-                        <div className="flex flex-col">
-                          <span className="font-black text-white text-sm flex items-center gap-1.5 light:text-slate-950">
-                            {p.name}
+                        <div className="flex flex-col min-w-0">
+                          <span className="font-black text-white text-sm flex items-center gap-1.5 light:text-slate-950 truncate">
+                            <span className="truncate">{p.name}</span>
                             {isSelf && (
-                              <span className="text-[9px] font-black bg-amber-500/10 text-amber-500 border border-amber-500/20 px-1.5 py-0.25 rounded-md">
+                              <span className="text-[9px] font-black bg-amber-500/10 text-amber-500 border border-amber-500/20 px-1.5 py-0.25 rounded-md shrink-0">
                                 您
                               </span>
                             )}
+                          </span>
+                          <span className="text-[10px] text-slate-500 font-bold flex items-center flex-wrap gap-1 mt-0.5 select-none truncate">
+                            <span className="truncate">{getRoleLabel(p.role)} • {getTeamName(p.team_id)}</span>
                             {studentStreaks[p.id] && (
-                              <span className="text-[9px] font-extrabold text-orange-400 bg-orange-500/10 border border-orange-500/20 px-1.5 py-0.25 rounded flex items-center gap-0.5" title={`連續打卡 ${studentStreaks[p.id]} 天`}>
-                                🔥 {studentStreaks[p.id]}
+                              <span className="text-[9px] font-extrabold text-orange-400 bg-orange-500/10 border border-orange-500/20 px-1 py-0.2 rounded flex items-center gap-0.5 shrink-0" title={`連續打卡 ${studentStreaks[p.id]} 天`}>
+                                🔥連續 {studentStreaks[p.id]}天
                               </span>
                             )}
-                          </span>
-                          <span className="text-[10px] text-slate-500 font-bold">
-                            {getRoleLabel(p.role)} • {getTeamName(p.team_id)}
                           </span>
                         </div>
                       </div>
 
-                      <div className="text-right flex items-center gap-3">
+                      {/* Middle: Level (col-span-3 text-center) */}
+                      <div className="col-span-3 text-center">
                         <span className="text-xs font-bold text-slate-400">LV.{level}</span>
-                        <div>
-                          <span className="font-black text-amber-500 text-sm">
-                            {p.score.toLocaleString()}
-                          </span>
-                          <span className="text-[10px] text-slate-500 font-bold ml-1">經驗</span>
-                        </div>
+                      </div>
+
+                      {/* Right: Score (col-span-3 text-right) */}
+                      <div className="col-span-3 text-right">
+                        <span className="font-black text-amber-500 text-sm font-mono">
+                          {p.score.toLocaleString()}
+                        </span>
+                        <span className="text-[10px] text-slate-500 font-bold ml-1 select-none">經驗</span>
                       </div>
                     </div>
                   );
@@ -525,8 +529,10 @@ export function LeaderboardTab({
                   {topTeams[1] && (
                     <div className="flex flex-col items-center animate-in fade-in slide-in-from-bottom-4 duration-500">
                       <div className="relative">
-                        <div className="min-w-[4rem] px-2.5 h-14 rounded-2xl bg-gradient-to-br from-slate-300 to-slate-500 text-slate-950 font-black flex items-center justify-center text-[11px] shadow-[0_0_15px_rgba(203,213,225,0.3)] border border-white/20 select-none text-center">
-                          {getSubTeamNameOnly(topTeams[1].name, activeBatchName)}
+                        <div className="w-[84px] sm:w-24 h-14 rounded-2xl bg-gradient-to-br from-slate-300 to-slate-500 text-slate-950 font-black flex items-center justify-center shadow-[0_0_15px_rgba(203,213,225,0.3)] border border-white/20 select-none text-center">
+                          <span className="truncate w-full block text-center px-0.5 text-[11px] sm:text-xs">
+                            {getSubTeamNameOnly(topTeams[1].name, activeBatchName)}
+                          </span>
                         </div>
                         <span className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-slate-400 text-slate-950 text-[10px] font-black flex items-center justify-center border border-slate-900">
                           2
@@ -534,25 +540,25 @@ export function LeaderboardTab({
                       </div>
                       
                       {/* Name of subteam only replaced with place name */}
-                      <span className="font-black text-white text-xs mt-2 truncate w-24 text-center light:text-slate-900">
+                      <span className="font-black text-white text-xs mt-2 truncate w-20 text-center light:text-slate-900">
                         第二名
                       </span>
                       
                       {/* Captain & Score details */}
-                      <span className="text-[9px] text-slate-500 font-bold">
+                      <span className="text-[9px] text-slate-500 font-bold whitespace-nowrap">
                         隊長：{profiles.find(p => p.id === topTeams[1].captain_id)?.name || '未指派'}
                       </span>
-                      <span className="text-xs font-black text-amber-500 animate-pulse mt-0.5">
+                      <span className="text-xs font-black text-amber-500 animate-pulse mt-0.5 whitespace-nowrap">
                         {topTeams[1].averageScore.toLocaleString()} 人均
                       </span>
-                      <span className="text-[9px] text-slate-400 font-bold">
+                      <span className="text-[9px] text-slate-400 font-bold whitespace-nowrap">
                         總分：{topTeams[1].total_score.toLocaleString()} XP
                       </span>
                       
                       {/* Pedestal with Team Total Level inside */}
-                      <div className="h-16 w-24 mt-3 rounded-t-xl bg-gradient-to-t from-slate-800/80 to-slate-700/30 border border-slate-700/40 flex flex-col items-center justify-center shadow-lg light:from-slate-200 light:to-slate-100">
+                      <div className="h-16 w-[84px] sm:w-24 mt-3 rounded-t-xl bg-gradient-to-t from-slate-800/80 to-slate-700/30 border border-slate-700/40 flex flex-col items-center justify-center shadow-lg light:from-slate-200 light:to-slate-100">
                         <span className="text-slate-500 font-extrabold text-xs font-mono">II</span>
-                        <span className="text-[9px] font-black text-slate-400">總LV.{topTeams[1].totalLevel}</span>
+                        <span className="text-[9px] font-black text-slate-400 whitespace-nowrap">總LV.{topTeams[1].totalLevel}</span>
                       </div>
                     </div>
                   )}
@@ -562,8 +568,10 @@ export function LeaderboardTab({
                     <div className="flex flex-col items-center animate-in fade-in slide-in-from-bottom-8 duration-700 relative z-10 -mt-4">
                       <div className="absolute -top-6 text-xl animate-bounce">👑</div>
                       <div className="relative">
-                        <div className="min-w-[4.5rem] px-3 h-16 rounded-2xl bg-gradient-to-br from-yellow-400 via-amber-400 to-amber-500 text-slate-950 font-black flex items-center justify-center text-xs shadow-[0_0_20px_rgba(251,191,36,0.4)] border border-yellow-300/30 select-none text-center">
-                          {getSubTeamNameOnly(topTeams[0].name, activeBatchName)}
+                        <div className="w-[96px] sm:w-28 h-16 rounded-2xl bg-gradient-to-br from-yellow-400 via-amber-400 to-amber-500 text-slate-950 font-black flex items-center justify-center shadow-[0_0_20px_rgba(251,191,36,0.4)] border border-yellow-300/30 select-none text-center">
+                          <span className="truncate w-full block text-center px-0.5 text-xs font-black">
+                            {getSubTeamNameOnly(topTeams[0].name, activeBatchName)}
+                          </span>
                         </div>
                         <span className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-amber-500 text-slate-950 text-[10px] font-black flex items-center justify-center border border-slate-900">
                           1
@@ -571,26 +579,26 @@ export function LeaderboardTab({
                       </div>
                       
                       {/* Name of subteam only replaced with place name */}
-                      <span className="font-black text-amber-200 text-sm mt-2 truncate w-28 text-center light:text-amber-600">
+                      <span className="font-black text-amber-200 text-sm mt-2 truncate w-24 text-center light:text-amber-600">
                         第一名
                       </span>
                       
                       {/* Captain & Score details */}
-                      <span className="text-[9px] text-amber-500/70 font-bold">
+                      <span className="text-[9px] text-amber-500/70 font-bold whitespace-nowrap">
                         隊長：{profiles.find(p => p.id === topTeams[0].captain_id)?.name || '未指派'}
                       </span>
-                      <span className="text-sm font-black text-amber-400 animate-pulse mt-0.5">
+                      <span className="text-sm font-black text-amber-400 animate-pulse mt-0.5 whitespace-nowrap">
                         {topTeams[0].averageScore.toLocaleString()} 人均
                       </span>
-                      <span className="text-[9px] text-amber-500/60 font-bold">
+                      <span className="text-[9px] text-amber-500/60 font-bold whitespace-nowrap">
                         總分：{topTeams[0].total_score.toLocaleString()} XP
                       </span>
                       
                       {/* Pedestal with Team Total Level inside */}
-                      <div className="h-24 w-28 mt-3 rounded-t-xl bg-gradient-to-t from-amber-600/80 to-amber-500/30 border border-amber-500/40 flex flex-col items-center justify-center shadow-2xl relative overflow-hidden light:from-amber-100 light:to-amber-50">
+                      <div className="h-24 w-[96px] sm:w-28 mt-3 rounded-t-xl bg-gradient-to-t from-amber-600/80 to-amber-500/30 border border-amber-500/40 flex flex-col items-center justify-center shadow-2xl relative overflow-hidden light:from-amber-100 light:to-amber-50">
                         <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent animate-pulse" />
                         <span className="text-amber-500/70 font-extrabold text-base font-mono z-10">I</span>
-                        <span className="text-[9px] font-black text-amber-400 z-10">總LV.{topTeams[0].totalLevel}</span>
+                        <span className="text-[9px] font-black text-amber-400 z-10 whitespace-nowrap">總LV.{topTeams[0].totalLevel}</span>
                       </div>
                     </div>
                   )}
@@ -599,8 +607,10 @@ export function LeaderboardTab({
                   {topTeams[2] && (
                     <div className="flex flex-col items-center animate-in fade-in slide-in-from-bottom-3 duration-400">
                       <div className="relative">
-                        <div className="min-w-[3.5rem] px-2 h-12 rounded-2xl bg-gradient-to-br from-orange-400 to-orange-600 text-slate-950 font-black flex items-center justify-center text-[10px] shadow-[0_0_10px_rgba(249,115,22,0.3)] border border-white/20 select-none text-center">
-                          {getSubTeamNameOnly(topTeams[2].name, activeBatchName)}
+                        <div className="w-[84px] sm:w-24 h-12 rounded-2xl bg-gradient-to-br from-orange-400 to-orange-600 text-slate-950 font-black flex items-center justify-center shadow-[0_0_10px_rgba(249,115,22,0.3)] border border-white/20 select-none text-center">
+                          <span className="truncate w-full block text-center px-0.5 text-[10px] sm:text-xs">
+                            {getSubTeamNameOnly(topTeams[2].name, activeBatchName)}
+                          </span>
                         </div>
                         <span className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-orange-500 text-slate-950 text-[9px] font-black flex items-center justify-center border border-slate-900">
                           3
@@ -608,25 +618,25 @@ export function LeaderboardTab({
                       </div>
                       
                       {/* Name of subteam only replaced with place name */}
-                      <span className="font-black text-white text-xs mt-2 truncate w-24 text-center light:text-slate-900">
+                      <span className="font-black text-white text-xs mt-2 truncate w-20 text-center light:text-slate-900">
                         第三名
                       </span>
                       
                       {/* Captain & Score details */}
-                      <span className="text-[9px] text-slate-500 font-bold">
+                      <span className="text-[9px] text-slate-500 font-bold whitespace-nowrap">
                         隊長：{profiles.find(p => p.id === topTeams[2].captain_id)?.name || '未指派'}
                       </span>
-                      <span className="text-xs font-black text-amber-500 animate-pulse mt-0.5">
+                      <span className="text-xs font-black text-amber-500 animate-pulse mt-0.5 whitespace-nowrap">
                         {topTeams[2].averageScore.toLocaleString()} 人均
                       </span>
-                      <span className="text-[9px] text-slate-400 font-bold">
+                      <span className="text-[9px] text-slate-400 font-bold whitespace-nowrap">
                         總分：{topTeams[2].total_score.toLocaleString()} XP
                       </span>
                       
                       {/* Pedestal with Team Total Level inside */}
-                      <div className="h-12 w-24 mt-3 rounded-t-xl bg-gradient-to-t from-orange-900/60 to-orange-850/30 border border-orange-800/40 flex flex-col items-center justify-center shadow-md light:from-orange-100 light:to-orange-50">
+                      <div className="h-12 w-[84px] sm:w-24 mt-3 rounded-t-xl bg-gradient-to-t from-orange-900/60 to-orange-850/30 border border-orange-800/40 flex flex-col items-center justify-center shadow-md light:from-orange-100 light:to-orange-50">
                         <span className="text-orange-600/70 font-extrabold text-xs font-mono">III</span>
-                        <span className="text-[9px] font-black text-orange-500">總LV.{topTeams[2].totalLevel}</span>
+                        <span className="text-[9px] font-black text-orange-500 whitespace-nowrap">總LV.{topTeams[2].totalLevel}</span>
                       </div>
                     </div>
                   )}
@@ -643,40 +653,41 @@ export function LeaderboardTab({
                   return (
                     <div
                       key={team.id}
-                      className="flex items-center justify-between py-4"
+                      className="grid grid-cols-12 items-center py-4 gap-2"
                     >
-                      <div className="flex items-center gap-4">
-                        <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs ${getRankBadge(rank)}`}>
+                      {/* Left: Rank & Team Name (col-span-6) */}
+                      <div className="col-span-6 flex items-center gap-3 min-w-0">
+                        <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs shrink-0 ${getRankBadge(rank)}`}>
                           {rank}
                         </div>
                         
-                        <div className="flex flex-col">
-                          <span className="font-black text-white text-sm light:text-slate-950">
+                        <div className="flex flex-col min-w-0">
+                          <span className="font-black text-white text-sm light:text-slate-950 truncate">
                             {getTeamDisplayName(team)}
                           </span>
-                          <span className="text-[10px] text-slate-500 font-bold flex items-center gap-1">
-                            <Award size={10} />
-                            <span>隊長：{captain ? captain.name : '（未指定）'} • 隊員：{team.memberCount} 人</span>
+                          <span className="text-[10px] text-slate-500 font-bold flex items-center gap-1 mt-0.5 select-none truncate">
+                            <Award size={10} className="shrink-0" />
+                            <span className="truncate">隊長：{captain ? captain.name : '（未指定）'} • 隊員：{team.memberCount} 人</span>
                           </span>
                         </div>
                       </div>
 
-                      {/* Scores & Total Level */}
-                      <div className="text-right flex items-center gap-4">
-                        <div className="text-right select-none">
-                          <span className="text-xs font-bold text-slate-400">總LV.{team.totalLevel}</span>
-                          <span className="block text-[8px] text-slate-500">小組總等級</span>
+                      {/* Middle: Total Level (col-span-3 text-center) */}
+                      <div className="col-span-3 text-center">
+                        <span className="text-xs font-bold text-slate-400">LV.{team.totalLevel}</span>
+                        <span className="block text-[8px] text-slate-500 select-none">小組總等級</span>
+                      </div>
+
+                      {/* Right: Scores (col-span-3 text-right) */}
+                      <div className="col-span-3 text-right flex flex-col items-end min-w-0">
+                        <div className="truncate">
+                          <span className="font-black text-amber-500 text-sm font-mono">
+                            {team.averageScore.toLocaleString()}
+                          </span>
+                          <span className="text-[10px] text-slate-400 font-bold ml-1 select-none">人均</span>
                         </div>
-                        <div className="text-right flex flex-col items-end">
-                          <div>
-                            <span className="font-black text-amber-500 text-sm">
-                              {team.averageScore.toLocaleString()}
-                            </span>
-                            <span className="text-[10px] text-slate-400 font-bold ml-1">人均</span>
-                          </div>
-                          <div className="text-[9px] text-slate-500 font-bold mt-0.5">
-                            總分：{team.total_score.toLocaleString()} XP
-                          </div>
+                        <div className="text-[9px] text-slate-500 font-bold mt-0.5 select-none truncate">
+                          總 {team.total_score.toLocaleString()} XP
                         </div>
                       </div>
                     </div>
@@ -740,14 +751,18 @@ export function LeaderboardTab({
                             )}
                           </td>
                           <td className="p-3 font-bold text-slate-300 light:text-slate-700">{getBatchName(p.batch_id)}</td>
-                          <td className="p-3 font-bold text-white light:text-slate-900 flex items-center gap-1.5">
-                            {p.name}
-                            {isSelf && <span className="text-[8px] bg-amber-500/10 text-amber-500 border border-amber-500/20 px-1 py-0.2 rounded">您</span>}
-                            {studentStreaks[p.id] && (
-                              <span className="text-[9px] font-extrabold text-orange-400 bg-orange-500/10 border border-orange-500/20 px-1.5 py-0.2 rounded flex items-center gap-0.5" title={`連續打卡 ${studentStreaks[p.id]} 天`}>
-                                🔥 {studentStreaks[p.id]}
-                              </span>
-                            )}
+                          <td className="p-3 font-bold text-left">
+                            <div className="flex flex-col gap-0.5 select-none">
+                              <div className="flex items-center gap-1 text-white light:text-slate-900">
+                                <span>{p.name}</span>
+                                {isSelf && <span className="text-[8px] bg-amber-500/10 text-amber-500 border border-amber-500/20 px-1 py-0.2 rounded">您</span>}
+                              </div>
+                              {studentStreaks[p.id] && (
+                                <span className="w-fit text-[9px] font-extrabold text-orange-400 bg-orange-500/10 border border-orange-500/20 px-1.5 py-0.2 rounded flex items-center gap-0.5 shrink-0" title={`連續打卡 ${studentStreaks[p.id]} 天`}>
+                                  🔥 連續 {studentStreaks[p.id]} 天
+                                </span>
+                              )}
+                            </div>
                           </td>
                           <td className="p-3 text-center font-bold text-indigo-400">LV.{level}</td>
                           <td className="p-3 text-right font-black text-amber-500 font-mono">{p.score.toLocaleString()} XP</td>
