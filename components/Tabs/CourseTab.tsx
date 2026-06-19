@@ -74,30 +74,6 @@ export function CourseTab({
                   <div className="absolute left-0 top-0 bottom-0 w-1 bg-sky-500" />
                 )}
 
-                {/* Left side: Tearing Calendar page badge */}
-                <div className="flex sm:flex-col items-center justify-center shrink-0 w-full sm:w-20 rounded-2xl border border-red-500/20 bg-red-500/5 overflow-hidden text-center select-none light:bg-red-50/30 light:border-red-200">
-                  <div className="w-full bg-gradient-to-r from-red-500 to-rose-600 text-[9px] font-black py-1 text-white uppercase tracking-widest whitespace-nowrap">
-                    {parsedDate ? `${parsedDate.getFullYear()} / ${parsedDate.getMonth() + 1}月` : 'SCHEDULE'}
-                  </div>
-                  <div className="py-2.5 px-3">
-                    {parsedDate ? (
-                      <>
-                        <span className="text-2xl font-black text-white leading-none light:text-slate-900 sm:block">
-                          {parsedDate.getDate()}
-                        </span>
-                        <span className="text-[9px] text-slate-400 font-bold block mt-1 light:text-slate-500">
-                          {['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'][parsedDate.getDay()]}
-                        </span>
-                        <span className="text-[9px] text-red-400 font-bold font-mono block mt-0.5 light:text-red-500">
-                          {parsedDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}
-                        </span>
-                      </>
-                    ) : (
-                      <span className="text-xs text-slate-500 font-bold">未定</span>
-                    )}
-                  </div>
-                </div>
-
                 {/* Center: Course title, descriptions and status badges */}
                 <div className="flex-1 space-y-2 text-left">
                   <div className="flex items-center gap-2 flex-wrap">
@@ -118,6 +94,15 @@ export function CourseTab({
                       </span>
                     )}
                   </div>
+
+                  {/* Inline Date/Time display */}
+                  {parsedDate && (
+                    <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-400 bg-slate-800/40 border border-white/5 px-2.5 py-1 rounded-lg w-fit select-none light:bg-slate-100 light:text-slate-600 light:border-slate-200">
+                      <span>📅 {parsedDate.getFullYear()}/{parsedDate.getMonth() + 1}/{parsedDate.getDate()}</span>
+                      <span>({['日', '一', '二', '三', '四', '五', '六'][parsedDate.getDay()]})</span>
+                      <span className="text-red-400 font-mono font-bold light:text-red-500">{parsedDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}</span>
+                    </div>
+                  )}
                   
                   <p className="text-xs text-slate-300 leading-relaxed light:text-slate-700 whitespace-pre-line font-medium">
                     {course.description}
