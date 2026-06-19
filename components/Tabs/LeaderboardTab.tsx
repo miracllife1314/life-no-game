@@ -376,8 +376,9 @@ export function LeaderboardTab({
                       <span className="font-black text-white text-xs mt-2 truncate w-20 text-center light:text-slate-900">
                         第二名
                       </span>
-                      <span className="text-[10px] font-bold text-slate-400 whitespace-nowrap">
-                        {topIndividual[1].score.toLocaleString()} XP
+                      <span className="text-[10px] font-bold text-slate-400 flex flex-col items-center leading-tight">
+                        <span className="font-mono text-[11px] font-extrabold">{topIndividual[1].score.toLocaleString()}</span>
+                        <span className="text-[8px] opacity-80 mt-0.5 select-none">XP</span>
                       </span>
                       
                       {/* Pedestal with Level inside */}
@@ -408,8 +409,9 @@ export function LeaderboardTab({
                       <span className="font-black text-amber-200 text-sm mt-2 truncate w-24 text-center light:text-amber-600">
                         第一名
                       </span>
-                      <span className="text-[10px] font-bold text-amber-400 whitespace-nowrap">
-                        {topIndividual[0].score.toLocaleString()} XP
+                      <span className="text-[10px] font-bold text-amber-400 flex flex-col items-center leading-tight">
+                        <span className="font-mono text-xs font-black">{topIndividual[0].score.toLocaleString()}</span>
+                        <span className="text-[8px] opacity-80 mt-0.5 select-none">XP</span>
                       </span>
                       
                       {/* Pedestal with Level inside */}
@@ -440,8 +442,9 @@ export function LeaderboardTab({
                       <span className="font-black text-white text-xs mt-2 truncate w-20 text-center light:text-slate-900">
                         第三名
                       </span>
-                      <span className="text-[10px] font-bold text-slate-400 whitespace-nowrap">
-                        {topIndividual[2].score.toLocaleString()} XP
+                      <span className="text-[10px] font-bold text-slate-400 flex flex-col items-center leading-tight">
+                        <span className="font-mono text-[11px] font-extrabold">{topIndividual[2].score.toLocaleString()}</span>
+                        <span className="text-[8px] opacity-80 mt-0.5 select-none">XP</span>
                       </span>
                       
                       {/* Pedestal with Level inside */}
@@ -500,11 +503,11 @@ export function LeaderboardTab({
                       </div>
 
                       {/* Right: Score (col-span-3 text-right) */}
-                      <div className="col-span-3 text-right">
+                      <div className="col-span-3 text-right flex flex-col items-end leading-tight select-none">
                         <span className="font-black text-amber-500 text-sm font-mono">
                           {p.score.toLocaleString()}
                         </span>
-                        <span className="text-[10px] text-slate-500 font-bold ml-1 select-none">經驗</span>
+                        <span className="text-[9px] text-slate-500 font-bold mt-0.5">XP</span>
                       </div>
                     </div>
                   );
@@ -713,7 +716,7 @@ export function LeaderboardTab({
                       <th className="p-3">期數</th>
                       <th className="p-3">姓名</th>
                       <th className="p-3 text-center">等級</th>
-                      <th className="p-3 text-right">經驗</th>
+                      <th className="p-3 text-right">XP</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/5 light:divide-slate-200">
@@ -765,7 +768,12 @@ export function LeaderboardTab({
                             </div>
                           </td>
                           <td className="p-3 text-center font-bold text-indigo-400">LV.{level}</td>
-                          <td className="p-3 text-right font-black text-amber-500 font-mono">{p.score.toLocaleString()} XP</td>
+                          <td className="p-3 text-right">
+                            <div className="flex flex-col items-end leading-tight select-none">
+                              <span className="font-black text-amber-500 font-mono">{p.score.toLocaleString()}</span>
+                              <span className="text-[9px] text-slate-500 font-bold mt-0.5">XP</span>
+                            </div>
+                          </td>
                         </tr>
                       );
                     })}
