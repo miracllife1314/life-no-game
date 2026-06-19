@@ -1443,15 +1443,33 @@ export function DailyQuestsTab({
       )}
 
       {/* 📊 整合任務中心 (Integrated Tasks) */}
-      <section className="space-y-4">
+      <section className="space-y-6">
         
-        {/* Category Switch Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-center gap-4 select-none border-b border-white/5 pb-3 light:border-slate-200">
-          <h2 className="text-base sm:text-lg font-black tracking-widest uppercase bg-gradient-to-r from-amber-300 via-amber-400 to-orange-500 bg-clip-text text-transparent select-none drop-shadow-[0_2px_8px_rgba(245,158,11,0.15)] flex items-center gap-2 light:from-amber-600 light:to-orange-700">
-            <span className="w-1.5 h-4 bg-gradient-to-b from-amber-400 to-orange-500 rounded-full shrink-0" />
-            接取任務中心
-          </h2>
+        {/* Notice Board Header Plaque */}
+        <div className="relative glass-panel p-5 rounded-3xl border border-white/10 bg-gradient-to-r from-slate-950 via-slate-900/90 to-slate-950 shadow-[0_4px_20px_rgba(0,0,0,0.5)] flex flex-col items-center justify-center overflow-hidden w-full select-none light:bg-white light:border-slate-200">
+          {/* Decorative metallic rivets representing bulletin board pins */}
+          <div className="absolute top-3.5 left-4 w-2.5 h-2.5 rounded-full bg-gradient-to-br from-amber-200 via-amber-400 to-amber-600 shadow-[0_1px_3px_rgba(0,0,0,0.5)] border border-amber-300/30" />
+          <div className="absolute top-3.5 right-4 w-2.5 h-2.5 rounded-full bg-gradient-to-br from-amber-200 via-amber-400 to-amber-600 shadow-[0_1px_3px_rgba(0,0,0,0.5)] border border-amber-300/30" />
           
+          {/* Subtle gold reflection bar */}
+          <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-amber-500/50 to-transparent" />
+          
+          {/* Board Content */}
+          <div className="flex flex-col items-center gap-1.5 py-1">
+            {/* Small fantasy sub-badge */}
+            <span className="text-[9px] font-black tracking-[0.25em] text-amber-500 bg-amber-500/10 px-2.5 py-0.5 rounded-full uppercase">
+              Mission Board
+            </span>
+            
+            {/* Main Title */}
+            <h2 className="text-lg sm:text-xl font-black tracking-[0.2em] bg-gradient-to-r from-yellow-250 via-amber-400 to-orange-500 bg-clip-text text-transparent drop-shadow-[0_2px_8px_rgba(245,158,11,0.2)] flex items-center gap-2 mt-0.5 light:from-amber-600 light:to-orange-700">
+              接取任務中心
+            </h2>
+          </div>
+        </div>
+
+        {/* Category Switch Tabs */}
+        <div className="flex justify-center select-none">
           <div className="flex bg-slate-900/65 p-1 rounded-2xl border border-white/5 w-full sm:w-auto overflow-x-auto scrollbar-none gap-1 light:bg-slate-100 light:border-slate-300/50">
             {[
               { key: 'daily', label: '每日任務', icon: Flame },
@@ -1462,7 +1480,7 @@ export function DailyQuestsTab({
               <button
                 key={key}
                 onClick={() => setActiveCategory(key as typeof activeCategory)}
-                className={`relative flex-shrink-0 sm:flex-initial flex flex-row items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-sm sm:text-xs font-black transition-all duration-300 select-none whitespace-nowrap cursor-pointer ${
+                className={`relative flex-shrink-0 sm:flex-initial flex flex-row items-center justify-center gap-1.5 px-5 py-2.5 rounded-xl text-sm sm:text-xs font-black transition-all duration-300 select-none whitespace-nowrap cursor-pointer ${
                   activeCategory === key
                     ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 shadow-[0_0_15px_rgba(245,158,11,0.35)] scale-[1.02]'
                     : 'text-slate-400 hover:text-white hover:bg-slate-800/40 light:hover:bg-slate-200/50'
