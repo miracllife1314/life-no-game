@@ -1239,24 +1239,34 @@ export default function Home() {
       {/* 🏆 成就解鎖即時通知彈窗 —— 等升級/進化彈窗都關掉後才跳(排最後、不重疊) */}
       {pendingAchievements.length > 0 && !questModalActive && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-md animate-in fade-in duration-300 modal-force-dark">
-          {/* Neon-glow glass card */}
-          <div className="relative w-full max-w-sm mx-4 p-8 rounded-[2.5rem] border border-amber-500/50 bg-[#090806]/95 shadow-[0_0_50px_rgba(245,158,11,0.35)] text-center space-y-6 select-none overflow-hidden animate-in zoom-in-95 duration-300">
-            {/* Ambient glow in card background */}
-            <div className="absolute -inset-10 bg-gradient-to-r from-amber-500/10 to-transparent blur-2xl pointer-events-none rounded-full" />
+          {/* Luxury VIP-card Style Card */}
+          <div className="relative w-full max-w-sm mx-4 p-8 rounded-[2.5rem] border border-amber-500/35 bg-gradient-to-br from-[#1c1917] via-[#0f0e0d] to-[#1c1917] shadow-[0_25px_60px_rgba(0,0,0,0.85),inset_0_1px_1px_rgba(255,255,255,0.08),0_0_35px_rgba(245,158,11,0.15)] text-center space-y-6 select-none overflow-hidden animate-in zoom-in-95 duration-300">
+            {/* VIP Card Ambient glows & Reflection ray */}
+            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-b from-amber-500/5 to-transparent rounded-full blur-2xl pointer-events-none" />
+            <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-gradient-to-t from-orange-500/5 to-transparent rounded-full blur-2xl pointer-events-none" />
+            <div className="absolute inset-0 bg-[linear-gradient(110deg,transparent_35%,rgba(245,158,11,0.08)_45%,rgba(255,255,255,0.05)_50%,rgba(245,158,11,0.08)_55%,transparent_65%)] pointer-events-none" />
             
             {/* Congratulations title */}
-            <div className="space-y-1">
-              <h4 className="text-[10px] font-black tracking-widest text-amber-500 uppercase">
+            <div className="space-y-1 relative z-10">
+              <h4 className="text-[10px] font-black tracking-widest text-amber-500/80 uppercase">
                 🎉 恭喜解鎖全新成就 🎉
               </h4>
-              <h2 className="text-2xl font-black text-white">
+              <h2 className="text-2xl font-black bg-gradient-to-r from-yellow-250 via-amber-400 to-orange-500 bg-clip-text text-transparent drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
                 {pendingAchievements[0].achievement?.title}
               </h2>
             </div>
 
-            {/* Circular gold-neon icon container */}
-            <div className="flex justify-center py-4 relative">
-              <div className="absolute w-24 h-24 rounded-full bg-amber-500/10 blur-xl scale-110 animate-pulse pointer-events-none" />
+            {/* Framed luxury collectible card container for badge */}
+            <div className="relative w-44 h-44 mx-auto flex items-center justify-center bg-gradient-to-b from-[#23201d] to-[#0c0a09] border border-amber-500/20 rounded-2xl shadow-[inset_0_0_20px_rgba(245,158,11,0.2)] p-4 overflow-hidden relative z-10">
+              {/* Card metallic corner brackets */}
+              <div className="absolute top-2.5 left-2.5 w-2 h-2 border-t border-l border-amber-500/40" />
+              <div className="absolute top-2.5 right-2.5 w-2 h-2 border-t border-r border-amber-500/40" />
+              <div className="absolute bottom-2.5 left-2.5 w-2 h-2 border-b border-l border-amber-500/40" />
+              <div className="absolute bottom-2.5 right-2.5 w-2 h-2 border-b border-r border-amber-500/40" />
+              
+              {/* Internal Halo */}
+              <div className="absolute w-28 h-28 rounded-full bg-amber-500/10 blur-xl scale-110 animate-pulse pointer-events-none" />
+              
               <div className="relative z-10">
                 <BadgeIcon 
                   name={pendingAchievements[0].achievement?.icon_url || 'Trophy'} 
@@ -1267,15 +1277,15 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Description */}
-            <p className="text-xs text-slate-300 leading-relaxed max-w-[260px] mx-auto font-medium">
-              {pendingAchievements[0].achievement?.description}
+            {/* Quote style Description Box */}
+            <p className="text-xs text-amber-100/90 leading-relaxed max-w-[260px] mx-auto font-medium py-3.5 border-t border-b border-amber-500/15 italic relative z-10">
+              「{pendingAchievements[0].achievement?.description}」
             </p>
 
-            {/* Button */}
+            {/* Luxury Shimmer Button */}
             <button
               onClick={handleAcceptAchievementBlessing}
-              className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 text-slate-950 text-xs font-black shadow-[0_4px_12px_rgba(245,158,11,0.3)] hover:brightness-110 active:scale-98 transition-all cursor-pointer shimmer-btn"
+              className="w-full py-4 rounded-xl bg-gradient-to-r from-amber-400 via-yellow-500 to-amber-600 text-slate-950 text-xs font-black shadow-[0_4px_20px_rgba(245,158,11,0.35)] hover:brightness-110 active:scale-98 transition-all cursor-pointer border border-amber-300/30 shimmer-btn relative z-10"
             >
               收下修煉祝福
             </button>
