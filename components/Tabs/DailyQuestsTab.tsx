@@ -1447,8 +1447,9 @@ export function DailyQuestsTab({
         
         {/* Category Switch Header */}
         <div className="flex flex-col sm:flex-row justify-between items-center gap-4 select-none border-b border-white/5 pb-3 light:border-slate-200">
-          <h2 className="text-sm font-black text-slate-200 uppercase tracking-widest light:text-slate-800">
-            大會修行任務列表
+          <h2 className="text-base sm:text-lg font-black tracking-widest uppercase bg-gradient-to-r from-amber-300 via-amber-400 to-orange-500 bg-clip-text text-transparent select-none drop-shadow-[0_2px_8px_rgba(245,158,11,0.15)] flex items-center gap-2 light:from-amber-600 light:to-orange-700">
+            <span className="w-1.5 h-4 bg-gradient-to-b from-amber-400 to-orange-500 rounded-full shrink-0" />
+            接取任務中心
           </h2>
           
           <div className="flex bg-slate-900/65 p-1 rounded-2xl border border-white/5 w-full sm:w-auto overflow-x-auto scrollbar-none gap-1 light:bg-slate-100 light:border-slate-300/50">
@@ -1461,7 +1462,7 @@ export function DailyQuestsTab({
               <button
                 key={key}
                 onClick={() => setActiveCategory(key as typeof activeCategory)}
-                className={`relative flex-shrink-0 sm:flex-initial flex flex-row items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-black transition-all duration-300 select-none whitespace-nowrap cursor-pointer ${
+                className={`relative flex-shrink-0 sm:flex-initial flex flex-row items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-sm sm:text-xs font-black transition-all duration-300 select-none whitespace-nowrap cursor-pointer ${
                   activeCategory === key
                     ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 shadow-[0_0_15px_rgba(245,158,11,0.35)] scale-[1.02]'
                     : 'text-slate-400 hover:text-white hover:bg-slate-800/40 light:hover:bg-slate-200/50'
@@ -1470,9 +1471,10 @@ export function DailyQuestsTab({
                 {categoryHasUndone(key) && (
                   <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-500 border border-slate-900 animate-pulse" />
                 )}
-                <Icon size={13} className="shrink-0" />
+                <Icon size={14} className="shrink-0" />
                 <span className="leading-none">
-                  {label}
+                  <span className="hidden sm:inline">{label}</span>
+                  <span className="inline sm:hidden">{label.substring(0, 2)}</span>
                 </span>
               </button>
             ))}
