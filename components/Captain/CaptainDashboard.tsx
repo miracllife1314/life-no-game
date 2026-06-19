@@ -109,8 +109,14 @@ const generateRelayText = (
     return true;
   });
 
-  // 3. Filter members to only students in the team
-  const students = allProfiles.filter(p => p.team_id === targetTeam.id && p.role === 'student' && p.status !== 'inactive');
+  // 3. Filter members to students and captains in the team, sorting captain first
+  const students = allProfiles
+    .filter(p => p.team_id === targetTeam.id && (p.role === 'student' || p.role === 'captain') && p.status !== 'inactive')
+    .sort((a, b) => {
+      if (a.role === 'captain' && b.role !== 'captain') return -1;
+      if (a.role !== 'captain' && b.role === 'captain') return 1;
+      return 0;
+    });
 
   let dailyQuestSection = '';
   let checkinRate = 0;
@@ -128,7 +134,8 @@ const generateRelayText = (
       );
       if (completedDaily) completedCount++;
       // 已完成用 ✅，未完成留空白供學員自行填
-      return `${index + 1}. ${m.name}${completedDaily ? ' ✅' : ''}`;
+      const displayName = m.name + (m.role === 'captain' ? ' (小隊長)' : '');
+      return `${index + 1}. ${displayName}${completedDaily ? ' ✅' : ''}`;
     });
     dailyQuestSection = dailyLines.join('\n');
     checkinRate = Math.round((completedCount / students.length) * 100);
@@ -145,7 +152,8 @@ const generateRelayText = (
         allSubmissions.some(s => s.student_id === m.id && s.mission_id === t.id && s.status === 'approved')
       );
       if (done.length > 0) {
-        lines.push(`• ${m.name}：${done.map(t => t.name).join('、')}`);
+        const displayName = m.name + (m.role === 'captain' ? ' (小隊長)' : '');
+        lines.push(`• ${displayName}：${done.map(t => t.name).join('、')}`);
       }
     });
     return lines.length > 0 ? lines.join('\n') : '（尚無人完成）';
