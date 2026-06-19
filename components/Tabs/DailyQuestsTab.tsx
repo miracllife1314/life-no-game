@@ -734,15 +734,15 @@ export function DailyQuestsTab({
 
   const getCategoryBadge = (task: Task) => {
     if (task.type === 'daily') {
-      return <span className="text-[10px] font-black tracking-widest text-amber-500 bg-amber-500/10 px-2.5 py-1 rounded-md">每日任務</span>;
+      return <span className="text-[11px] font-black tracking-widest text-amber-500 bg-amber-500/10 px-2.5 py-1 rounded-lg">每日任務</span>;
     }
     if (task.type === 'weekly') {
-      return <span className="text-[10px] font-black tracking-widest text-purple-400 bg-purple-500/10 px-2.5 py-1 rounded-md">每週任務</span>;
+      return <span className="text-[11px] font-black tracking-widest text-purple-400 bg-purple-500/10 px-2.5 py-1 rounded-lg">每週任務</span>;
     }
     if (task.type === 'limited' || task.name.includes('限時') || task.name.includes('最後一週')) {
-      return <span className="text-[10px] font-black tracking-widest text-red-400 bg-red-500/10 px-2.5 py-1 rounded-md">限時挑戰</span>;
+      return <span className="text-[11px] font-black tracking-widest text-red-400 bg-red-500/10 px-2.5 py-1 rounded-lg">限時挑戰</span>;
     }
-    return <span className="text-[10px] font-black tracking-widest text-teal-400 bg-teal-500/10 px-2.5 py-1 rounded-md">特殊加碼</span>;
+    return <span className="text-[11px] font-black tracking-widest text-teal-400 bg-teal-500/10 px-2.5 py-1 rounded-lg">特殊加碼</span>;
   };
 
   // Sort tasks: uncompleted ('none' or 'rejected') first, completed ('approved' or 'pending') last.
@@ -1461,7 +1461,7 @@ export function DailyQuestsTab({
               <button
                 key={key}
                 onClick={() => setActiveCategory(key as typeof activeCategory)}
-                className={`relative flex-1 sm:flex-initial flex flex-row items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl text-xs font-black transition-all duration-300 select-none whitespace-nowrap cursor-pointer ${
+                className={`relative flex-shrink-0 sm:flex-initial flex flex-row items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-black transition-all duration-300 select-none whitespace-nowrap cursor-pointer ${
                   activeCategory === key
                     ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 shadow-[0_0_15px_rgba(245,158,11,0.35)] scale-[1.02]'
                     : 'text-slate-400 hover:text-white hover:bg-slate-800/40 light:hover:bg-slate-200/50'
@@ -1517,7 +1517,7 @@ export function DailyQuestsTab({
                       <div>
                         <div className="flex justify-between items-start gap-2">
                           <div className="flex gap-1.5 items-center flex-wrap flex-1 min-w-0">
-                          <span className="text-[10px] font-black tracking-widest text-amber-500 bg-amber-500/10 px-2.5 py-1 rounded-md">
+                          <span className="text-[11px] font-black tracking-widest text-amber-500 bg-amber-500/10 px-2.5 py-1 rounded-lg">
                             {mission.mission_type === 'daily'
                               ? '每日任務'
                               : mission.mission_type === 'weekly'
@@ -1526,19 +1526,19 @@ export function DailyQuestsTab({
                               ? '限時挑戰'
                               : '特殊加碼'}
                           </span>
-                          <span className="text-sm font-black tracking-wide px-3 py-1 rounded-lg border text-amber-400 bg-amber-500/15 border-amber-500/30">
+                          <span className="text-[11px] font-black tracking-wide px-2.5 py-1 rounded-lg border text-amber-400 bg-amber-500/15 border-amber-500/30">
                             +{mission.points} 經驗
                           </span>
                           {(() => {
                             if (limit === 0) {
                               return (
-                                <span className="text-[10px] font-black tracking-widest px-2 py-0.5 rounded-md border text-blue-400 bg-blue-500/10 border-blue-500/20">
+                                <span className="text-[11px] font-black tracking-widest px-2 py-0.5 rounded-lg border text-blue-400 bg-blue-500/10 border-blue-500/20">
                                   已完成 {approvedCount} 次 / 無限制
                                 </span>
                               );
                             } else if (limit > 1) {
                               return (
-                                <span className="text-[10px] font-black tracking-widest px-2 py-0.5 rounded-md border text-purple-400 bg-purple-500/10 border-purple-500/20">
+                                <span className="text-[11px] font-black tracking-widest px-2 py-0.5 rounded-lg border text-purple-400 bg-purple-500/10 border-purple-500/20">
                                   已完成 {approvedCount} / {limit} 次
                                 </span>
                               );
@@ -1715,7 +1715,7 @@ export function DailyQuestsTab({
                       <div>
                         <div className="flex gap-1.5 items-center flex-wrap pr-24">
                           {getCategoryBadge(task)}
-                          <span className={`text-sm font-black tracking-wide px-3 py-1 rounded-lg border ${
+                          <span className={`text-[11px] font-black tracking-wide px-2.5 py-1 rounded-lg border ${
                             isDone
                               ? 'text-slate-500 bg-slate-800/60 border-white/5 light:bg-slate-200 light:text-slate-500'
                               : 'text-amber-400 bg-amber-500/15 border-amber-500/30'
@@ -1725,13 +1725,13 @@ export function DailyQuestsTab({
                           {(() => {
                             if (limit === 0) {
                               return (
-                                <span className="text-[10px] font-black tracking-widest px-2 py-0.5 rounded-md border text-blue-400 bg-blue-500/10 border-blue-500/20">
+                                <span className="text-[11px] font-black tracking-widest px-2 py-0.5 rounded-lg border text-blue-400 bg-blue-500/10 border-blue-500/20">
                                   已完成 {approvedCount} 次 / 無限制
                                 </span>
                               );
                             } else if (limit > 1) {
                               return (
-                                <span className="text-[10px] font-black tracking-widest px-2 py-0.5 rounded-md border text-purple-400 bg-purple-500/10 border-purple-500/20">
+                                <span className="text-[11px] font-black tracking-widest px-2 py-0.5 rounded-lg border text-purple-400 bg-purple-500/10 border-purple-500/20">
                                   已完成 {approvedCount} / {limit} 次
                                 </span>
                               );
@@ -1746,7 +1746,7 @@ export function DailyQuestsTab({
                             const countdown = getCountdownText(task.end_time);
                             if (!countdown) return null;
                             return (
-                              <span className={`text-[11px] font-black tracking-wide px-2.5 py-1 rounded-md flex items-center gap-1 border ${
+                              <span className={`text-[11px] font-black tracking-wide px-2.5 py-1 rounded-lg flex items-center gap-1 border ${
                                 countdown.isExpired
                                   ? 'text-slate-500 bg-slate-900/50 border-white/5'
                                   : countdown.isUrgent
@@ -1761,7 +1761,7 @@ export function DailyQuestsTab({
                           {(() => {
                             const d = parseLocalTime(task.publish_time);
                             return (
-                              <span className="text-[11px] font-black tracking-wide px-2.5 py-1 rounded-md flex items-center gap-1 border text-sky-400 bg-sky-500/10 border-sky-500/20">
+                              <span className="text-[11px] font-black tracking-wide px-2.5 py-1 rounded-lg flex items-center gap-1 border text-sky-400 bg-sky-500/10 border-sky-500/20">
                                 📅 {d.getMonth() + 1}/{d.getDate()}
                               </span>
                             );
