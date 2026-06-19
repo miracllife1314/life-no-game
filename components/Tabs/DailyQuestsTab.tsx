@@ -13,6 +13,7 @@ import { SuccessModal } from '@/components/Tabs/quests/SuccessModal';
 import { LevelUpModal } from '@/components/Tabs/quests/LevelUpModal';
 import { ProofModal } from '@/components/Tabs/quests/ProofModal';
 import { ConfirmModal } from '@/components/Tabs/quests/ConfirmModal';
+import { MilestoneModal } from '@/components/Tabs/quests/MilestoneModal';
 import {
   CheckCircle2, Circle, Clock, MessageSquare,
   AlertCircle, FileText, Send, Flame, Sparkles, 
@@ -317,12 +318,13 @@ export function DailyQuestsTab({
   const [showConfirmEvolve, setShowConfirmEvolve] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState<any | null>(null);
   const [showLevelUpModal, setShowLevelUpModal] = useState<any | null>(null);
+  const [selectedMilestone, setSelectedMilestone] = useState<any | null>(null);
 
   // 通知父層:升級/進化彈窗是否正在顯示 → 成就彈窗要等這些關掉後才跳(一次只跳一個、不重疊)
   React.useEffect(() => {
-    onModalActiveChange?.(!!showLevelUpModal || !!showSuccessModal);
+    onModalActiveChange?.(!!showLevelUpModal || !!showSuccessModal || !!selectedMilestone);
     return () => { onModalActiveChange?.(false); };  // 離開此分頁時清除,避免成就彈窗被永久卡住
-  }, [showLevelUpModal, showSuccessModal, onModalActiveChange]);
+  }, [showLevelUpModal, showSuccessModal, selectedMilestone, onModalActiveChange]);
   const [selectedTempLine, setSelectedTempLine] = useState<string | null>(null);
   const [showStrategy, setShowStrategy] = useState(false);
 
@@ -916,12 +918,12 @@ export function DailyQuestsTab({
 
                 {/* Milestone Nodes */}
                 {[
-                  { d: 0, bonus: 0, title: '修行起步', icon: '🌱' },
-                  { d: 3, bonus: 100, title: '🥉 初露鋒芒', icon: '🎁' },
-                  { d: 7, bonus: 200, title: '🥈 漸入佳境', icon: '🎁' },
-                  { d: 14, bonus: 500, title: '🥇 勢不可擋', icon: '🎁' },
-                  { d: 21, bonus: 800, title: '🏆 爐火純青', icon: '🎁' },
-                  { d: 30, bonus: 1000, title: '👑 登峰造極', icon: '🔥' }
+                  { d: 0, bonus: 0, title: '🌱 修行起步', icon: '🌱', desc: '踏上定課修行的旅程，持之以恆以獲得更多獎勵！' },
+                  { d: 3, bonus: 100, title: '🥉 初露鋒芒', icon: '🎁', desc: '連續定課修行 3 天，踏出穩健修行的第一步。' },
+                  { d: 7, bonus: 200, title: '🥈 漸入佳境', icon: '🎁', desc: '連續定課修行 7 天，養成自律修行的優良習慣。' },
+                  { d: 14, bonus: 500, title: '🥇 勢不可擋', icon: '🎁', desc: '連續定課修行 14 天，半月堅持，修行已成日常節奏。' },
+                  { d: 21, bonus: 800, title: '🏆 爐火純青', icon: '🎁', desc: '連續定課修行 21 天，將修行完美融入靈魂生命。' },
+                  { d: 30, bonus: 1000, title: '👑 登峰造極', icon: '🔥', desc: '連續定課修行 30 天，整月不間斷，自律已內化為本能。' }
                 ].map((node) => {
                   const isUnlocked = dailyStreak >= node.d;
                   const isImmediateTarget = !isUnlocked && nextStreakMilestone === node.d;
@@ -930,7 +932,8 @@ export function DailyQuestsTab({
                     <div key={node.d} className="relative z-10 flex flex-col items-center group">
                       {/* Node Circle */}
                       <div 
-                        className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black border transition-all duration-300 relative ${
+                        onClick={() => setSelectedMilestone(node)}
+                        className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black border transition-all duration-300 relative cursor-pointer hover:scale-110 active:scale-95 ${
                           isUnlocked 
                             ? 'bg-gradient-to-br from-amber-400 to-orange-500 border-amber-300 text-slate-950 shadow-[0_0_8px_rgba(245,158,11,0.4)]'
                             : isImmediateTarget
@@ -940,11 +943,7 @@ export function DailyQuestsTab({
                         title={`${node.title} (${node.d}天)${node.bonus ? ` +${node.bonus} EXP` : ''}`}
                       >
                         {node.d === 0 ? (dailyStreak > 0 ? '✓' : '🌱') : (isUnlocked ? '✓' : node.icon)}
-                        
-                        {/* Tooltip on hover */}
-                        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 bg-slate-900 border border-white/10 text-white text-[9px] font-bold py-1 px-2 rounded shadow-xl whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-35 light:bg-slate-800">
-                          {node.title} ({node.d}天){node.bonus ? ` +${node.bonus} EXP 🎁` : ''}
-                        </div>
+                        {/* 懸停資訊改用節點的 title 屬性,避免自繪泡泡在最右節點溢出視窗、害手機可左右滑 */}
                       </div>
                       
                       {/* Day Label below node */}
@@ -2208,6 +2207,15 @@ export function DailyQuestsTab({
 
       {/* 🚀 神獸升級成功 Modal —— 進化特效進行中時不顯示,確保一次只跳一個 */}
       {showLevelUpModal && !showSuccessModal && <LevelUpModal showLevelUpModal={showLevelUpModal} setShowLevelUpModal={setShowLevelUpModal} onEvolveNow={handleEvolveNow} onContinue={handleLevelUpContinue} />}
+
+      {/* 🏆 連勝里程碑詳細資訊彈窗 */}
+      {selectedMilestone && (
+        <MilestoneModal 
+          milestone={selectedMilestone} 
+          dailyStreak={dailyStreak} 
+          onClose={() => setSelectedMilestone(null)} 
+        />
+      )}
     </div>
   );
 }
