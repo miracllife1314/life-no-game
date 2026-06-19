@@ -94,15 +94,6 @@ export function CourseTab({
                       </span>
                     )}
                   </div>
-
-                  {/* Inline Date/Time display */}
-                  {parsedDate && (
-                    <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-400 bg-slate-800/40 border border-white/5 px-2.5 py-1 rounded-lg w-fit select-none light:bg-slate-100 light:text-slate-600 light:border-slate-200">
-                      <span>📅 {parsedDate.getFullYear()}/{parsedDate.getMonth() + 1}/{parsedDate.getDate()}</span>
-                      <span>({['日', '一', '二', '三', '四', '五', '六'][parsedDate.getDay()]})</span>
-                      <span className="text-red-400 font-mono font-bold light:text-red-500">{parsedDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}</span>
-                    </div>
-                  )}
                   
                   <p className="text-xs text-slate-300 leading-relaxed light:text-slate-700 whitespace-pre-line font-medium">
                     {course.description}
