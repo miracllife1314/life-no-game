@@ -27,9 +27,10 @@ interface TeamsTabProps {
   onSaveNote?: (studentId: string, noteText: string) => Promise<void>;
   onAddProfile?: (profileData: { name: string; phone: string; role: UserRole; batchId: string; teamId: string; divisionName?: string | null; directorId?: string | null }) => Promise<void>;
   onQuickAssignCaptain?: (batchId: string, captainProfileId: string, teamId: string, directorId: string | null) => Promise<void>;
+  showToast?: (message: string, type?: 'success' | 'info' | 'error') => void;
 }
 
-export function TeamsTab({ profiles, teams, batches, captainCandidates, notes, currentUserId, isSyncing, onAssignTeam, onUpdateTeamSettings, onSaveNote, onAddProfile, onQuickAssignCaptain }: TeamsTabProps) {
+export function TeamsTab({ profiles, teams, batches, captainCandidates, notes, currentUserId, isSyncing, onAssignTeam, onUpdateTeamSettings, onSaveNote, onAddProfile, onQuickAssignCaptain, showToast }: TeamsTabProps) {
   // --- Team assignment State ---
   const [assignStudentId, setAssignStudentId] = useState('');
   const [assignTeamId, setAssignTeamId] = useState('');
@@ -165,6 +166,7 @@ export function TeamsTab({ profiles, teams, batches, captainCandidates, notes, c
   const handleQuickAssignSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!quickBatchId || !quickCaptainId || !quickTeamId || !onQuickAssignCaptain) return;
+    if (!confirm('確定要執行小隊長快速指派與綁定大隊嗎？')) return;
     try {
       await onQuickAssignCaptain(quickBatchId, quickCaptainId, quickTeamId, quickDirectorId || null);
       setQuickCaptainId('');
@@ -179,6 +181,7 @@ export function TeamsTab({ profiles, teams, batches, captainCandidates, notes, c
   const handleAssignTeamSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!assignStudentId) return;
+    if (!confirm('確定要儲存此學員的小隊與角色分配變更嗎？')) return;
     await onAssignTeam(
       assignStudentId,
       assignTeamId || null,
@@ -752,6 +755,9 @@ export function TeamsTab({ profiles, teams, batches, captainCandidates, notes, c
                               navigator.clipboard?.writeText(url).then(() => {
                                 setCopiedInviteId(t.id);
                                 setTimeout(() => setCopiedInviteId(null), 2000);
+                                if (showToast) {
+                                  showToast('✓ 邀請連結已複製到剪貼簿！', 'success');
+                                }
                               }).catch(() => { window.prompt('複製此邀請連結：', url); });
                             }}
                             className={`w-full btn-action flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-[11px] font-black transition-all cursor-pointer ${copiedInviteId === t.id ? 'bg-emerald-600 text-white' : 'bg-amber-500/15 text-amber-400 hover:bg-amber-500/25 border border-amber-500/20'}`}
@@ -766,6 +772,7 @@ export function TeamsTab({ profiles, teams, batches, captainCandidates, notes, c
                               value={t.captain_id || ''}
                               disabled={isSyncing}
                               onChange={async (e) => {
+                                if (!confirm('確定要變更此小隊的小隊長指派嗎？')) return;
                                 if (onUpdateTeamSettings) {
                                   try {
                                     await onUpdateTeamSettings(t.id, { captain_id: e.target.value || null });
@@ -804,6 +811,7 @@ export function TeamsTab({ profiles, teams, batches, captainCandidates, notes, c
                                   value={cap.director_id || ''}
                                   disabled={isSyncing}
                                   onChange={async (e) => {
+                                    if (!confirm('確定要變更此小隊長所屬的大隊嗎？')) return;
                                     if (onAssignTeam) {
                                       try {
                                         await onAssignTeam(

@@ -122,6 +122,8 @@ export default function Home() {
   const [captainCandidates, setCaptainCandidates] = useState<CaptainCandidate[]>([]);
   const [squadRoles, setSquadRoles] = useState<SquadRoleDef[]>([]);
   const [pendingAchievements, setPendingAchievements] = useState<UserAchievement[]>([]);
+  // 升級/進化彈窗顯示中時為 true → 成就彈窗排在它們之後,避免重疊
+  const [questModalActive, setQuestModalActive] = useState(false);
 
   // --- UI States ---
   const [activeTab, setActiveTab] = useState<TabKey>('daily');
@@ -930,6 +932,7 @@ export default function Home() {
             petLines={petLines}
             missionTemplates={missionTemplates}
             onSelectEvolutionLine={vSelectLine}
+            onModalActiveChange={setQuestModalActive}
           />
         )}
 
@@ -1045,6 +1048,7 @@ export default function Home() {
             squadRoles={squadRoles}
             onToggleCell={handleToggleCell}
             onUpdateProfile={handleUpdateProfile}
+            showToast={showToast}
             onViewAsStudent={(id) => { setViewAsUserId(id); setViewCanOperate(false); setEditAccountOpen(false); setActiveTab('daily'); }}
           />
           </Suspense>
@@ -1121,6 +1125,7 @@ export default function Home() {
             onUpdateTeamSettings={handleUpdateTeamSettings}
             onQuickAssignCaptain={handleQuickAssignCaptain}
             isSyncing={isSyncing}
+            showToast={showToast}
           />
           </Suspense>
         )}
@@ -1231,8 +1236,8 @@ export default function Home() {
         ))}
       </div>
 
-      {/* 🏆 成就解鎖即時通知彈窗 */}
-      {pendingAchievements.length > 0 && (
+      {/* 🏆 成就解鎖即時通知彈窗 —— 等升級/進化彈窗都關掉後才跳(排最後、不重疊) */}
+      {pendingAchievements.length > 0 && !questModalActive && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-md animate-in fade-in duration-300">
           {/* Neon-glow glass card */}
           <div className="relative w-full max-w-sm mx-4 p-8 rounded-[2.5rem] border border-amber-500/50 bg-[#090806]/90 shadow-[0_0_50px_rgba(245,158,11,0.25)] text-center space-y-6 select-none overflow-hidden animate-in zoom-in-95 duration-300">

@@ -224,8 +224,25 @@ export function useGameActions(d: Deps) {
         triggerScoreFloat(`+${points} 經驗！`);
       }
 
+      // 連勝里程碑加分：只對「每日定課」結算。後台 claim_streak_bonus 會算連勝、
+      // 達標自動加分(7天+200 / 14天+500 / 30天+1000)並防重複(同里程碑只給一次)。
+      const isDailyMission = mission?.mission_type === 'daily';
+      const bonusTask = isDailyMission
+        ? supabase.rpc('claim_streak_bonus', { p_student_id: actingUser.id })
+            .then(({ data, error }: { data: any; error: any }) => {
+              if (error) { console.error('[StreakBonus] claim error:', error); return; }
+              const awarded = data?.awarded as Array<{ threshold: number; bonus: number }> | undefined;
+              if (awarded && awarded.length > 0) {
+                const a = awarded[awarded.length - 1]; // 一次最多跨一個門檻，取最高那筆顯示
+                showToast(`🔥 連勝 ${a.threshold} 天達成！額外獲得 +${a.bonus} 分獎勵！`, 'success');
+                triggerConfetti();
+              }
+            })
+            .catch((err: any) => console.error('[StreakBonus] unexpected:', err))
+        : Promise.resolve();
+
       // 讓畫面先反應，背後慢慢重抓資料 (不阻擋 async return)
-      fetchData().catch(console.error);
+      bonusTask.finally(() => fetchData().catch(console.error));
 
     } catch (err: any) {
       console.error('[CheckIn] unexpected error:', err);
@@ -776,6 +793,8 @@ export function useGameActions(d: Deps) {
       });
     }
     await fetchData();
+    triggerConfetti();
+    showToast('神獸進化成功！恭喜您獲得全新形態！🎉', 'success');
   };
 
   const handleSelectEvolutionLine = async (studentId: string, lineKey: string) => {

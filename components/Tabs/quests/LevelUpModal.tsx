@@ -1,6 +1,9 @@
 // 神獸升級成功 Modal —— 從 DailyQuestsTab 抽出，行為/UI 不變。
 import { Sparkles } from 'lucide-react';
-export function LevelUpModal({ showLevelUpModal, setShowLevelUpModal }: { showLevelUpModal: any; setShowLevelUpModal: (v: any) => void }) {
+export function LevelUpModal({ showLevelUpModal, setShowLevelUpModal, onEvolveNow, onContinue }: { showLevelUpModal: any; setShowLevelUpModal: (v: any) => void; onEvolveNow?: () => void; onContinue?: () => void }) {
+  const finalLevel = showLevelUpModal.finalLevel ?? showLevelUpModal.newLevel;
+  const isLastStep = showLevelUpModal.newLevel >= finalLevel;   // 已升到本次最終等級
+  const remaining = Math.max(0, finalLevel - showLevelUpModal.newLevel); // 還剩幾級要確認
   return (
         <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-in fade-in duration-300 modal-force-dark">
           <div className="glass-panel level-up-glow-card w-full max-w-sm p-6 rounded-3xl border border-white/20 shadow-2xl relative bg-gradient-to-b from-slate-900 via-slate-950 to-slate-950 text-center space-y-6">
@@ -46,26 +49,54 @@ export function LevelUpModal({ showLevelUpModal, setShowLevelUpModal }: { showLe
               </div>
             </div>
 
-            {/* Evolution Prompt */}
-            {showLevelUpModal.hasPendingEvolution && (
+            {/* Evolution Prompt（只在升到本次最終等級、且可進化時才出現）*/}
+            {isLastStep && showLevelUpModal.hasPendingEvolution && (
               <div className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-pink-500/30 p-3.5 rounded-xl text-center animate-pulse">
                 <span className="text-xs font-black text-pink-400 block">
-                  ✨ 已達進化等級 Lv.5 門檻！
+                  ✨ 已達進化門檻！
                 </span>
                 <span className="text-[10px] text-slate-300 block mt-1 leading-relaxed">
-                  神秘進化考驗已解鎖，請前往下方寵物面板進行進化儀式，選擇你的專屬考驗任務！
+                  你的神獸能量已凝聚，點擊下方「立即進化」開啟進化儀式！
                 </span>
               </div>
             )}
 
-            <div className="flex pt-2">
-              <button
-                type="button"
-                onClick={() => setShowLevelUpModal(null)}
-                className="flex-1 btn-action py-3 rounded-xl bg-gradient-to-r from-amber-400 to-orange-500 text-slate-950 text-xs font-black shadow-lg cursor-pointer transition-all active:scale-95 shimmer-btn"
-              >
-                好的，太棒了！
-              </button>
+            <div className="flex gap-3 pt-2">
+              {!isLastStep ? (
+                /* 還沒升到最終等級 → 一次一級,按「繼續」升下一級 */
+                <button
+                  type="button"
+                  onClick={() => onContinue?.()}
+                  className="flex-1 btn-action py-3 rounded-xl bg-gradient-to-r from-amber-400 to-orange-500 text-slate-950 text-xs font-black shadow-lg cursor-pointer transition-all active:scale-95 shimmer-btn"
+                >
+                  繼續升級 ➔ LV.{showLevelUpModal.newLevel + 1}（還有 {remaining} 級）
+                </button>
+              ) : (showLevelUpModal.hasPendingEvolution && onEvolveNow) ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setShowLevelUpModal(null)}
+                    className="flex-1 py-3 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-white text-xs font-bold cursor-pointer"
+                  >
+                    稍後再說
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onEvolveNow()}
+                    className="flex-1 btn-action py-3 rounded-xl bg-gradient-to-r from-purple-500 via-pink-500 to-red-500 text-white text-xs font-black shadow-[0_0_15px_rgba(236,72,153,0.4)] cursor-pointer transition-all active:scale-95 shimmer-btn"
+                  >
+                    ✨ 立即進化
+                  </button>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setShowLevelUpModal(null)}
+                  className="flex-1 btn-action py-3 rounded-xl bg-gradient-to-r from-amber-400 to-orange-500 text-slate-950 text-xs font-black shadow-lg cursor-pointer transition-all active:scale-95 shimmer-btn"
+                >
+                  好的，太棒了！
+                </button>
+              )}
             </div>
           </div>
         </div>

@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Profile, Team, Batch } from '@/types';
 import { Trophy, Users, Award, Zap, Lock, Unlock, Eye, EyeOff, ShieldAlert } from 'lucide-react';
+import { nowTaipei, parseTaipei } from '@/lib/time';
 
 interface LeaderboardTabProps {
   profiles: Profile[];
@@ -116,6 +117,59 @@ export function LeaderboardTab({
         return 'bg-slate-900/60 border border-white/5 text-slate-400 light:bg-slate-100 light:border-slate-300';
     }
   };
+
+  // 🔥 Calculate streaks for all students dynamically using submissions and missions
+  const studentStreaks = useMemo(() => {
+    const streaks: Record<string, number> = {};
+    const dailyIds = new Set(missions.filter((m: any) => m.mission_type === 'daily').map((m: any) => m.id));
+    if (dailyIds.size === 0) return streaks;
+    const dateOfMission = new Map(missions.map((m: any) => [m.id, m.publish_at]));
+    const dayKey = (dt: Date) => `${dt.getFullYear()}-${dt.getMonth()}-${dt.getDate()}`;
+    const now = nowTaipei();
+    
+    // Group submissions by student_id to avoid O(N*M) loop
+    const submissionsByStudent = new Map<string, any[]>();
+    for (const s of submissions) {
+      if (s.status === 'rejected') continue;
+      if (!dailyIds.has(s.mission_id)) continue;
+      const pub = dateOfMission.get(s.mission_id);
+      if (!pub) continue;
+      
+      let list = submissionsByStudent.get(s.student_id);
+      if (!list) {
+        list = [];
+        submissionsByStudent.set(s.student_id, list);
+      }
+      list.push(s);
+    }
+    
+    // For each profile, calculate its streak
+    for (const p of profiles) {
+      const pSubmissions = submissionsByStudent.get(p.id) || [];
+      const done = new Set<string>();
+      for (const s of pSubmissions) {
+        const pub = dateOfMission.get(s.mission_id);
+        if (!pub) continue;
+        done.add(dayKey(parseTaipei(pub)));
+      }
+      
+      const todayKey = dayKey(new Date(now.getFullYear(), now.getMonth(), now.getDate()));
+      const isTodayDone = done.has(todayKey);
+      const cursor = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      if (!isTodayDone) cursor.setDate(cursor.getDate() - 1); // today not checked -> start from yesterday
+      
+      let streak = 0;
+      while (done.has(dayKey(cursor))) {
+        streak++;
+        cursor.setDate(cursor.getDate() - 1);
+      }
+      if (streak > 0) {
+        streaks[p.id] = streak;
+      }
+    }
+    
+    return streaks;
+  }, [profiles, submissions, missions]);
 
   // 1. DATA PREPARATION: Current Batch Individual (排除大隊長)
   const currentBatchProfiles = profiles.filter(p => p.batch_id === selectedBatchId && p.status !== 'inactive' && p.role !== 'admin');
@@ -317,8 +371,13 @@ export function LeaderboardTab({
                       <span className="font-black text-white text-xs mt-2 truncate w-20 text-center light:text-slate-900">
                         第二名
                       </span>
-                      <span className="text-[10px] font-bold text-slate-400">
-                        {topIndividual[1].score.toLocaleString()} XP
+                      <span className="text-[10px] font-bold text-slate-400 flex items-center gap-1">
+                        <span>{topIndividual[1].score.toLocaleString()} XP</span>
+                        {studentStreaks[topIndividual[1].id] && (
+                          <span className="text-orange-400 font-extrabold text-[10px] flex items-center gap-0.5 animate-pulse" title={`連續打卡 ${studentStreaks[topIndividual[1].id]} 天`}>
+                            🔥{studentStreaks[topIndividual[1].id]}
+                          </span>
+                        )}
                       </span>
                       
                       {/* Pedestal with Level inside */}
@@ -344,8 +403,13 @@ export function LeaderboardTab({
                       <span className="font-black text-amber-200 text-sm mt-2 truncate w-24 text-center light:text-amber-600">
                         第一名
                       </span>
-                      <span className="text-[10px] font-bold text-amber-400">
-                        {topIndividual[0].score.toLocaleString()} XP
+                      <span className="text-[10px] font-bold text-amber-400 flex items-center gap-1">
+                        <span>{topIndividual[0].score.toLocaleString()} XP</span>
+                        {studentStreaks[topIndividual[0].id] && (
+                          <span className="text-orange-400 font-extrabold text-[10px] flex items-center gap-0.5 animate-pulse" title={`連續打卡 ${studentStreaks[topIndividual[0].id]} 天`}>
+                            🔥{studentStreaks[topIndividual[0].id]}
+                          </span>
+                        )}
                       </span>
                       
                       {/* Pedestal with Level inside */}
@@ -371,8 +435,13 @@ export function LeaderboardTab({
                       <span className="font-black text-white text-xs mt-2 truncate w-20 text-center light:text-slate-900">
                         第三名
                       </span>
-                      <span className="text-[10px] font-bold text-slate-400">
-                        {topIndividual[2].score.toLocaleString()} XP
+                      <span className="text-[10px] font-bold text-slate-400 flex items-center gap-1">
+                        <span>{topIndividual[2].score.toLocaleString()} XP</span>
+                        {studentStreaks[topIndividual[2].id] && (
+                          <span className="text-orange-400 font-extrabold text-[10px] flex items-center gap-0.5 animate-pulse" title={`連續打卡 ${studentStreaks[topIndividual[2].id]} 天`}>
+                            🔥{studentStreaks[topIndividual[2].id]}
+                          </span>
+                        )}
                       </span>
                       
                       {/* Pedestal with Level inside */}
@@ -410,6 +479,11 @@ export function LeaderboardTab({
                             {isSelf && (
                               <span className="text-[9px] font-black bg-amber-500/10 text-amber-500 border border-amber-500/20 px-1.5 py-0.25 rounded-md">
                                 您
+                              </span>
+                            )}
+                            {studentStreaks[p.id] && (
+                              <span className="text-[9px] font-extrabold text-orange-400 bg-orange-500/10 border border-orange-500/20 px-1.5 py-0.25 rounded flex items-center gap-0.5" title={`連續打卡 ${studentStreaks[p.id]} 天`}>
+                                🔥 {studentStreaks[p.id]}
                               </span>
                             )}
                           </span>
@@ -666,9 +740,14 @@ export function LeaderboardTab({
                             )}
                           </td>
                           <td className="p-3 font-bold text-slate-300 light:text-slate-700">{getBatchName(p.batch_id)}</td>
-                          <td className="p-3 font-bold text-white light:text-slate-900 flex items-center gap-1">
+                          <td className="p-3 font-bold text-white light:text-slate-900 flex items-center gap-1.5">
                             {p.name}
                             {isSelf && <span className="text-[8px] bg-amber-500/10 text-amber-500 border border-amber-500/20 px-1 py-0.2 rounded">您</span>}
+                            {studentStreaks[p.id] && (
+                              <span className="text-[9px] font-extrabold text-orange-400 bg-orange-500/10 border border-orange-500/20 px-1.5 py-0.2 rounded flex items-center gap-0.5" title={`連續打卡 ${studentStreaks[p.id]} 天`}>
+                                🔥 {studentStreaks[p.id]}
+                              </span>
+                            )}
                           </td>
                           <td className="p-3 text-center font-bold text-indigo-400">LV.{level}</td>
                           <td className="p-3 text-right font-black text-amber-500 font-mono">{p.score.toLocaleString()} XP</td>

@@ -23,6 +23,7 @@ import { DecksTab } from './tabs/DecksTab';
 import { PetsTab } from './tabs/PetsTab';
 import { ReviewsTab } from './tabs/ReviewsTab';
 import { AdjustTab } from './tabs/AdjustTab';
+import { GuideTab } from './tabs/GuideTab';
 
 export const MISSION_CATEGORIES = ['初階', '進階', 'VIP', '期數任務', '神獸進化'];
 
@@ -106,6 +107,7 @@ interface AdminDashboardProps {
   notes?: StudentNote[];
   onSaveNote?: (studentId: string, noteText: string) => Promise<void>;
   currentUserId?: string;
+  showToast?: (message: string, type?: 'success' | 'info' | 'error') => void;
 }
 
 export function AdminDashboard({
@@ -171,9 +173,10 @@ export function AdminDashboard({
   isSyncing,
   notes = [],
   onSaveNote,
-  currentUserId
+  currentUserId,
+  showToast
 }: AdminDashboardProps) {
-  const [adminTab, setAdminTab] = useState<'reviews' | 'tasks' | 'teams' | 'adjust' | 'others' | 'pets' | 'decks' | 'batches' | 'mission_templates' | 'batch_rules' | 'schedule_preview' | 'captain_candidates' | 'roster'>('reviews');
+  const [adminTab, setAdminTab] = useState<'reviews' | 'tasks' | 'teams' | 'adjust' | 'others' | 'pets' | 'decks' | 'batches' | 'mission_templates' | 'batch_rules' | 'schedule_preview' | 'captain_candidates' | 'roster' | 'guide'>('reviews');
 
 
 
@@ -255,6 +258,7 @@ export function AdminDashboard({
             { key: 'schedule_preview', label: '任務排程預覽', icon: Calendar },
             { key: 'tasks', label: '任務管理', icon: Calendar },
             { key: 'pets', label: '神獸管理中心', icon: Sparkles },
+            { key: 'guide', label: '攻略設計', icon: Sliders },
             { key: 'decks', label: '卡牌與排組', icon: Layers },
             { key: 'teams', label: '小隊分配', icon: UserPlus },
             { key: 'captain_candidates', label: '小隊長候選', icon: Shield },
@@ -293,6 +297,11 @@ export function AdminDashboard({
           tasks={tasks}
           isSyncing={isSyncing}
           onReviewSubmission={onReviewSubmission}
+          profiles={profiles}
+          teams={teams}
+          submissions={submissions}
+          batches={batches}
+          showToast={showToast}
         />
       )}
 
@@ -323,6 +332,7 @@ export function AdminDashboard({
           onSaveNote={onSaveNote}
           onAddProfile={onAddProfile}
           onQuickAssignCaptain={onQuickAssignCaptain}
+          showToast={showToast}
         />
       )}
 
@@ -331,6 +341,7 @@ export function AdminDashboard({
         <AdjustTab
           profiles={profiles}
           teams={teams}
+          batches={batches}
           squadRoles={squadRoles}
           notes={notes}
           isSyncing={isSyncing}
@@ -498,6 +509,11 @@ export function AdminDashboard({
           onCreateMissionTemplate={onCreateMissionTemplate}
           onUpdateMissionTemplate={onUpdateMissionTemplate}
         />
+      )}
+
+      {/* ==================== 攻略配置分頁 ==================== */}
+      {adminTab === 'guide' && (
+        <GuideTab isSyncing={isSyncing} />
       )}
 
       {/* ==================== 卡牌與排組分頁 ==================== */}

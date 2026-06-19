@@ -314,9 +314,10 @@ export function BatchRulesTab({ batches, missionTemplates, missionCategories, ba
                                           required
                                           type="number"
                                           min={1}
-                                          value={localRule.day_offset ?? 1}
+                                          value={localRule.day_offset ?? ''}
                                           onFocus={e => e.target.select()}
-                                          onChange={e => updateLocalRuleField(template.id, 'day_offset', Number(e.target.value))}
+                                          onChange={e => updateLocalRuleField(template.id, 'day_offset', e.target.value === '' ? '' : Number(e.target.value))}
+                                          onBlur={() => { if (localRule.day_offset === null || (localRule.day_offset as any) === '') updateLocalRuleField(template.id, 'day_offset', 1); }}
                                           className="w-16 shrink-0 bg-slate-950 border border-slate-800 text-white rounded-lg p-2 text-xs text-center outline-none focus:border-red-500 light:bg-slate-50 light:border-slate-200 light:text-slate-900 font-mono font-bold"
                                         />
                                         <span className="text-slate-400 light:text-slate-600 font-bold">天發布</span>
@@ -328,9 +329,10 @@ export function BatchRulesTab({ batches, missionTemplates, missionCategories, ba
                                           required
                                           type="number"
                                           min={1}
-                                          value={localRule.duration_days ?? 1}
+                                          value={localRule.duration_days ?? ''}
                                           onFocus={e => e.target.select()}
-                                          onChange={e => updateLocalRuleField(template.id, 'duration_days', Number(e.target.value))}
+                                          onChange={e => updateLocalRuleField(template.id, 'duration_days', e.target.value === '' ? '' : Number(e.target.value))}
+                                          onBlur={() => { if (localRule.duration_days === null || (localRule.duration_days as any) === '') updateLocalRuleField(template.id, 'duration_days', 1); }}
                                           className="w-16 shrink-0 bg-slate-950 border border-slate-800 text-white rounded-lg p-2 text-xs text-center outline-none focus:border-red-500 light:bg-slate-50 light:border-slate-200 light:text-slate-900 font-mono font-bold"
                                         />
                                         <span className="text-slate-400 light:text-slate-600 font-bold">天</span>

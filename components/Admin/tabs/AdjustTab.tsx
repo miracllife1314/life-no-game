@@ -1,13 +1,14 @@
 // =====================================================================
 // 後台「手動調分 / 學員備註 / 小隊職責」分頁 —— 從 AdminDashboard.tsx 抽出，行為/UI 不變。
 // =====================================================================
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Edit2, Plus, Settings, Shield, Trash2 } from 'lucide-react';
 import { Profile, Team, SquadRoleDef, StudentNote } from '@/types';
 
 interface AdjustTabProps {
   profiles: Profile[];
   teams: Team[];
+  batches?: { id: string; name: string }[];
   squadRoles: SquadRoleDef[];
   notes: StudentNote[];
   isSyncing: boolean;
@@ -19,7 +20,7 @@ interface AdjustTabProps {
   onDeleteSquadRole?: (id: string) => Promise<void>;
 }
 
-export function AdjustTab({ profiles, teams, squadRoles, notes, isSyncing, onManualAdjustScore, onSaveNote, onUpdateProfile, onCreateSquadRole, onUpdateSquadRole, onDeleteSquadRole }: AdjustTabProps) {
+export function AdjustTab({ profiles, teams, batches = [], squadRoles, notes, isSyncing, onManualAdjustScore, onSaveNote, onUpdateProfile, onCreateSquadRole, onUpdateSquadRole, onDeleteSquadRole }: AdjustTabProps) {
   // Duty Assignment State
   const [selectedSettingMemberId, setSelectedSettingMemberId] = useState<string>('');
   const [savingMemberId, setSavingMemberId] = useState<string | null>(null);
@@ -70,6 +71,30 @@ export function AdjustTab({ profiles, teams, squadRoles, notes, isSyncing, onMan
   const [adjustReason, setAdjustReason] = useState('');
   const [adjustMessage, setAdjustMessage] = useState('');
 
+  // 搜尋與篩選狀態 (手動調分)
+  const [adjustSearch, setAdjustSearch] = useState('');
+  const [adjustBatchFilter, setAdjustBatchFilter] = useState('');
+
+  // 搜尋與篩選狀態 (系統職稱)
+  const [settingsSearch, setSettingsSearch] = useState('');
+  const [settingsBatchFilter, setSettingsBatchFilter] = useState('');
+
+  const filteredProfilesForAdjust = useMemo(() => {
+    return profiles.filter(p => {
+      const matchSearch = p.name.includes(adjustSearch) || (p.phone && p.phone.includes(adjustSearch));
+      const matchBatch = !adjustBatchFilter || p.batch_id === adjustBatchFilter;
+      return matchSearch && matchBatch;
+    });
+  }, [profiles, adjustSearch, adjustBatchFilter]);
+
+  const filteredProfilesForSettings = useMemo(() => {
+    return profiles.filter(p => {
+      const matchSearch = p.name.includes(settingsSearch) || (p.phone && p.phone.includes(settingsSearch));
+      const matchBatch = !settingsBatchFilter || p.batch_id === settingsBatchFilter;
+      return matchSearch && matchBatch;
+    });
+  }, [profiles, settingsSearch, settingsBatchFilter]);
+
 
 
   // --- Handlers ---
@@ -96,6 +121,55 @@ export function AdjustTab({ profiles, teams, squadRoles, notes, isSyncing, onMan
     }
   };
 
+  // --- 小隊批次調分 State ---
+  const [batchMode, setBatchMode] = useState<'flat' | 'split'>('flat');
+  const [batchBatchId, setBatchBatchId] = useState('');
+  const [batchTeamId, setBatchTeamId] = useState('');
+  const [batchAmount, setBatchAmount] = useState<string>('100');
+  const [batchReason, setBatchReason] = useState('');
+  const [batchMessage, setBatchMessage] = useState('');
+  const [batchLoading, setBatchLoading] = useState(false);
+
+  // 依選的 batch 過濾小隊
+  const batchTeams = batchBatchId
+    ? teams.filter(t => (t as any).batch_id === batchBatchId)
+    : teams;
+
+  // 選定小隊的學員（排除大隊長，只算 student）
+  const batchMembers = batchTeamId
+    ? profiles.filter(p => p.team_id === batchTeamId && p.role !== 'admin' && p.status !== 'inactive')
+    : [];
+
+  const batchAmountNum = Number(batchAmount) || 0;
+  // 給分模式：每人都拿相同金額
+  const perPersonFlat = batchAmountNum;
+  // 均分模式：總額 ÷ 人數（向下取整）
+  const perPersonSplit = batchMembers.length > 0 ? Math.floor(batchAmountNum / batchMembers.length) : 0;
+  const perPerson = batchMode === 'flat' ? perPersonFlat : perPersonSplit;
+
+  const handleBatchSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!batchTeamId || !batchReason || batchMembers.length === 0 || perPerson === 0) return;
+    if (Math.abs(perPerson) > 5000 && !window.confirm(`確定要給每人 ${perPerson > 0 ? '+' : ''}${perPerson} 分嗎？`)) return;
+
+    setBatchLoading(true);
+    setBatchMessage('');
+    let successCount = 0;
+    for (const member of batchMembers) {
+      try {
+        await onManualAdjustScore(member.id, perPerson, batchReason);
+        successCount++;
+      } catch (err) {
+        console.error(`Failed for ${member.name}:`, err);
+      }
+    }
+    setBatchLoading(false);
+    setBatchMessage(`🎉 完成！已成功調整 ${successCount}/${batchMembers.length} 人，每人 ${perPerson > 0 ? '+' : ''}${perPerson} 分`);
+    setBatchReason('');
+    setBatchAmount('100');
+    setTimeout(() => setBatchMessage(''), 4000);
+  };
+
   return (
         <div className="space-y-6">
           <section className="glass-panel p-6 rounded-3xl border border-white/5 space-y-6 light:bg-white light:border-slate-200">
@@ -104,18 +178,48 @@ export function AdjustTab({ profiles, teams, squadRoles, notes, isSyncing, onMan
             </h3>
 
             <form onSubmit={handleAdjustScoreSubmit} className="space-y-4 max-w-md select-none">
+              {/* 過濾與搜尋學員 */}
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <label className="block text-[10px] text-slate-500 font-bold mb-1">過濾期數</label>
+                  <select
+                    value={adjustBatchFilter}
+                    onChange={e => setAdjustBatchFilter(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white outline-none light:bg-slate-50 light:border-slate-200 light:text-slate-900"
+                  >
+                    <option value="">所有期數</option>
+                    {batches.map(b => (
+                       <option key={b.id} value={b.id}>{b.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex-1">
+                  <label className="block text-[10px] text-slate-500 font-bold mb-1">搜尋姓名/電話</label>
+                  <input
+                    type="text"
+                    value={adjustSearch}
+                    onChange={e => setAdjustSearch(e.target.value)}
+                    placeholder="輸入關鍵字..."
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white outline-none light:bg-slate-50 light:border-slate-200 light:text-slate-900"
+                  />
+                </div>
+              </div>
+
               <div>
-                <label className="block text-xs text-slate-400 font-bold mb-1.5">選擇學員</label>
+                <label className="block text-xs text-slate-400 font-bold mb-1.5">選擇學員 *</label>
                 <select
                   required
                   value={adjustStudentId}
                   onChange={e => setAdjustStudentId(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white outline-none"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white outline-none light:bg-slate-50 light:border-slate-200 light:text-slate-900"
                 >
-                  <option value="">請選擇學員...</option>
-                  {profiles.map(p => (
-                    <option key={p.id} value={p.id}>{p.name} (經驗：{p.score})</option>
-                  ))}
+                  <option value="">請選擇學員 ({filteredProfilesForAdjust.length} 人)...</option>
+                  {filteredProfilesForAdjust.map(p => {
+                    const teamName = teams.find(t => t.id === p.team_id)?.name || '未分組';
+                    return (
+                      <option key={p.id} value={p.id}>{p.name} [{teamName}] (經驗：{p.score})</option>
+                    );
+                  })}
                 </select>
               </div>
 
@@ -168,7 +272,144 @@ export function AdjustTab({ profiles, teams, squadRoles, notes, isSyncing, onMan
             </form>
           </section>
 
+          {/* 🏟️ 小隊批次調分 */}
+          <section className="glass-panel p-6 rounded-3xl border border-white/5 space-y-5 light:bg-white light:border-slate-200">
+            <h3 className="font-black text-white text-base select-none flex items-center gap-2 light:text-slate-900">
+              👥 小隊批次調分
+            </h3>
+
+            {/* 模式切換 */}
+            <div className="flex bg-slate-900 p-1 rounded-2xl border border-white/5 gap-1 w-fit select-none light:bg-slate-100 light:border-slate-300">
+              <button
+                type="button"
+                onClick={() => { setBatchMode('flat'); setBatchAmount('100'); }}
+                className={`px-5 py-2 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                  batchMode === 'flat'
+                    ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-md'
+                    : 'text-slate-400 hover:text-white light:text-slate-500'
+                }`}
+              >
+                ✅ 給分（全隊同分）
+              </button>
+              <button
+                type="button"
+                onClick={() => { setBatchMode('split'); setBatchAmount('3000'); }}
+                className={`px-5 py-2 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                  batchMode === 'split'
+                    ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-md'
+                    : 'text-slate-400 hover:text-white light:text-slate-500'
+                }`}
+              >
+                ➗ 均分（總額平分）
+              </button>
+            </div>
+
+            <form onSubmit={handleBatchSubmit} className="space-y-4 max-w-md select-none">
+
+              {/* 選期數 */}
+              {batches.length > 0 && (
+                <div>
+                  <label className="block text-xs text-slate-400 font-bold mb-1.5">篩選期數（選填）</label>
+                  <select
+                    value={batchBatchId}
+                    onChange={e => { setBatchBatchId(e.target.value); setBatchTeamId(''); }}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white outline-none light:bg-slate-50 light:border-slate-200 light:text-slate-900"
+                  >
+                    <option value="">── 全部期數 ──</option>
+                    {batches.map(b => (
+                      <option key={b.id} value={b.id}>{b.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* 選小隊 */}
+              <div>
+                <label className="block text-xs text-slate-400 font-bold mb-1.5">選擇小隊 *</label>
+                <select
+                  required
+                  value={batchTeamId}
+                  onChange={e => setBatchTeamId(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white outline-none light:bg-slate-50 light:border-slate-200 light:text-slate-900"
+                >
+                  <option value="">請選擇小隊...</option>
+                  {batchTeams.map(t => (
+                    <option key={t.id} value={t.id}>{t.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* 數值 */}
+              <div>
+                <label className="block text-xs text-slate-400 font-bold mb-1.5">
+                  {batchMode === 'flat' ? '每人加 / 減多少分（正負皆可）' : '總獎勵 EXP（系統自動均分）'}
+                </label>
+                <input
+                  required
+                  type="number"
+                  onFocus={e => e.target.select()}
+                  value={batchAmount}
+                  onChange={e => setBatchAmount(e.target.value)}
+                  placeholder={batchMode === 'flat' ? '例如：100 或 -50' : '例如：3000'}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm text-white outline-none light:bg-slate-50 light:border-slate-200 light:text-slate-900"
+                />
+              </div>
+
+              {/* 原因 */}
+              <div>
+                <label className="block text-xs text-slate-400 font-bold mb-1.5">調整原因 *</label>
+                <input
+                  required
+                  type="text"
+                  value={batchReason}
+                  onChange={e => setBatchReason(e.target.value)}
+                  placeholder="例如：研討會優秀表現、團隊挑戰獎勵..."
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm text-white outline-none focus:border-emerald-500 light:bg-slate-50 light:border-slate-200 light:text-slate-900"
+                />
+              </div>
+
+              {/* 預覽 */}
+              {batchTeamId && batchMembers.length > 0 && batchAmountNum !== 0 && (
+                <div className="bg-slate-950/60 border border-white/5 rounded-2xl p-4 space-y-2 light:bg-slate-50 light:border-slate-200">
+                  <p className="text-xs font-black text-slate-400 mb-2">📊 預覽</p>
+                  {batchMembers.map(m => (
+                    <div key={m.id} className="flex justify-between items-center text-xs">
+                      <span className="text-white font-bold light:text-slate-900">{m.name}</span>
+                      <span className={`font-black ${perPerson >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                        {perPerson > 0 ? '+' : ''}{perPerson} XP
+                      </span>
+                    </div>
+                  ))}
+                  <div className="border-t border-white/5 pt-2 flex justify-between text-xs font-black light:border-slate-200">
+                    <span className="text-slate-400">{batchMembers.length} 人合計</span>
+                    <span className="text-amber-400">
+                      {batchMode === 'flat'
+                        ? `${perPerson > 0 ? '+' : ''}${perPerson * batchMembers.length} XP`
+                        : `均分 ${perPerson} XP／人（總 ${perPerson * batchMembers.length} XP）`
+                      }
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {batchMessage && (
+                <p className="text-xs font-black text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 p-3 rounded-xl text-center">
+                  {batchMessage}
+                </p>
+              )}
+
+              <button
+                type="submit"
+                disabled={isSyncing || batchLoading || !batchTeamId || !batchReason || batchMembers.length === 0 || perPerson === 0}
+                className="btn-action bg-emerald-500 hover:bg-emerald-600 text-white py-3 px-6 rounded-xl text-xs font-black disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {batchLoading ? `⏳ 處理中...` : `確認送出（共 ${batchMembers.length} 人，每人 ${perPerson > 0 ? '+' : ''}${perPerson} 分）`}
+              </button>
+            </form>
+          </section>
+
           {/* ⚙️ 系統職稱設定 */}
+
           <section className="glass-panel p-6 rounded-3xl border border-white/10 space-y-4 text-left light:bg-white light:border-slate-200">
             <h3 className="text-sm font-black text-white border-b border-white/5 pb-3 flex items-center gap-2 select-none light:border-slate-200 light:text-slate-900">
               <Settings size={16} className="text-amber-500" />
@@ -176,6 +417,32 @@ export function AdjustTab({ profiles, teams, squadRoles, notes, isSyncing, onMan
             </h3>
 
             <div className="space-y-4">
+              <div className="flex gap-2 max-w-md">
+                <div className="flex-1">
+                  <label className="block text-[10px] text-slate-500 font-bold mb-1">過濾期數</label>
+                  <select
+                    value={settingsBatchFilter}
+                    onChange={e => setSettingsBatchFilter(e.target.value)}
+                    className="w-full bg-slate-955 border border-slate-800 rounded-xl p-2.5 text-xs text-white outline-none light:bg-slate-50 light:border-slate-200 light:text-slate-900"
+                  >
+                    <option value="">所有期數</option>
+                    {batches.map(b => (
+                      <option key={b.id} value={b.id}>{b.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex-1">
+                  <label className="block text-[10px] text-slate-500 font-bold mb-1">搜尋姓名/電話</label>
+                  <input
+                    type="text"
+                    value={settingsSearch}
+                    onChange={e => setSettingsSearch(e.target.value)}
+                    placeholder="輸入關鍵字..."
+                    className="w-full bg-slate-955 border border-slate-800 rounded-xl p-2.5 text-xs text-white outline-none light:bg-slate-50 light:border-slate-200 light:text-slate-900"
+                  />
+                </div>
+              </div>
+
               <div className="space-y-1.5 max-w-md">
                 <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block">
                   選擇學員
@@ -185,8 +452,8 @@ export function AdjustTab({ profiles, teams, squadRoles, notes, isSyncing, onMan
                   onChange={(e) => setSelectedSettingMemberId(e.target.value)}
                   className="w-full text-xs bg-slate-900 border border-white/5 rounded-xl px-3 py-2.5 text-slate-300 font-bold outline-none focus:border-amber-500 focus:bg-slate-950 transition-all light:bg-white light:border-slate-350 light:text-slate-800"
                 >
-                  <option value="">-- 請選擇學員 --</option>
-                  {profiles.map(member => {
+                  <option value="">-- 請選擇學員 ({filteredProfilesForSettings.length} 人) --</option>
+                  {filteredProfilesForSettings.map(member => {
                     const t = teams.find(t => t.id === member.team_id);
                     return (
                       <option key={member.id} value={member.id}>

@@ -759,7 +759,27 @@ export function WitnessTab({ profiles, tasks, submissions, currentUserId, onRefr
                     );
                   })()}
 
-                  {/* ── IG Actions Row (Like & Comment buttons below the image) ── */}
+                  {/* ── IG Description Caption (Bold username + caption text) ── */}
+                  {s.proof_text && (
+                    <div className="text-sm text-slate-200 leading-relaxed light:text-slate-700">
+                      <span className="font-extrabold text-white mr-2 light:text-slate-900 select-all">
+                        {profile?.name || '未知'}
+                      </span>
+                      <span className={isExpanded ? '' : 'line-clamp-3'}>
+                        {s.proof_text}
+                      </span>
+                      {longText && (
+                        <button
+                          onClick={() => toggleExpand(s.id)}
+                          className="inline-block ml-1 font-black text-purple-400 hover:text-purple-300 text-xs cursor-pointer"
+                        >
+                          {isExpanded ? '收起' : '...展開全文'}
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  {/* ── IG Actions Row (Like & Comment buttons below the post content) ── */}
                   <div className="flex items-center gap-4 py-1 select-none">
                     {/* Heart Like */}
                     <button
@@ -789,26 +809,6 @@ export function WitnessTab({ profiles, tasks, submissions, currentUserId, onRefr
                       <span>{cardComments.length > 0 ? cardComments.length : ''}</span>
                     </button>
                   </div>
-
-                  {/* ── IG Description Caption (Bold username + caption text) ── */}
-                  {s.proof_text && (
-                    <div className="text-sm text-slate-200 leading-relaxed light:text-slate-700">
-                      <span className="font-extrabold text-white mr-2 light:text-slate-900 select-all">
-                        {profile?.name || '未知'}
-                      </span>
-                      <span className={isExpanded ? '' : 'line-clamp-3'}>
-                        {s.proof_text}
-                      </span>
-                      {longText && (
-                        <button
-                          onClick={() => toggleExpand(s.id)}
-                          className="inline-block ml-1 font-black text-purple-400 hover:text-purple-300 text-xs cursor-pointer"
-                        >
-                          {isExpanded ? '收起' : '...展開全文'}
-                        </button>
-                      )}
-                    </div>
-                  )}
 
                   {/* ── IG Footer: Task Category & Verification Status ── */}
                   <div className="flex items-center justify-between text-[10px] text-slate-500 font-bold border-t border-white/5 pt-2 light:border-slate-100">

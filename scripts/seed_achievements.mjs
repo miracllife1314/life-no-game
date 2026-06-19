@@ -36,10 +36,12 @@ const achievements = [
   { id: 'ach8', title: '心智煉金術師', description: '修行分數突破 25,000 分，點石成金，將一切經驗轉化為成長養分。', icon_url: 'Gem', condition_type: 'total_score', condition_value: 25000 },
   { id: 'ach9', title: 'NLP 宗師', description: '修行分數突破 30,000 分，臻於化境，一代溝通宗師誕生。', icon_url: 'Crown', condition_type: 'total_score', condition_value: 30000 },
 
-  // 2. 連續定課修行 (3個)
-  { id: 'streak1', title: '定課好習慣', description: '連續定課修行 3 天，踏出穩健修行的第一步。', icon_url: 'Flame', condition_type: 'consecutive_checkins', condition_value: 3 },
-  { id: 'streak2', title: '定課達人', description: '連續定課修行 7 天，養成自律修行的優良習慣。', icon_url: 'Layers', condition_type: 'consecutive_checkins', condition_value: 7 },
-  { id: 'streak3', title: '定課守護者', description: '連續定課修行 21 天，將修行完美融入靈魂生命。', icon_url: 'Shield', condition_type: 'consecutive_checkins', condition_value: 21 },
+  // 2. 連續定課修行 (5個)
+  { id: 'streak1', title: '🥉 初露鋒芒', description: '連續定課修行 3 天，踏出穩健修行的第一步。', icon_url: 'Flame', condition_type: 'consecutive_checkins', condition_value: 3 },
+  { id: 'streak2', title: '🥈 漸入佳境', description: '連續定課修行 7 天，養成自律修行的優良習慣。', icon_url: 'Layers', condition_type: 'consecutive_checkins', condition_value: 7 },
+  { id: 'streak14', title: '🥇 勢不可擋', description: '連續定課修行 14 天，半月堅持，修行已成日常節奏。', icon_url: 'CalendarCheck', condition_type: 'consecutive_checkins', condition_value: 14 },
+  { id: 'streak3', title: '🏆 爐火純青', description: '連續定課修行 21 天，將修行完美融入靈魂生命。', icon_url: 'Shield', condition_type: 'consecutive_checkins', condition_value: 21 },
+  { id: 'streak30', title: '👑 登峰造極', description: '連續定課修行 30 天，整月不間斷，自律已內化為本能。', icon_url: 'Award', condition_type: 'consecutive_checkins', condition_value: 30 },
 
   // 3. 見證牆入選 (2個)
   { id: 'wit1', title: '智慧初顯', description: '心得貼文首次入選見證牆，分享您的覺察智慧。', icon_url: 'MessageSquare', condition_type: 'witness_post_count', condition_value: 1 },

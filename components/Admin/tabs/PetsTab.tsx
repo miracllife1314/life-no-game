@@ -2,7 +2,7 @@
 // 後台「神獸（寵物）配置」分頁（型態/進化線編輯 + 圖片上傳）
 //   —— 從 AdminDashboard.tsx 抽出，行為/UI 不變。
 // =====================================================================
-import { useState, useRef } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import { AlertCircle, Sparkles, Trash2, Upload } from 'lucide-react';
 import { supabase, isRealSupabase } from '@/lib/supabase';
 import { parsePetOffset, trimCenterSquare, useTrimmedPetImage } from '@/lib/petImage';
@@ -32,8 +32,8 @@ export function PetsTab({ petLines, petStages, userPets, missionTemplates, batch
   const [editEvolutionText, setEditEvolutionText] = useState('');
   const [editImageUrl, setEditImageUrl] = useState('');
   const trimmedEditImage = useTrimmedPetImage(editImageUrl);
-  const [editMinLevel, setEditMinLevel] = useState(0);
-  const [editMaxLevel, setEditMaxLevel] = useState(99);
+  const [editMinLevel, setEditMinLevel] = useState<number | string>(0);
+  const [editMaxLevel, setEditMaxLevel] = useState<number | string>(99);
   const [editStageActive, setEditStageActive] = useState(true);
 
   // --- Divine Beast Image Upload State & Handlers ---
@@ -287,19 +287,50 @@ export function PetsTab({ petLines, petStages, userPets, missionTemplates, batch
   const [editLineDesc, setEditLineDesc] = useState('');
   const [editLineTraits, setEditLineTraits] = useState('');
   const [editLineActive, setEditLineActive] = useState(true);
-  const [editLineUnlockLevel, setEditLineUnlockLevel] = useState(5);
+  const [editLineUnlockLevel, setEditLineUnlockLevel] = useState<number | string>(5);
   const [editLineTaskTemplateId, setEditLineTaskTemplateId] = useState<string | null>(null);
-  const [editLineSortOrder, setEditLineSortOrder] = useState(1);
+  const [editLineSortOrder, setEditLineSortOrder] = useState<number | string>(1);
   const [progressBatchId, setProgressBatchId] = useState('all');
+  const [progressSearch, setProgressSearch] = useState('');
+  const [progressLineFilter, setProgressLineFilter] = useState('all');
+  const [progressSortKey, setProgressSortKey] = useState('level_desc');
+
+  // 學員培育進度篩選與排序
+  const sortedUserPets = useMemo(() => {
+    let list = userPets?.filter(up => {
+      const matchBatch = progressBatchId === 'all' || up.profile?.batch_id === progressBatchId;
+      const matchLine = progressLineFilter === 'all'
+        ? true
+        : progressLineFilter === 'none'
+        ? !up.pet_line
+        : up.pet_line === progressLineFilter;
+      const matchSearch = !progressSearch || (up.profile?.name && up.profile.name.includes(progressSearch));
+      return matchBatch && matchLine && matchSearch;
+    }) || [];
+
+    return [...list].sort((a, b) => {
+      if (progressSortKey === 'level_desc') {
+        return (b.level || 0) - (a.level || 0);
+      }
+      if (progressSortKey === 'level_asc') {
+        return (a.level || 0) - (b.level || 0);
+      }
+      if (progressSortKey === 'exp_desc') {
+        return (b.profile?.score || 0) - (a.profile?.score || 0);
+      }
+      return 0;
+    });
+  }, [userPets, progressBatchId, progressLineFilter, progressSearch, progressSortKey]);
   const [editLineTaskTitle, setEditLineTaskTitle] = useState('');
   const [editLineTaskDesc, setEditLineTaskDesc] = useState('');
-  const [editLineTaskPoints, setEditLineTaskPoints] = useState<number>(500);
+  const [editLineTaskPoints, setEditLineTaskPoints] = useState<number | string>(500);
   const [editLineTaskReviewType, setEditLineTaskReviewType] = useState<'auto' | 'leader' | 'admin'>('leader');
-  const [editLineTaskMaxCompletions, setEditLineTaskMaxCompletions] = useState<number>(1);
+  const [editLineTaskMaxCompletions, setEditLineTaskMaxCompletions] = useState<number | string>(1);
   const [editLineTaskActive, setEditLineTaskActive] = useState<boolean>(true);
   const handleSavePetStage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingStageId || !onUpdatePetStage) return;
+    if (!confirm('確定要儲存此神獸階段的設定嗎？')) return;
     console.log("form image_url before save:", editImageUrl);
 
     console.log('[PET SAVE] handleSavePetStage saving stage:', {
@@ -344,6 +375,7 @@ export function PetsTab({ petLines, petStages, userPets, missionTemplates, batch
   const handleSavePetLine = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingLineId || !onUpdatePetLine) return;
+    if (!confirm('確定要儲存此神獸進化路線的設定嗎？')) return;
     
     let targetTemplateId = editLineTaskTemplateId;
     if (editLineTaskTemplateId === 'new') {
@@ -357,11 +389,11 @@ export function PetsTab({ petLines, petStages, userPets, missionTemplates, batch
             title: editLineTaskTitle,
             description: editLineTaskDesc,
             mission_type: 'special',
-            points: editLineTaskPoints,
+            points: Number(editLineTaskPoints) || 0,
             review_type: editLineTaskReviewType,
             is_active: editLineTaskActive,
             category: '神獸進化',
-            max_completions: editLineTaskMaxCompletions
+            max_completions: editLineTaskMaxCompletions === '' ? 1 : Number(editLineTaskMaxCompletions)
           });
           if (newTemplate && newTemplate.id) {
             targetTemplateId = newTemplate.id;
@@ -379,10 +411,10 @@ export function PetsTab({ petLines, petStages, userPets, missionTemplates, batch
       await onUpdateMissionTemplate(editLineTaskTemplateId, {
         title: editLineTaskTitle,
         description: editLineTaskDesc,
-        points: editLineTaskPoints,
+        points: Number(editLineTaskPoints) || 0,
         review_type: editLineTaskReviewType,
         is_active: editLineTaskActive,
-        max_completions: editLineTaskMaxCompletions
+        max_completions: editLineTaskMaxCompletions === '' ? 1 : Number(editLineTaskMaxCompletions)
       });
     }
 
@@ -392,9 +424,9 @@ export function PetsTab({ petLines, petStages, userPets, missionTemplates, batch
       core_traits: editLineTraits,
       is_active: editLineActive,
       image_url: editImageUrl,
-      unlock_level: editLineUnlockLevel,
+      unlock_level: editLineUnlockLevel === '' ? 5 : Number(editLineUnlockLevel),
       task_template_id: targetTemplateId,
-      sort_order: editLineSortOrder
+      sort_order: editLineSortOrder === '' ? 1 : Number(editLineSortOrder)
     });
     
     setEditingLineId(null);
@@ -1039,7 +1071,8 @@ export function PetsTab({ petLines, petStages, userPets, missionTemplates, batch
                         min={1}
                         max={99}
                         value={editLineUnlockLevel}
-                        onChange={e => setEditLineUnlockLevel(parseInt(e.target.value, 10) || 5)}
+                        onChange={e => setEditLineUnlockLevel(e.target.value === '' ? '' : (parseInt(e.target.value, 10) || 0))}
+                        onBlur={() => { if (editLineUnlockLevel === '') setEditLineUnlockLevel(5); }}
                         className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white outline-none focus:border-red-500"
                       />
                     </div>
@@ -1123,7 +1156,8 @@ export function PetsTab({ petLines, petStages, userPets, missionTemplates, batch
                               onFocus={(e) => e.target.select()}
                               min={0}
                               value={editLineTaskPoints}
-                              onChange={e => setEditLineTaskPoints(Number(e.target.value))}
+                              onChange={e => setEditLineTaskPoints(e.target.value === '' ? '' : (Number(e.target.value) || 0))}
+                              onBlur={() => { if (editLineTaskPoints === '') setEditLineTaskPoints(500); }}
                               className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2 text-xs text-white outline-none focus:border-red-500 light:bg-white light:border-slate-300 light:text-slate-800"
                             />
                           </div>
@@ -1150,7 +1184,8 @@ export function PetsTab({ petLines, petStages, userPets, missionTemplates, batch
                               onFocus={(e) => e.target.select()}
                               min={1}
                               value={editLineTaskMaxCompletions}
-                              onChange={e => setEditLineTaskMaxCompletions(Number(e.target.value))}
+                              onChange={e => setEditLineTaskMaxCompletions(e.target.value === '' ? '' : (Number(e.target.value) || 0))}
+                              onBlur={() => { if (editLineTaskMaxCompletions === '') setEditLineTaskMaxCompletions(1); }}
                               className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2 text-xs text-white outline-none focus:border-red-500 light:bg-white light:border-slate-300 light:text-slate-800"
                             />
                           </div>
@@ -1178,7 +1213,8 @@ export function PetsTab({ petLines, petStages, userPets, missionTemplates, batch
                         onFocus={(e) => e.target.select()}
                         min={1}
                         value={editLineSortOrder}
-                        onChange={e => setEditLineSortOrder(parseInt(e.target.value, 10) || 1)}
+                        onChange={e => setEditLineSortOrder(e.target.value === '' ? '' : (parseInt(e.target.value, 10) || 0))}
+                        onBlur={() => { if (editLineSortOrder === '') setEditLineSortOrder(1); }}
                         className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white outline-none focus:border-red-500"
                       />
                     </div>
@@ -1333,22 +1369,57 @@ export function PetsTab({ petLines, petStages, userPets, missionTemplates, batch
           {/* ==================== 3. 學員培育進度 ==================== */}
           {petSubTab === 'progress' && (
             <section className="glass-panel p-6 rounded-3xl border border-white/5 space-y-4 light:bg-white light:border-slate-200 animate-in fade-in duration-200">
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 select-none pb-2 border-b border-white/5 light:border-slate-200">
-                <h3 className="font-black text-white text-base">
-                  🎓 學員神獸培育進度總覽
+              <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 select-none pb-2 border-b border-white/5 light:border-slate-200">
+                <h3 className="font-black text-white text-base light:text-slate-900 shrink-0">
+                  🎓 學員神獸培育進度總覽 ({sortedUserPets.length} / {userPets?.length || 0} 人)
                 </h3>
-                <div className="flex items-center gap-2">
-                  <label className="text-xs text-slate-400 font-bold">篩選期數：</label>
+                
+                <div className="flex flex-wrap items-center gap-2.5 w-full xl:w-auto">
+                  {/* 篩選期數 */}
                   <select
                     value={progressBatchId}
                     onChange={e => setProgressBatchId(e.target.value)}
-                    className="bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white outline-none focus:border-red-500 light:bg-white light:border-slate-300 light:text-slate-800"
+                    className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-red-500 light:bg-slate-50 light:border-slate-300 light:text-slate-800"
                   >
-                    <option value="all">全部期數</option>
+                    <option value="all">所有期數</option>
                     {batches.map(b => (
                       <option key={b.id} value={b.id}>{b.name}</option>
                     ))}
                   </select>
+
+                  {/* 篩選血統 */}
+                  <select
+                    value={progressLineFilter}
+                    onChange={e => setProgressLineFilter(e.target.value)}
+                    className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-red-500 light:bg-slate-50 light:border-slate-300 light:text-slate-800"
+                  >
+                    <option value="all">所有契合流派</option>
+                    <option value="dragon">影響力龍系</option>
+                    <option value="lion">行動力獅系</option>
+                    <option value="fox">親和力狐系</option>
+                    <option value="spirit">穩定靈獸系</option>
+                    <option value="none">混沌的蛋</option>
+                  </select>
+
+                  {/* 排序方式 */}
+                  <select
+                    value={progressSortKey}
+                    onChange={e => setProgressSortKey(e.target.value)}
+                    className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-red-500 light:bg-slate-50 light:border-slate-300 light:text-slate-800 font-bold"
+                  >
+                    <option value="level_desc">等級 (高到低)</option>
+                    <option value="level_asc">等級 (低到高)</option>
+                    <option value="exp_desc">當前經驗 (高到低)</option>
+                  </select>
+
+                  {/* 關鍵字搜尋 */}
+                  <input
+                    type="text"
+                    placeholder="搜尋學員姓名..."
+                    value={progressSearch}
+                    onChange={e => setProgressSearch(e.target.value)}
+                    className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-red-500 light:bg-slate-50 light:border-slate-300 light:text-slate-800 flex-1 sm:flex-none sm:w-40"
+                  />
                 </div>
               </div>
 
@@ -1365,28 +1436,19 @@ export function PetsTab({ petLines, petStages, userPets, missionTemplates, batch
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/5 light:divide-slate-200">
-                    {(() => {
-                      const filteredUserPets = userPets?.filter(up => {
-                        if (progressBatchId === 'all') return true;
-                        return up.profile?.batch_id === progressBatchId;
-                      }) || [];
-
-                      if (filteredUserPets.length === 0) {
-                        return (
-                          <tr>
-                            <td colSpan={6} className="p-8 text-center text-slate-500 font-bold">
-                              目前該期數尚無學員解鎖或擁有神獸。
-                            </td>
-                          </tr>
-                        );
-                      }
-
-                      return filteredUserPets.map(up => {
-                        const lineLabel = up.pet_line === 'dragon' ? '影響力龍系' : up.pet_line === 'lion' ? '行動力獅系' : up.pet_line === 'fox' ? '親和力狐系' : up.pet_line === 'spirit' ? '穩定靈獸系' : '無/混沌之卵';
+                    {sortedUserPets.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="p-8 text-center text-slate-500 font-bold select-none">
+                          目前該期數或篩選條件下，無學員解鎖或擁有神獸培育進度。
+                        </td>
+                      </tr>
+                    ) : (
+                      sortedUserPets.map(up => {
+                        const lineLabel = up.pet_line === 'dragon' ? '影響力龍系' : up.pet_line === 'lion' ? '行動力獅系' : up.pet_line === 'fox' ? '親和力狐系' : up.pet_line === 'spirit' ? '穩定靈獸系' : '無/混沌的蛋';
                         const evolved = up.current_stage_index > 1;
                         
                         // Determine evolution status description
-                        let evolutionStatusText = '混沌之卵';
+                        let evolutionStatusText = '混沌的蛋';
                         if (evolved) {
                           evolutionStatusText = `已進化 (${up.stage?.stage_name || '神獸型態'})`;
                         } else if (up.level >= 5) {
@@ -1417,8 +1479,8 @@ export function PetsTab({ petLines, petStages, userPets, missionTemplates, batch
                             </td>
                           </tr>
                         );
-                      });
-                    })()}
+                      })
+                    )}
                   </tbody>
                 </table>
               </div>

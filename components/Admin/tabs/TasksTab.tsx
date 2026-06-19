@@ -1,7 +1,7 @@
 // =====================================================================
 // 後台「任務管理」分頁（任務列表 + 建立任務 Modal）—— 從 AdminDashboard.tsx 抽出，行為/UI 不變。
 // =====================================================================
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Plus, Trash2, X } from 'lucide-react';
 import { Task, Batch, TaskType, TaskTargetType } from '@/types';
 
@@ -19,9 +19,48 @@ export function TasksTab({ tasks, batches, missionCategories, isSyncing, onCreat
   const [taskName, setTaskName] = useState('');
   const [taskDesc, setTaskDesc] = useState('');
   const [taskType, setTaskType] = useState<TaskType>('daily');
-  const [taskScore, setTaskScore] = useState(100);
+  const [taskScore, setTaskScore] = useState<number | string>(100);
   const [taskReqProof, setTaskReqProof] = useState(true);
   const [taskCategory, setTaskCategory] = useState<string>('初階');
+
+  // 篩選與排序狀態
+  const [listBatchFilter, setListBatchFilter] = useState('all');
+  const [listTypeFilter, setListTypeFilter] = useState('all');
+  const [listSearch, setListSearch] = useState('');
+  const [listSortKey, setListSortKey] = useState('type_asc');
+
+  const filteredTasks = useMemo(() => {
+    let result = tasks.filter(t => {
+      const matchBatch =
+        listBatchFilter === 'all'
+          ? true
+          : listBatchFilter === 'global'
+          ? !t.batch_id
+          : t.batch_id === listBatchFilter;
+      const matchType = listTypeFilter === 'all' || t.type === listTypeFilter;
+      const matchSearch = !listSearch || t.name.includes(listSearch) || (t.description && t.description.includes(listSearch));
+      return matchBatch && matchType && matchSearch;
+    });
+
+    return [...result].sort((a, b) => {
+      if (listSortKey === 'type_asc') {
+        const order = { daily: 1, weekly: 2, temporary: 3, limited: 4 };
+        const typeDiff = (order[a.type] || 5) - (order[b.type] || 5);
+        if (typeDiff !== 0) return typeDiff;
+        return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
+      }
+      if (listSortKey === 'time_desc') {
+        return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
+      }
+      if (listSortKey === 'time_asc') {
+        return new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime();
+      }
+      if (listSortKey === 'score_desc') {
+        return b.score - a.score;
+      }
+      return 0;
+    });
+  }, [tasks, listBatchFilter, listTypeFilter, listSearch, listSortKey]);
   const pad = (n: number) => n.toString().padStart(2, '0');
   const formatDateToLocal = (date: Date) => {
     return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
@@ -95,27 +134,77 @@ export function TasksTab({ tasks, batches, missionCategories, isSyncing, onCreat
   return (
     <>
         <section className="glass-panel p-6 rounded-3xl border border-white/5 space-y-4 light:bg-white light:border-slate-200">
-          <div className="flex justify-between items-center select-none">
-            <h3 className="font-black text-white text-base">
-              大會修行任務列表 ({tasks.length})
+          <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 select-none pb-2 border-b border-white/5 light:border-slate-100">
+            <h3 className="font-black text-white text-base light:text-slate-900 shrink-0">
+              大會修行任務列表 ({filteredTasks.length} / {tasks.length})
             </h3>
-            <button
-              onClick={() => setShowTaskModal(true)}
-              className="btn-action bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded-xl text-xs font-black flex items-center gap-1"
-            >
-              <Plus size={14} />
-              建立新任務
-            </button>
+            
+            <div className="flex flex-wrap items-center gap-2 w-full xl:w-auto">
+              {/* 期數篩選 */}
+              <select
+                value={listBatchFilter}
+                onChange={(e) => setListBatchFilter(e.target.value)}
+                className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-amber-500 light:bg-slate-50 light:border-slate-300 light:text-slate-800"
+              >
+                <option value="all">所有期數</option>
+                <option value="global">全體 (系統/大會任務)</option>
+                {batches.map(b => (
+                  <option key={b.id} value={b.id}>{b.name}</option>
+                ))}
+              </select>
+
+              {/* 類型篩選 */}
+              <select
+                value={listTypeFilter}
+                onChange={(e) => setListTypeFilter(e.target.value)}
+                className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-amber-500 light:bg-slate-50 light:border-slate-300 light:text-slate-800"
+              >
+                <option value="all">所有類型</option>
+                <option value="daily">每日定課</option>
+                <option value="weekly">每週任務</option>
+                <option value="limited">限時任務</option>
+                <option value="temporary">特殊任務</option>
+              </select>
+
+              {/* 排序方式 */}
+              <select
+                value={listSortKey}
+                onChange={(e) => setListSortKey(e.target.value)}
+                className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-amber-500 light:bg-slate-50 light:border-slate-300 light:text-slate-800 font-bold"
+              >
+                <option value="type_asc">預設 (依類型)</option>
+                <option value="time_desc">發布時間 (新到舊)</option>
+                <option value="time_asc">發布時間 (舊到新)</option>
+                <option value="score_desc">加分值 (高到低)</option>
+              </select>
+
+              {/* 關鍵字搜尋 */}
+              <input
+                type="text"
+                placeholder="搜尋任務名稱..."
+                value={listSearch}
+                onChange={(e) => setListSearch(e.target.value)}
+                className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-amber-500 light:bg-slate-50 light:border-slate-300 light:text-slate-800 flex-1 sm:flex-none sm:w-40"
+              />
+
+              <button
+                onClick={() => setShowTaskModal(true)}
+                className="btn-action bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded-xl text-xs font-black flex items-center gap-1 shrink-0"
+              >
+                <Plus size={14} />
+                建立新任務
+              </button>
+            </div>
           </div>
           <div className="divide-y divide-white/5 max-h-96 overflow-y-auto light:divide-slate-200">
-            {[...tasks].sort((a, b) => {
-              const order = { daily: 1, weekly: 2, temporary: 3, limited: 4 };
-              const typeDiff = (order[a.type] || 5) - (order[b.type] || 5);
-              if (typeDiff !== 0) return typeDiff;
-              return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
-            }).map(task => (
-              <div key={task.id} className="py-4 flex justify-between items-center gap-4 first:pt-0 last:pb-0">
-                <div className="flex-1">
+            {filteredTasks.length === 0 ? (
+              <div className="text-center py-12 text-slate-500 font-bold text-sm select-none">
+                💡 找不到符合條件的修行任務。
+              </div>
+            ) : (
+              filteredTasks.map(task => (
+                <div key={task.id} className="py-4 flex justify-between items-center gap-4 first:pt-0 last:pb-0">
+                  <div className="flex-1">
                   <div className="flex items-center gap-2 select-none">
                     <span className={`text-[9px] font-black px-2 py-0.5 rounded ${
                       task.type === 'daily' 
@@ -143,14 +232,18 @@ export function TasksTab({ tasks, batches, missionCategories, isSyncing, onCreat
                 </div>
 
                 <button
-                  onClick={() => onDeleteTask(task.id)}
+                  onClick={() => {
+                    if (confirm(`確定要刪除發布任務「${task.name}」嗎？`)) {
+                      onDeleteTask(task.id);
+                    }
+                  }}
                   disabled={isSyncing}
                   className="btn-action bg-slate-900 border border-white/5 hover:border-red-500/30 text-red-400 p-2 rounded-xl text-xs"
                 >
                   <Trash2 size={14} />
                 </button>
               </div>
-            ))}
+            )))}
           </div>
 
 
@@ -259,7 +352,8 @@ export function TasksTab({ tasks, batches, missionCategories, isSyncing, onCreat
                       type="number"
                       onFocus={(e) => e.target.select()}
                       value={taskScore}
-                      onChange={e => setTaskScore(Number(e.target.value))}
+                      onChange={e => setTaskScore(e.target.value === '' ? '' : (Number(e.target.value) || 0))}
+                      onBlur={() => { if (taskScore === '') setTaskScore(100); }}
                       className="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl py-2 px-2 text-[11px] outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 transition-all light:bg-slate-50 light:border-slate-200 light:text-slate-900"
                     />
                   </div>

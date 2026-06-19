@@ -142,6 +142,7 @@ export function OthersTab({ announcements, courses, achievements, batches, missi
   };
   const handleCancelEditAch = () => setEditingAchId(null);
   const handleSaveEditAch = async (id: string) => {
+    if (!confirm('確定要儲存此成就的修改嗎？')) return;
     if (onUpdateAchievement) {
       await onUpdateAchievement(id, {
         title: editAchTitle,
@@ -170,6 +171,7 @@ export function OthersTab({ announcements, courses, achievements, batches, missi
   };
   const handleCancelEditAnn = () => setEditingAnnId(null);
   const handleSaveEditAnn = async (id: string) => {
+    if (!confirm('確定要儲存此公告的修改嗎？')) return;
     if (onUpdateAnnouncement) {
       await onUpdateAnnouncement(id, {
         title: editAnnTitle,
@@ -200,6 +202,7 @@ export function OthersTab({ announcements, courses, achievements, batches, missi
   };
   const handleCancelEditCourse = () => setEditingCourseId(null);
   const handleSaveEditCourse = async (id: string) => {
+    if (!confirm('確定要儲存此課程的修改嗎？')) return;
     if (onUpdateCourse) {
       await onUpdateCourse(id, {
         name: editCourseName,
@@ -905,9 +908,16 @@ export function OthersTab({ announcements, courses, achievements, batches, missi
                             <button onClick={() => handleStartEditAch(ach)} className="p-1.5 rounded-lg bg-slate-800/50 hover:bg-slate-700 text-slate-300 transition-colors">
                               <Edit2 size={12} />
                             </button>
-                            <button onClick={() => onDeleteAchievement && onDeleteAchievement(ach.id)} className="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 transition-colors">
-                              <Trash2 size={12} />
-                            </button>
+                             <button
+                               onClick={() => {
+                                 if (confirm(`確定要刪除成就「${ach.title}」嗎？`)) {
+                                   onDeleteAchievement && onDeleteAchievement(ach.id);
+                                 }
+                               }}
+                               className="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 transition-colors"
+                             >
+                               <Trash2 size={12} />
+                             </button>
                           </div>
                         </div>
                       )}

@@ -43,6 +43,7 @@ interface CaptainDashboardProps {
   onAdminSelectTeam?: (teamId: string) => void;
   squadRoles?: SquadRoleDef[];
   onViewAsStudent?: (studentId: string) => void;
+  showToast?: (message: string, type?: 'success' | 'info' | 'error') => void;
 }
 
 const QUEST_ROLES_DEFS = [
@@ -52,6 +53,118 @@ const QUEST_ROLES_DEFS = [
 ];
 
 const DEFAULT_CHARACTERS: Record<string, string> = {};
+
+const isTodayLocal = (date: Date, now: Date): boolean => {
+  return (
+    date.getFullYear() === now.getFullYear() &&
+    date.getMonth() === now.getMonth() &&
+    date.getDate() === now.getDate()
+  );
+};
+
+const isTodayInRangeLocal = (start: Date, end: Date, now: Date): boolean => {
+  const dNow = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const dStart = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+  const dEnd = new Date(end.getFullYear(), end.getMonth(), end.getDate());
+  return dNow >= dStart && dNow <= dEnd;
+};
+
+const generateRelayText = (
+  targetTeam: Team | null,
+  allProfiles: Profile[],
+  allTasks: Task[],
+  allSubmissions: Submission[]
+): string => {
+  if (!targetTeam) return '';
+  const now = nowTaipei();
+  
+  // Format Date for Title (e.g. 6月19日)
+  const month = now.getMonth() + 1;
+  const dateNum = now.getDate();
+  const dateTitle = `${month}月${dateNum}日`;
+
+  // Filter tasks to match current batch
+  const batchTasks = allTasks.filter(t => t.batch_id === targetTeam.batch_id);
+
+  // 1. Get active daily tasks published today
+  const todayDailyTasks = batchTasks.filter(t => {
+    if (t.type !== 'daily') return false;
+    const start = t.start_time || t.publish_time;
+    if (!start) return false;
+    const startD = parseTaipei(start);
+    return isTodayLocal(startD, now);
+  });
+
+  // 2. Get active weekly and special (temporary/limited) tasks (whose current time falls between start and end)
+  const activeWeeklyOrSpecialTasks = batchTasks.filter(t => {
+    if (t.type !== 'weekly' && t.type !== 'temporary' && t.type !== 'limited') return false;
+    const start = t.start_time || t.publish_time;
+    const end = t.end_time;
+    const startD = start ? parseTaipei(start) : null;
+    const endD = end ? parseTaipei(end) : null;
+    
+    // Check range
+    if (startD && now.getTime() < startD.getTime()) return false;
+    if (endD && now.getTime() > endD.getTime()) return false;
+    return true;
+  });
+
+  // 3. Filter members to only students in the team
+  const students = allProfiles.filter(p => p.team_id === targetTeam.id && p.role === 'student' && p.status !== 'inactive');
+
+  let dailyQuestSection = '';
+  let checkinRate = 0;
+  let completedCount = 0;
+
+  // 周任務 / 限時任務 分開
+  const weeklyTasks   = activeWeeklyOrSpecialTasks.filter(t => t.type === 'weekly');
+  const limitedTasks  = activeWeeklyOrSpecialTasks.filter(t => t.type !== 'weekly');
+
+  if (students.length > 0) {
+    // 3.1 每日定課：將名字列出，由學員在 LINE 上自行打勾
+    const dailyLines = students.map((m, index) => {
+      const completedDaily = todayDailyTasks.length > 0 && todayDailyTasks.every(t =>
+        allSubmissions.some(s => s.student_id === m.id && s.mission_id === t.id && s.status === 'approved')
+      );
+      if (completedDaily) completedCount++;
+      // 已完成用 ✅，未完成留空白供學員自行填
+      return `${index + 1}. ${m.name}${completedDaily ? ' ✅' : ''}`;
+    });
+    dailyQuestSection = dailyLines.join('\n');
+    checkinRate = Math.round((completedCount / students.length) * 100);
+  } else {
+    dailyQuestSection = '(目前小隊尚無學員)';
+  }
+
+  // 3.2 每週任務：將有完成的人列出（未完成不顯示）
+  const buildCompletionSection = (tasks: typeof activeWeeklyOrSpecialTasks) => {
+    if (tasks.length === 0) return '（暫無相關任務）';
+    const lines: string[] = [];
+    students.forEach(m => {
+      const done = tasks.filter(t =>
+        allSubmissions.some(s => s.student_id === m.id && s.mission_id === t.id && s.status === 'approved')
+      );
+      if (done.length > 0) {
+        lines.push(`• ${m.name}：${done.map(t => t.name).join('、')}`);
+      }
+    });
+    return lines.length > 0 ? lines.join('\n') : '（尚無人完成）';
+  };
+
+  const weeklySection  = buildCompletionSection(weeklyTasks);
+  const limitedSection = buildCompletionSection(limitedTasks);
+
+  const weeklyBlock  = weeklyTasks.length  > 0 ? `\n\n【每週任務】已完成 ✅\n${weeklySection}`  : '';
+  const limitedBlock = limitedTasks.length > 0 ? `\n\n【限時任務】已完成 ✅\n${limitedSection}` : '';
+
+  return `📅 【NLP 定課與修行任務接龍】 ${dateTitle}
+──────────────────────
+【每日定課】（請在名字後打勾）
+${dailyQuestSection}${weeklyBlock}${limitedBlock}
+──────────────────────
+📊 今日每日打卡率：${checkinRate}% (${completedCount}/${students.length || 1})
+💪 同修們，今天也要記得上線完成定課修行唔！`;
+};
 
 
 export function CaptainDashboard({
@@ -75,7 +188,8 @@ export function CaptainDashboard({
   onAdminSelectTeam,
   onUpdateProfile,
   onViewAsStudent,
-  squadRoles = []
+  squadRoles = [],
+  showToast
 }: CaptainDashboardProps) {
   // Get active members of this team (both students and captain)
   const squadMembers = profiles.filter(p => p.team_id === team?.id && p.status !== 'inactive');
@@ -903,8 +1017,12 @@ export function CaptainDashboard({
                   <button
                     onClick={() => {
                       if (typeof window !== 'undefined') {
-                        navigator.clipboard.writeText(`${process.env.NEXT_PUBLIC_APP_URL || window.location.origin}/?invite=${team.invite_code || ''}&batch=${team.batch_id || ''}&team=${team.id || ''}`);
-                        alert('邀請連結已複製到剪貼簿！');
+                        const url = `${process.env.NEXT_PUBLIC_APP_URL || window.location.origin}/?invite=${team.invite_code || ''}&batch=${team.batch_id || ''}&team=${team.id || ''}`;
+                        navigator.clipboard.writeText(url).then(() => {
+                          if (showToast) {
+                            showToast('✓ 邀請連結已複製到剪貼簿！', 'success');
+                          }
+                        });
                       }
                     }}
                     className="btn-action bg-purple-500 hover:bg-purple-600 text-white font-bold text-xs px-4 py-2 rounded-xl transition-all cursor-pointer"
@@ -940,8 +1058,13 @@ export function CaptainDashboard({
                     onFocus={(e) => e.target.select()}
                     min="1"
                     max="100"
-                    value={team.max_members || 10}
-                    onChange={(e) => onUpdateTeamSettings && onUpdateTeamSettings(team.id, { max_members: Number(e.target.value) })}
+                    value={team.max_members || ''}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (onUpdateTeamSettings) {
+                        onUpdateTeamSettings(team.id, { max_members: val === '' ? 10 : Number(val) });
+                      }
+                    }}
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white outline-none focus:border-purple-500"
                   />
                 </div>
@@ -1100,6 +1223,38 @@ export function CaptainDashboard({
           </div>
         )}
       </section>
+
+      {/* 📋 今日定課與修行任務接龍一鍵複製面板 */}
+      {team && (
+        <section className="glass-panel p-6 rounded-3xl border border-white/5 space-y-4 text-left light:bg-white light:border-slate-200">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-2 border-b border-white/5 light:border-slate-200 gap-2">
+            <h3 className="font-black text-white text-sm flex items-center gap-2 light:text-slate-900 select-none">
+              <ScrollText size={16} className="text-amber-500" />
+              今日定課與修行任務接龍 (LINE 群專用)
+            </h3>
+            <button
+              onClick={() => {
+                const text = generateRelayText(team, profiles, tasks, submissions);
+                navigator.clipboard.writeText(text).then(() => {
+                  if (showToast) {
+                    showToast('✓ 接龍文字已複製到剪貼簿！', 'success');
+                  }
+                });
+              }}
+              className="btn-action bg-amber-500 hover:bg-amber-600 text-slate-950 px-4 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 select-none"
+            >
+              <Share2 size={13} />
+              一鍵複製接龍
+            </button>
+          </div>
+          
+          <div className="bg-slate-950/60 border border-white/5 p-4 rounded-2xl light:bg-slate-50 light:border-slate-300/60">
+            <pre className="text-[11px] text-slate-300 font-mono whitespace-pre-wrap leading-relaxed select-text light:text-slate-700">
+              {generateRelayText(team, profiles, tasks, submissions)}
+            </pre>
+          </div>
+        </section>
+      )}
 
       {/* 👥 小隊成員修行狀態與管理 (Screenshot Style Roster) */}
       <section className="space-y-4 text-left">

@@ -19,46 +19,109 @@ interface RosterTabProps {
 export function RosterTab({ profiles, teams, batches, isSyncing, onUpdateProfile, onDeleteProfile, onHardDeleteProfile, onViewAsStudent }: RosterTabProps) {
   const [rosterSearch, setRosterSearch] = useState('');
   const [rosterBatchFilter, setRosterBatchFilter] = useState('all');
+  const [rosterRoleFilter, setRosterRoleFilter] = useState('all');
+  const [rosterStatusFilter, setRosterStatusFilter] = useState('all');
+  const [rosterSortKey, setRosterSortKey] = useState('time_desc');
   const [rosterVisibleCount, setRosterVisibleCount] = useState(50); // 分頁：先渲染前 50 筆，避免一次渲染數百列卡死
   const [editingProfileId, setEditingProfileId] = useState<string | null>(null);
   const [editingProfileData, setEditingProfileData] = useState<Partial<Profile>>({});
 
   // 篩選+排序後的名冊（記憶化，避免每次 render 重算）
-  const rosterFiltered = useMemo(() => profiles
-    .filter(p => rosterBatchFilter === 'all' || p.batch_id === rosterBatchFilter)
-    .filter(p => p.name.includes(rosterSearch) || (p.phone && p.phone.includes(rosterSearch)))
-    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()),
-    [profiles, rosterBatchFilter, rosterSearch]);
+  const rosterFiltered = useMemo(() => {
+    let list = profiles
+      .filter(p => rosterBatchFilter === 'all' || p.batch_id === rosterBatchFilter)
+      .filter(p => rosterRoleFilter === 'all' || p.role === rosterRoleFilter)
+      .filter(p => rosterStatusFilter === 'all' || p.status === rosterStatusFilter)
+      .filter(p => p.name.includes(rosterSearch) || (p.phone && p.phone.includes(rosterSearch)));
 
-  // 切換期數/搜尋時，重置回前 50 筆
-  useEffect(() => { setRosterVisibleCount(50); }, [rosterBatchFilter, rosterSearch]);
+    return [...list].sort((a, b) => {
+      if (rosterSortKey === 'time_desc') {
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      }
+      if (rosterSortKey === 'time_asc') {
+        return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      }
+      if (rosterSortKey === 'score_desc') {
+        return b.score - a.score;
+      }
+      if (rosterSortKey === 'score_asc') {
+        return a.score - b.score;
+      }
+      if (rosterSortKey === 'name_asc') {
+        return a.name.localeCompare(b.name, 'zh-Hant');
+      }
+      return 0;
+    });
+  }, [profiles, rosterBatchFilter, rosterRoleFilter, rosterStatusFilter, rosterSearch, rosterSortKey]);
+
+  // 切換篩選/搜尋/排序時，重置回前 50 筆
+  useEffect(() => {
+    setRosterVisibleCount(50);
+  }, [rosterBatchFilter, rosterRoleFilter, rosterStatusFilter, rosterSearch, rosterSortKey]);
 
   return (
         <div className="space-y-6 animate-in fade-in duration-300 text-left">
 
           <div className="glass-panel p-6 rounded-3xl border border-white/5 space-y-4 light:bg-white light:border-slate-200">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-              <h3 className="font-black text-white text-lg flex items-center gap-2 light:text-slate-900">
+            <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
+              <h3 className="font-black text-white text-lg flex items-center gap-2 light:text-slate-900 shrink-0">
                 <Users size={20} className="text-amber-500" />
-                學員名單管理 ({profiles.length} 人)
+                學員名單管理 ({rosterFiltered.length} / {profiles.length} 人)
               </h3>
-              <div className="flex items-center gap-3 w-full sm:w-auto">
+              
+              {/* 篩選與搜尋控制區 */}
+              <div className="flex flex-wrap items-center gap-2.5 w-full xl:w-auto">
                 <select
                   value={rosterBatchFilter}
                   onChange={(e) => setRosterBatchFilter(e.target.value)}
-                  className="bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs text-white outline-none focus:border-amber-500 light:bg-slate-50 light:border-slate-300 light:text-slate-800"
+                  className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-amber-500 light:bg-slate-50 light:border-slate-300 light:text-slate-800"
                 >
                   <option value="all">所有期數</option>
                   {batches.map(b => (
                     <option key={b.id} value={b.id}>{b.name}</option>
                   ))}
                 </select>
+
+                <select
+                  value={rosterRoleFilter}
+                  onChange={(e) => setRosterRoleFilter(e.target.value)}
+                  className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-amber-500 light:bg-slate-50 light:border-slate-300 light:text-slate-800"
+                >
+                  <option value="all">所有角色</option>
+                  <option value="student">一般學員</option>
+                  <option value="captain">小隊長</option>
+                  <option value="admin">大隊長</option>
+                </select>
+
+                <select
+                  value={rosterStatusFilter}
+                  onChange={(e) => setRosterStatusFilter(e.target.value)}
+                  className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-amber-500 light:bg-slate-50 light:border-slate-300 light:text-slate-800"
+                >
+                  <option value="all">所有狀態</option>
+                  <option value="active">使用中</option>
+                  <option value="ended">已結業</option>
+                  <option value="inactive">已停用</option>
+                </select>
+
+                <select
+                  value={rosterSortKey}
+                  onChange={(e) => setRosterSortKey(e.target.value)}
+                  className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-amber-500 light:bg-slate-50 light:border-slate-300 light:text-slate-800 font-bold"
+                >
+                  <option value="time_desc">註冊時間 (新到舊)</option>
+                  <option value="time_asc">註冊時間 (舊到新)</option>
+                  <option value="score_desc">經驗值最高</option>
+                  <option value="score_asc">經驗值最低</option>
+                  <option value="name_asc">姓名 A-Z/注音</option>
+                </select>
+
                 <input
                   type="text"
                   placeholder="搜尋姓名或手機..."
                   value={rosterSearch}
                   onChange={(e) => setRosterSearch(e.target.value)}
-                  className="bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs text-white outline-none focus:border-amber-500 light:bg-slate-50 light:border-slate-300 light:text-slate-800 w-full sm:w-48"
+                  className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-amber-500 light:bg-slate-50 light:border-slate-300 light:text-slate-800 flex-1 sm:flex-none sm:w-40"
                 />
               </div>
             </div>
@@ -154,9 +217,11 @@ export function RosterTab({ profiles, teams, batches, isSyncing, onUpdateProfile
                                 <div className="flex items-center justify-end gap-2">
                                   <button
                                     onClick={async () => {
-                                      if (onUpdateProfile) {
-                                        await onUpdateProfile(p.id, editingProfileData);
-                                        setEditingProfileId(null);
+                                      if (confirm(`確定要儲存學員 ${p.name} 的資料變更嗎？`)) {
+                                        if (onUpdateProfile) {
+                                          await onUpdateProfile(p.id, editingProfileData);
+                                          setEditingProfileId(null);
+                                        }
                                       }
                                     }}
                                     disabled={isSyncing}

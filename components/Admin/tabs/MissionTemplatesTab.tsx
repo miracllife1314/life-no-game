@@ -76,6 +76,7 @@ export function MissionTemplatesTab({ missionTemplates, missionCategories, setMi
 
   const handleSaveTemplateEdit = async (templateId: string) => {
     if (!editTemplateTitle || !editTemplateDesc) return;
+    if (!confirm('確定要儲存此任務模板的修改嗎？')) return;
     if (onUpdateMissionTemplate) {
       await onUpdateMissionTemplate(templateId, {
         title: editTemplateTitle,

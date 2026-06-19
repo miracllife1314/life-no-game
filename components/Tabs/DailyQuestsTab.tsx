@@ -8,6 +8,7 @@ import {
   parseLocalTime, isEvolutionTask, getActiveStage, getCountdownText,
   isTodayLocal, isTodayInRangeLocal, compressImage,
 } from '@/lib/dailyQuestLogic';
+import { getAllGuides } from '@/lib/guideConfig';
 import { SuccessModal } from '@/components/Tabs/quests/SuccessModal';
 import { LevelUpModal } from '@/components/Tabs/quests/LevelUpModal';
 import { ProofModal } from '@/components/Tabs/quests/ProofModal';
@@ -37,6 +38,7 @@ interface DailyQuestsTabProps {
   petLines: PetLine[];
   missionTemplates: MissionTemplate[];
   onSelectEvolutionLine: (studentId: string, lineKey: string) => Promise<void>;
+  onModalActiveChange?: (active: boolean) => void;
 }
 
 
@@ -58,7 +60,8 @@ export function DailyQuestsTab({
   batches = [],
   petLines = [],
   missionTemplates = [],
-  onSelectEvolutionLine
+  onSelectEvolutionLine,
+  onModalActiveChange
 }: DailyQuestsTabProps) {
   const [activeCategory, setActiveCategory] = useState<'daily' | 'weekly' | 'special' | 'temporary'>('daily');
   const [selectedTask, setSelectedTask] = useState<any | null>(null);
@@ -217,20 +220,58 @@ export function DailyQuestsTab({
       const storedLevel = parseInt(storedLevelStr, 10);
       if (userPet.level > storedLevel) {
         const activeStage = getActiveStage(userPet, petStages);
+        // 是否可進化:與「面板進化按鈕」同一判斷 → 蛋達 Lv5,或後續階段已被標記可進化(has_pending_evolution)
+        const eligibleToEvolve = !isCohortEnded && (
+          userPet.has_pending_evolution ||
+          (userPet.current_stage_index <= 1 && userPet.level >= 5)
+        );
 
         setShowLevelUpModal({
           petName: activeStage?.stage_name || '修行小龍蛋',
           oldLevel: storedLevel,
-          newLevel: userPet.level,
+          newLevel: storedLevel + 1,   // 一次只升一級
+          finalLevel: userPet.level,   // 這次經驗實際升到的最終等級(逐級確認到這)
           totalExp: userPet.total_exp,
           stageIndex: userPet.current_stage_index,
-          hasPendingEvolution: userPet.level >= 5 && userPet.current_stage_index === 1 && !userPet.pet_line
+          hasPendingEvolution: eligibleToEvolve
         });
       }
     }
     
     localStorage.setItem(key, String(userPet.level));
   }, [userPet?.level, userPet?.student_id, petStages, userPet?.pet_line, userPet?.current_stage_index]);
+
+  // 🥚 偵測「神獸型態前進」→ 自動跳破蛋進化特效。
+  // 型態是依等級自動晉級(getActiveStage),所以升級跨過階段門檻時這裡會觸發,確保每次型態提升都有破蛋彈窗。
+  // 首次載入靜默記基準(不溯過往,不洗版);之後型態一升階就跳。
+  React.useEffect(() => {
+    if (!userPet || !userPet.pet_line) return;
+    const stage = getActiveStage(userPet, petStages);
+    const idx = stage?.stage_index || 1;
+    const key = `nlp_last_seen_stage_${userPet.student_id}`;
+    const storedStr = localStorage.getItem(key);
+    if (storedStr !== null) {
+      const prev = parseInt(storedStr, 10);
+      if (idx > prev && !isCohortEnded) {
+        const fromStage = petStages.find((s: any) => s.line_key === userPet.pet_line && s.stage_index === prev);
+        const lineDetail = petLines.find((l: any) => l.line_key === userPet.pet_line);
+        setShowLevelUpModal(null); // 型態提升優先,關掉升級彈窗避免疊一起
+        setShowSuccessModal({
+          isSubsequent: true,
+          fromName: fromStage?.stage_name || '原本型態',
+          fromImage: fromStage?.image_url || null,   // 突破動畫用「原本神獸」變大,不是蛋
+          toName: stage?.stage_name || '全新型態',
+          beastName: stage?.stage_name || '守護神獸',
+          lineName: lineDetail?.name || '專屬系',
+          traits: lineDetail?.core_traits || stage?.evolution_text || '未設定',
+          desc: stage?.description || '解鎖專屬的守護神獸，陪伴你的 NLP 修行。',
+          image: stage?.image_url || 'https://images.unsplash.com/photo-1516233758813-a38d024919c5?auto=format&fit=crop&q=80&w=300',
+          glowColor: stage?.glow_color || '#A855F7'
+        });
+      }
+    }
+    localStorage.setItem(key, String(idx));
+  }, [userPet?.level, userPet?.pet_line, userPet?.student_id, petStages]);
 
   const markAsRead = (annId: string) => {
     if (readAnnouncements.includes(annId)) return;
@@ -276,6 +317,12 @@ export function DailyQuestsTab({
   const [showConfirmEvolve, setShowConfirmEvolve] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState<any | null>(null);
   const [showLevelUpModal, setShowLevelUpModal] = useState<any | null>(null);
+
+  // 通知父層:升級/進化彈窗是否正在顯示 → 成就彈窗要等這些關掉後才跳(一次只跳一個、不重疊)
+  React.useEffect(() => {
+    onModalActiveChange?.(!!showLevelUpModal || !!showSuccessModal);
+    return () => { onModalActiveChange?.(false); };  // 離開此分頁時清除,避免成就彈窗被永久卡住
+  }, [showLevelUpModal, showSuccessModal, onModalActiveChange]);
   const [selectedTempLine, setSelectedTempLine] = useState<string | null>(null);
   const [showStrategy, setShowStrategy] = useState(false);
 
@@ -356,25 +403,38 @@ export function DailyQuestsTab({
     return null;
   })();
 
-  // 執行破殼進化（審核通過後可直接從寵物面板進化，不必再走選擇 modal）
+  // 執行進化（單一入口）：自動判斷「蛋→第一形態」或「後續階段突破」，
+  // 一手包辦：關升級彈窗 → 播進化特效 → 寫入 DB → 跳進化成功彈窗。每次進化都會走這裡。
   const runEvolution = (targetLineKey: string) => {
     if (isCohortEnded) { alert('已結束期數僅可查看，不可再互動或培養。'); return; }
     setShowConfirmEvolve(false);
     setSelectedTempLine(null);
+    setShowLevelUpModal(null); // 串接:先關升級彈窗,讓進化特效/彈窗接手
     setIsEvolvingLocal(true);
+    // 目標階段:第一次進化(蛋)→ 第 2 階;後續進化 → 目前階段 + 1
+    const isFirst = !userPet || userPet.current_stage_index <= 1;
+    const fromStageIdx = isFirst ? 1 : userPet.current_stage_index;
+    const toStageIdx = isFirst ? 2 : userPet.current_stage_index + 1;
     setTimeout(async () => {
       try {
         await onEvolvePet(profile.id, targetLineKey);
-        const finalStage = petStages.find(s => s.line_key === targetLineKey && s.stage_index === 2);
+        // 第一次進化的「原本型態」是蛋(line_key 為 null);後續是該系上一階
+        const fromStage = isFirst
+          ? petStages.find((s: any) => !s.line_key && (s.stage_index === 1 || s.stage_index === 0))
+          : petStages.find((s: any) => s.line_key === targetLineKey && s.stage_index === fromStageIdx);
+        const toStage = petStages.find(s => s.line_key === targetLineKey && s.stage_index === toStageIdx);
         const lineDetail = petLines.find(l => l.line_key === targetLineKey);
         setShowSuccessModal({
-          isSubsequent: false,
-          beastName: finalStage?.stage_name || '守護神獸',
+          isSubsequent: !isFirst,
+          fromName: fromStage?.stage_name || '原本型態',
+          fromImage: fromStage?.image_url || null,
+          toName: toStage?.stage_name || '全新形態',
+          beastName: toStage?.stage_name || '守護神獸',
           lineName: lineDetail?.name || '專屬系',
-          traits: lineDetail?.core_traits || '未設定',
-          desc: finalStage?.description || '解鎖專屬的守護神獸，陪伴您的 NLP 修行。',
-          image: finalStage?.image_url || 'https://images.unsplash.com/photo-1516233758813-a38d024919c5?auto=format&fit=crop&q=80&w=300',
-          glowColor: finalStage?.glow_color || '#A855F7'
+          traits: lineDetail?.core_traits || toStage?.evolution_text || '未設定',
+          desc: toStage?.description || '解鎖專屬的守護神獸，陪伴您的 NLP 修行。',
+          image: toStage?.image_url || 'https://images.unsplash.com/photo-1516233758813-a38d024919c5?auto=format&fit=crop&q=80&w=300',
+          glowColor: toStage?.glow_color || '#A855F7'
         });
       } catch (e) {
         console.error(e);
@@ -383,6 +443,35 @@ export function DailyQuestsTab({
         setSelectedTempLine(null);
       }
     }, 800);
+  };
+
+  // 從升級彈窗點「立即進化」→ 串接到 runEvolution(特效→進化彈窗)。
+  const handleEvolveNow = () => {
+    if (isCohortEnded) { alert('已結束期數僅可查看，不可再互動或培養。'); return; }
+    const isFirst = !userPet || userPet.current_stage_index <= 1;
+    if (isFirst) {
+      if (approvedEvoLine) {
+        runEvolution(approvedEvoLine); // 蛋且考驗已通過 → 直接破殼
+      } else {
+        // 蛋尚未選方向 → 關升級彈窗,開啟進化方向選擇流程
+        setShowLevelUpModal(null);
+        setShowConfirmEvolve(true);
+      }
+    } else if (userPet?.pet_line) {
+      runEvolution(userPet.pet_line); // 後續階段突破
+    }
+  };
+
+  // 升級彈窗「繼續」:一次升一級,逐級確認;到最終等級才結束(或進化)。
+  const handleLevelUpContinue = () => {
+    const m = showLevelUpModal;
+    if (!m) return;
+    const final = m.finalLevel ?? m.newLevel;
+    if (m.newLevel < final) {
+      setShowLevelUpModal({ ...m, oldLevel: m.newLevel, newLevel: m.newLevel + 1 });
+    } else {
+      setShowLevelUpModal(null);
+    }
   };
 
   const getAnimationClass = (type: string | null | undefined) => {
@@ -409,8 +498,8 @@ export function DailyQuestsTab({
     return `animate-${type}`;
   };
 
-  const stageName = activeStage?.stage_name || '混沌之卵';
-  const stageDesc = activeStage?.description || '蘊含著無限可能的混沌之卵，靜靜等待能量積累以尋找其未來的進化方向。';
+  const stageName = activeStage?.stage_name || '混沌的蛋';
+  const stageDesc = activeStage?.description || '蘊含著無限可能的混沌的蛋，靜靜等待能量積累以尋找其未來的進化方向。';
   const stageImage = activeStage?.image_url || ''; // 無圖時不顯示隨機備用照，改用蛋佔位（見下方渲染）
   const animationClass = getAnimationClass(activeStage?.animation_type);
   const glowColor = activeStage?.glow_color || '#A855F7';
@@ -427,9 +516,9 @@ export function DailyQuestsTab({
 
   // 🔥 連續修行天數：該學員「每日定課」連續有打卡(approved/pending)的台灣日期天數。
   // 今天還沒打卡不算斷(從昨天起算)；斷一整天才歸零。純由現有資料計算，不動 DB。
-  const dailyStreak = (() => {
+  const { dailyStreak, checkedInToday } = (() => {
     const dailyIds = new Set(missions.filter((m: any) => m.mission_type === 'daily').map((m: any) => m.id));
-    if (dailyIds.size === 0) return 0;
+    if (dailyIds.size === 0) return { dailyStreak: 0, checkedInToday: false };
     const dateOfMission = new Map(missions.map((m: any) => [m.id, m.publish_at]));
     const dayKey = (dt: Date) => `${dt.getFullYear()}-${dt.getMonth()}-${dt.getDate()}`;
     const done = new Set<string>();
@@ -440,12 +529,19 @@ export function DailyQuestsTab({
       if (!pub) continue;
       done.add(dayKey(parseLocalTime(pub)));
     }
+    const todayKey = dayKey(new Date(now.getFullYear(), now.getMonth(), now.getDate()));
+    const isTodayDone = done.has(todayKey);
     const cursor = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    if (!done.has(dayKey(cursor))) cursor.setDate(cursor.getDate() - 1); // 今天還沒打 → 從昨天起算
+    if (!isTodayDone) cursor.setDate(cursor.getDate() - 1); // 今天還沒打 → 從昨天起算
     let streak = 0;
     while (done.has(dayKey(cursor))) { streak++; cursor.setDate(cursor.getDate() - 1); }
-    return streak;
+    return { dailyStreak: streak, checkedInToday: isTodayDone };
   })();
+
+  // 連勝里程碑：徽章門檻 3/7/14/21/30 天；皆有加分(與後台 claim_streak_bonus 一致)
+  const STREAK_MILESTONES = [3, 7, 14, 21, 30];
+  const STREAK_BONUS: Record<number, number> = { 3: 100, 7: 200, 14: 500, 21: 800, 30: 1000 };
+  const nextStreakMilestone = STREAK_MILESTONES.find(d => d > dailyStreak) ?? null;
 
   const getTaskProgress = (taskId: string) => {
     let limit = 1;
@@ -778,8 +874,116 @@ export function DailyQuestsTab({
               成長等級：LV.{userLevel}
             </span>
             {dailyStreak > 0 && (
-              <span className="text-[10px] font-black text-orange-400 bg-orange-500/10 border border-orange-500/30 px-2.5 py-0.5 rounded-full mt-1.5 inline-flex items-center gap-1 light:bg-orange-50 light:text-orange-600 light:border-orange-200">
-                🔥 連續修行 {dailyStreak} 天
+              <span className="text-[10px] font-black tracking-wider text-orange-400 bg-gradient-to-r from-orange-500/10 to-red-500/10 border border-orange-500/30 px-3 py-1 rounded-full mt-2 inline-flex items-center gap-1.5 shadow-[0_0_12px_rgba(249,115,22,0.15)] light:bg-orange-50 light:text-orange-700 light:border-orange-300 light:shadow-none">
+                <span className="animate-bounce">🔥</span> 連續修行 <span className="text-white font-extrabold text-xs light:text-orange-900">{dailyStreak}</span> 天
+              </span>
+            )}
+
+            {/* 🎮 連勝修行航線 (Streak Road Map) */}
+            <div className="w-full max-w-[280px] mt-3.5 mb-2 px-2.5 py-3 bg-slate-950/40 border border-white/5 rounded-2xl light:bg-slate-50 light:border-slate-200 select-none">
+              <div className="flex justify-between items-center text-[9px] text-slate-400 font-bold mb-3.5 light:text-slate-500">
+                <span>🏆 連勝里程碑</span>
+                <span className="text-amber-400 font-black light:text-amber-700">當前連勝: {dailyStreak} 天</span>
+              </div>
+              
+              {/* Progress Line Container */}
+              <div className="relative flex items-center justify-between w-full px-1">
+                {/* Background Line */}
+                <div className="absolute left-2 right-2 h-1 bg-slate-800 light:bg-slate-200 rounded-full top-1/2 -translate-y-1/2 z-0" />
+                
+                {/* Active Glowing Line */}
+                <div 
+                  className="absolute left-2 h-1 bg-gradient-to-r from-orange-500 via-amber-500 to-yellow-400 rounded-full top-1/2 -translate-y-1/2 z-0 shadow-[0_0_8px_rgba(245,158,11,0.5)] transition-all duration-700" 
+                  style={{ 
+                    width: `${(() => {
+                      if (dailyStreak <= 0) return 0;
+                      if (dailyStreak >= 30) return 96; // max out
+                      const nodes = [0, 3, 7, 14, 21, 30];
+                      const percentages = [0, 20, 40, 60, 80, 96]; // alignment with node positions
+                      // find interval
+                      for (let i = 0; i < nodes.length - 1; i++) {
+                        if (dailyStreak >= nodes[i] && dailyStreak <= nodes[i+1]) {
+                          const range = nodes[i+1] - nodes[i];
+                          const progress = dailyStreak - nodes[i];
+                          const pctRange = percentages[i+1] - percentages[i];
+                          return percentages[i] + (progress / range) * pctRange;
+                        }
+                      }
+                      return 0;
+                    })()}%`
+                  }}
+                />
+
+                {/* Milestone Nodes */}
+                {[
+                  { d: 0, bonus: 0, title: '修行起步', icon: '🌱' },
+                  { d: 3, bonus: 100, title: '🥉 初露鋒芒', icon: '🎁' },
+                  { d: 7, bonus: 200, title: '🥈 漸入佳境', icon: '🎁' },
+                  { d: 14, bonus: 500, title: '🥇 勢不可擋', icon: '🎁' },
+                  { d: 21, bonus: 800, title: '🏆 爐火純青', icon: '🎁' },
+                  { d: 30, bonus: 1000, title: '👑 登峰造極', icon: '🔥' }
+                ].map((node) => {
+                  const isUnlocked = dailyStreak >= node.d;
+                  const isImmediateTarget = !isUnlocked && nextStreakMilestone === node.d;
+
+                  return (
+                    <div key={node.d} className="relative z-10 flex flex-col items-center group">
+                      {/* Node Circle */}
+                      <div 
+                        className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black border transition-all duration-300 relative ${
+                          isUnlocked 
+                            ? 'bg-gradient-to-br from-amber-400 to-orange-500 border-amber-300 text-slate-950 shadow-[0_0_8px_rgba(245,158,11,0.4)]'
+                            : isImmediateTarget
+                              ? 'bg-slate-900 border-amber-400 text-amber-300 animate-pulse scale-110 shadow-[0_0_10px_rgba(245,158,11,0.25)] light:bg-white light:border-amber-350'
+                              : 'bg-slate-950 border-slate-800 text-slate-500 light:bg-white light:border-slate-300'
+                        }`}
+                        title={`${node.title} (${node.d}天)${node.bonus ? ` +${node.bonus} EXP` : ''}`}
+                      >
+                        {node.d === 0 ? (dailyStreak > 0 ? '✓' : '🌱') : (isUnlocked ? '✓' : node.icon)}
+                        
+                        {/* Tooltip on hover */}
+                        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 bg-slate-900 border border-white/10 text-white text-[9px] font-bold py-1 px-2 rounded shadow-xl whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-35 light:bg-slate-800">
+                          {node.title} ({node.d}天){node.bonus ? ` +${node.bonus} EXP 🎁` : ''}
+                        </div>
+                      </div>
+                      
+                      {/* Day Label below node */}
+                      <span className={`text-[8px] font-extrabold mt-1.5 ${
+                        isUnlocked 
+                          ? 'text-amber-400 light:text-amber-600' 
+                          : isImmediateTarget
+                            ? 'text-amber-300 font-black animate-pulse light:text-amber-700'
+                            : 'text-slate-600 light:text-slate-400'
+                      }`}>
+                        {node.d}天
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Progress description label */}
+              {!isCohortEnded && nextStreakMilestone && (
+                <div className="text-center text-[10px] font-bold mt-3.5 text-slate-350 light:text-slate-600 border-t border-white/5 pt-2.5 light:border-slate-200/60 select-none">
+                  {dailyStreak === 0 ? (
+                    <span className="text-amber-400 light:text-amber-700 animate-pulse flex items-center justify-center gap-1.5">
+                      🌱 點擊下方任務卡片進行簽到，展開你的第一步！
+                    </span>
+                  ) : (
+                    <>
+                      🔥 再堅持 <span className="text-white font-black text-xs light:text-orange-900">{nextStreakMilestone - dailyStreak}</span> 天，即可達成
+                      <span className="text-amber-400 light:text-amber-700 font-extrabold mx-1">「連勝 {nextStreakMilestone} 天」</span>
+                      {STREAK_BONUS[nextStreakMilestone] ? `並獲得 +${STREAK_BONUS[nextStreakMilestone]} EXP 🎁` : ' 🏅'}！
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* ⚠️ 斷連提醒：連勝中且今天還沒定課 → 醒目提示快打卡 */}
+            {!isCohortEnded && dailyStreak >= 1 && !checkedInToday && (
+              <span className="text-[10px] font-black text-red-300 bg-red-500/15 border border-red-500/40 px-3 py-1 rounded-full mt-1.5 inline-flex items-center gap-1 animate-pulse light:text-red-600 light:bg-red-50 light:border-red-200">
+                ⚠️ 連勝 {dailyStreak} 天！今天還沒定課，快打卡守住連勝
               </span>
             )}
 
@@ -788,7 +992,7 @@ export function DailyQuestsTab({
                 <span className="text-amber-400 font-bold block animate-pulse">
                   {approvedEvoLine
                     ? '考驗任務已通過！點擊下方按鈕即可直接破殼進化。'
-                    : '你的混沌之卵已經覺醒！完成對應的神秘考驗任務，即可解鎖該方向並破殼進化。'}
+                    : '你的混沌的蛋已經覺醒！完成對應的神秘考驗任務，即可解鎖該方向並破殼進化。'}
                 </span>
               ) : (
                 stageDesc
@@ -953,121 +1157,100 @@ export function DailyQuestsTab({
                   </div>
 
                   {/* 攻略內容 */}
-                  {showStrategy && (
-                    <div className="mt-2 text-[10px] space-y-3 p-3 rounded-xl border border-white/5 bg-slate-950/80 animate-in slide-in-from-top-2 duration-300 light:bg-white/80 light:border-slate-200">
-                      
-                      {!isUserAdvanced ? (
-                        <>
-                          {/* 🟢 初階日常攻略 */}
-                          {/* 認真修行版 */}
-                          <div className="space-y-1">
-                            <div className="font-extrabold text-indigo-400 flex items-center gap-1 light:text-indigo-600">
-                              <span>⏱️ 認真修行版 (均速 300 EXP/天)</span>
-                            </div>
-                            <ul className="list-disc pl-4 text-slate-400 space-y-0.5 font-medium light:text-slate-500">
-                              <li><span className="text-slate-300 light:text-slate-700">每日五感恩</span>：堅持每日感恩打卡 ➔ <span className="text-amber-500 font-bold">+100 EXP/天</span></li>
-                              <li><span className="text-slate-300 light:text-slate-700">每週實作打卡</span>：每週完成 1~2 項實作 ➔ <span className="text-amber-500 font-bold">+500 ~ +1000 EXP/週</span></li>
-                            </ul>
-                          </div>
-                          
-                          {/* 積極挑戰版 */}
-                          <div className="space-y-1 border-t border-white/5 pt-2.5 light:border-slate-150">
-                            <div className="font-extrabold text-amber-400 flex items-center gap-1 light:text-amber-600">
-                              <span>⚡ 積極挑戰版 (均速 700 EXP/天)</span>
-                            </div>
-                            <ul className="list-disc pl-4 text-slate-400 space-y-0.5 font-medium light:text-slate-500">
-                              <li><span className="text-slate-300 light:text-slate-700">全數打卡</span>：每日定課 + 每週任務全通（主題任務/小組通話）➔ <span className="text-amber-500 font-bold">平均 +314 EXP/天</span></li>
-                              <li><span className="text-slate-300 light:text-slate-700">高分加碼</span>：分享寫得好被選到上傳到見證牆額外 <span className="text-amber-500 font-bold">+200 EXP</span> (需寫得好、照片清晰)、締結產品 (3000元以上)、填寫限時問卷等</li>
-                            </ul>
-                          </div>
+                  {showStrategy && (() => {
+                    const allGuides = getAllGuides();
+                    const matchedGuide = allGuides.find(g => {
+                      if (!activeBatch?.name) return false;
+                      const cleanName = g.name.replace(/^[^\w\s\u4e00-\u9fa5]+/, '').trim();
+                      return activeBatch.name.toLowerCase().includes(cleanName.toLowerCase()) || activeBatch.name.toLowerCase().includes(g.key.toLowerCase());
+                    }) || (isUserAdvanced ? allGuides.find(g => g.key === 'advanced') : allGuides.find(g => g.key === 'beginner')) || allGuides[0];
+                    
+                    const config = matchedGuide.config;
+                    const guideName = matchedGuide.name;
+                    
+                    // Smart string formatter for bullets
+                    const renderBulletText = (bullet: string) => {
+                      const parts = bullet.split('：');
+                      if (parts.length > 1) {
+                        const rightParts = parts[1].split('➔');
+                        if (rightParts.length > 1) {
+                          return (
+                            <>
+                              <span className="text-slate-300 light:text-slate-700 font-bold">{parts[0]}</span>
+                              {'：'}
+                              {rightParts[0]}
+                              {'➔ '}
+                              <span className="text-amber-500 font-bold">{rightParts[1]}</span>
+                            </>
+                          );
+                        }
+                        return (
+                          <>
+                            <span className="text-slate-300 light:text-slate-700 font-bold">{parts[0]}</span>
+                            {'：'}
+                            {parts[1]}
+                          </>
+                        );
+                      }
+                      return bullet;
+                    };
 
-                          {/* 時間折抵對照表 */}
-                          <div className="space-y-1 border-t border-white/5 pt-2.5 light:border-slate-150">
-                            <div className="font-extrabold text-pink-400 flex items-center gap-1 light:text-pink-600">
-                              <span>✨ 攻略秘笈：高分任務「天數直接折抵」</span>
-                            </div>
-                            <div className="grid grid-cols-2 gap-2 text-slate-400 font-medium light:text-slate-600">
-                              <div className="p-1.5 rounded bg-white/[0.02] border border-white/5 light:bg-slate-100/50 light:border-slate-200">
-                                <span className="text-slate-300 block font-bold light:text-slate-800">每週主題任務 (+500 EXP)</span>
-                                時間立減 <span className="text-emerald-400 font-black light:text-emerald-600">1.5 天</span>！
-                              </div>
-                              <div className="p-1.5 rounded bg-white/[0.02] border border-white/5 light:bg-slate-100/50 light:border-slate-200">
-                                <span className="text-slate-300 block font-bold light:text-slate-800">邀約入門體驗課 (+500 EXP)</span>
-                                時間立減 <span className="text-emerald-400 font-black light:text-emerald-600">1.5 天</span>！
-                              </div>
-                              <div className="p-1.5 rounded bg-white/[0.02] border border-white/5 light:bg-slate-100/50 light:border-slate-200 col-span-2">
-                                <span className="text-slate-300 block font-bold light:text-slate-800">推薦報名初階課 (+1500 EXP)</span>
-                                時間立減 <span className="text-emerald-400 font-black light:text-emerald-600">4.2 天</span>！讓破殼修行一鍵飛越！
-                              </div>
-                              <div className="p-1.5 rounded bg-white/[0.02] border border-white/5 light:bg-slate-100/50 light:border-slate-200">
-                                <span className="text-slate-300 block font-bold light:text-slate-800">報名 NLP 複訓 (+1000 EXP)</span>
-                                時間立減 <span className="text-emerald-400 font-black light:text-emerald-600">2.8 天</span>！
-                              </div>
-                              <div className="p-1.5 rounded bg-white/[0.02] border border-white/5 light:bg-slate-100/50 light:border-slate-200">
-                                <span className="text-slate-300 block font-bold light:text-slate-800">入選見證牆 (+200 EXP)</span>
-                                時間立減 <span className="text-emerald-400 font-black light:text-emerald-600">0.6 天</span>！(需寫得好、照片清晰)
-                              </div>
-                            </div>
-                          </div>
-                        </>
-                      ) : (
-                        <>
-                          {/* 🔥 進階修煉心法 */}
-                          {/* 認真修行版 */}
-                          <div className="space-y-1">
-                            <div className="font-extrabold text-indigo-400 flex items-center gap-1 light:text-indigo-600">
-                              <span>⏱️ 認真修行版 (均速 300 EXP/天)</span>
-                            </div>
-                            <ul className="list-disc pl-4 text-slate-400 space-y-0.5 font-medium light:text-slate-500">
-                              <li><span className="text-slate-300 light:text-slate-700">每日感恩與肯定</span>：堅持每日雙定課打卡 ➔ <span className="text-amber-500 font-bold">+100 EXP/天</span></li>
-                              <li><span className="text-slate-300 light:text-slate-700">每週實作打卡</span>：每週完成 1~2 項實作 ➔ <span className="text-amber-500 font-bold">+500 ~ +1000 EXP/週</span></li>
-                            </ul>
-                          </div>
+                    return (
+                      <div className="mt-2 text-[10px] space-y-3 p-3 rounded-xl border border-white/5 bg-slate-950/80 animate-in slide-in-from-top-2 duration-300 light:bg-white/80 light:border-slate-200">
+                        {/* 攻略標題 */}
+                        <div className="text-center font-bold text-slate-400 pb-1.5 border-b border-white/5 light:border-slate-200 select-none">
+                          {guideName}攻略
+                        </div>
 
-                          {/* 積極挑戰版 */}
-                          <div className="space-y-1 border-t border-white/5 pt-2.5 light:border-slate-150">
-                            <div className="font-extrabold text-amber-400 flex items-center gap-1 light:text-amber-600">
-                              <span>⚡ 積極挑戰版 (均速 700 EXP/天)</span>
-                            </div>
-                            <ul className="list-disc pl-4 text-slate-400 space-y-0.5 font-medium light:text-slate-500">
-                              <li><span className="text-slate-300 light:text-slate-700">全數打卡</span>：每日定課 + 每週任務全通（影片/心錨/卓越圈）➔ <span className="text-amber-500 font-bold">平均 +314 EXP/天</span></li>
-                              <li><span className="text-slate-300 light:text-slate-700">高分加碼</span>：分享寫得好被選到上傳到見證牆額外 <span className="text-amber-500 font-bold">+200 EXP</span> (需寫得好、照片清晰)、完成次感元個案、填寫限時問卷等</li>
-                            </ul>
+                        {/* 認真修行版 */}
+                        <div className="space-y-1">
+                          <div className="font-extrabold text-indigo-400 flex items-center gap-1 light:text-indigo-600">
+                            <span>⏱️ 認真修行版 (均速 {config.seriousSpeed})</span>
                           </div>
-
-                          {/* 時間折抵對照表 */}
-                          <div className="space-y-1 border-t border-white/5 pt-2.5 light:border-slate-150">
-                            <div className="font-extrabold text-pink-400 flex items-center gap-1 light:text-pink-600">
-                              <span>✨ 攻略秘笈：高分任務「天數直接折抵」</span>
-                            </div>
-                            <div className="grid grid-cols-2 gap-2 text-slate-400 font-medium light:text-slate-600">
-                              <div className="p-1.5 rounded bg-white/[0.02] border border-white/5 light:bg-slate-100/50 light:border-slate-200">
-                                <span className="text-slate-300 block font-bold light:text-slate-800">每週實作任務 (+500 EXP)</span>
-                                時間立減 <span className="text-emerald-400 font-black light:text-emerald-600">1.5 天</span>！
-                              </div>
-                              <div className="p-1.5 rounded bg-white/[0.02] border border-white/5 light:bg-slate-100/50 light:border-slate-200">
-                                <span className="text-slate-300 block font-bold light:text-slate-800">邀約入門體驗課 (+500 EXP)</span>
-                                時間立減 <span className="text-emerald-400 font-black light:text-emerald-600">1.5 天</span>！
-                              </div>
-                              <div className="p-1.5 rounded bg-white/[0.02] border border-white/5 light:bg-slate-100/50 light:border-slate-200 col-span-2">
-                                <span className="text-slate-300 block font-bold light:text-slate-800">推薦報名初階課 (+1500 EXP)</span>
-                                時間立減 <span className="text-emerald-400 font-black light:text-emerald-600">4.2 天</span>！讓破殼修行一鍵飛越！
-                              </div>
-                              <div className="p-1.5 rounded bg-white/[0.02] border border-white/5 light:bg-slate-100/50 light:border-slate-200">
-                                <span className="text-slate-300 block font-bold light:text-slate-800">次感元個案 3 次 (+1000 EXP)</span>
-                                時間立減 <span className="text-emerald-400 font-black light:text-emerald-600">2.8 天</span>！
-                              </div>
-                              <div className="p-1.5 rounded bg-white/[0.02] border border-white/5 light:bg-slate-100/50 light:border-slate-200">
-                                <span className="text-slate-300 block font-bold light:text-slate-800">入選見證牆 (+200 EXP)</span>
-                                時間立減 <span className="text-emerald-400 font-black light:text-emerald-600">0.6 天</span>！(需寫得好、照片清晰)
-                              </div>
-                            </div>
+                          <ul className="list-disc pl-4 text-slate-400 space-y-0.5 font-medium light:text-slate-500">
+                            {config.seriousBullets.map((bullet, i) => (
+                              <li key={i}>{renderBulletText(bullet)}</li>
+                            ))}
+                          </ul>
+                        </div>
+                        
+                        {/* 積極挑戰版 */}
+                        <div className="space-y-1 border-t border-white/5 pt-2.5 light:border-slate-150">
+                          <div className="font-extrabold text-amber-400 flex items-center gap-1 light:text-amber-600">
+                            <span>⚡ 積極挑戰版 (均速 {config.activeSpeed})</span>
                           </div>
-                        </>
-                      )}
+                          <ul className="list-disc pl-4 text-slate-400 space-y-0.5 font-medium light:text-slate-500">
+                            {config.activeBullets.map((bullet, i) => (
+                              <li key={i}>{renderBulletText(bullet)}</li>
+                            ))}
+                          </ul>
+                        </div>
 
-                    </div>
-                  )}
+                        {/* ✨ 攻略秘笈：天數直接折抵 */}
+                        <div className="space-y-1 border-t border-white/5 pt-2.5 light:border-slate-150">
+                          <div className="font-extrabold text-pink-400 flex items-center gap-1 light:text-pink-600">
+                            <span>✨ 攻略秘笈：高分任務「天數直接折抵」</span>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2 text-slate-400 font-medium light:text-slate-600">
+                            {config.offsets.map((offset) => (
+                              <div
+                                key={offset.id}
+                                className={`p-1.5 rounded bg-white/[0.02] border border-white/5 light:bg-slate-100/50 light:border-slate-200 ${
+                                  offset.highlight ? 'col-span-2' : ''
+                                }`}
+                              >
+                                <span className="text-slate-300 block font-bold light:text-slate-800">
+                                  {offset.title} (+{offset.points} EXP)
+                                </span>
+                                時間立減 <span className="text-emerald-400 font-black light:text-emerald-600">{offset.days} 天</span>！
+                                {offset.desc && <span className="text-[9px] text-slate-500 block mt-0.5">{offset.desc}</span>}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
 
                 </div>
               );
@@ -1268,7 +1451,7 @@ export function DailyQuestsTab({
             大會修行任務列表
           </h2>
           
-          <div className="flex bg-slate-900 p-1 rounded-2xl border border-white/5 w-fit light:bg-slate-100 light:border-slate-300">
+          <div className="flex bg-slate-900/65 p-1 rounded-2xl border border-white/5 w-full sm:w-auto overflow-x-auto scrollbar-none gap-1 light:bg-slate-100 light:border-slate-300/50">
             {[
               { key: 'daily', label: '每日任務', icon: Flame },
               { key: 'weekly', label: '每週任務', icon: Sparkles },
@@ -1278,18 +1461,18 @@ export function DailyQuestsTab({
               <button
                 key={key}
                 onClick={() => setActiveCategory(key as typeof activeCategory)}
-                className={`relative flex flex-row items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-[11px] font-black transition-all duration-200 select-none ${
+                className={`relative flex-1 sm:flex-initial flex flex-row items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl text-xs font-black transition-all duration-300 select-none whitespace-nowrap cursor-pointer ${
                   activeCategory === key
-                    ? 'bg-amber-500 text-slate-950 shadow-[0_0_14px_rgba(245,158,11,0.4)]'
-                    : 'text-slate-400 hover:text-white hover:bg-slate-800 light:hover:bg-slate-200'
+                    ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 shadow-[0_0_15px_rgba(245,158,11,0.35)] scale-[1.02]'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-800/40 light:hover:bg-slate-200/50'
                 }`}
               >
                 {categoryHasUndone(key) && (
-                  <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-red-500 border border-slate-900 animate-pulse" />
+                  <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-500 border border-slate-900 animate-pulse" />
                 )}
-                <Icon size={12} className="shrink-0" />
-                <span className="text-center leading-[1.2]">
-                  {label.substring(0, 2)}<br />{label.substring(2)}
+                <Icon size={13} className="shrink-0" />
+                <span className="leading-none">
+                  {label}
                 </span>
               </button>
             ))}
@@ -1698,7 +1881,7 @@ export function DailyQuestsTab({
       {showConfirmEvolve && (() => {
         const isFirst = !userPet || userPet.current_stage_index <= 1;
         
-        // ── 1. 混沌之卵初次進化：完成對應任務即可選擇進化方向 ──
+        // ── 1. 混沌的蛋初次進化：完成對應任務即可選擇進化方向 ──
         if (isFirst) {
           const activeLines = [...petLines]
             .filter(l => l.is_active !== false)
@@ -1971,6 +2154,7 @@ export function DailyQuestsTab({
                           setShowSuccessModal({
                             isSubsequent: true,
                             fromName: currentStage?.stage_name || '神獸型態',
+                            fromImage: currentStage?.image_url || null,
                             toName: nextStage?.stage_name || '神獸新形態',
                             beastName: nextStage?.stage_name || '新突破形態',
                             lineName: userPet.pet_line === 'dragon' ? '影響力龍系' : userPet.pet_line === 'lion' ? '行動力獅系' : userPet.pet_line === 'fox' ? '親和力狐系' : '穩定靈獸系',
@@ -2002,8 +2186,8 @@ export function DailyQuestsTab({
       {/* 🎉 進化成功分享 Modal */}
       {showSuccessModal && <SuccessModal showSuccessModal={showSuccessModal} setShowSuccessModal={setShowSuccessModal} />}
 
-      {/* 🚀 神獸升級成功 Modal */}
-      {showLevelUpModal && <LevelUpModal showLevelUpModal={showLevelUpModal} setShowLevelUpModal={setShowLevelUpModal} />}
+      {/* 🚀 神獸升級成功 Modal —— 進化特效進行中時不顯示,確保一次只跳一個 */}
+      {showLevelUpModal && !showSuccessModal && <LevelUpModal showLevelUpModal={showLevelUpModal} setShowLevelUpModal={setShowLevelUpModal} onEvolveNow={handleEvolveNow} onContinue={handleLevelUpContinue} />}
     </div>
   );
 }

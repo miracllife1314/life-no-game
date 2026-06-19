@@ -20,14 +20,14 @@ export function BatchesTab({ batches, teams, isSyncing, onCreateBatch, onUpdateB
   const [newBatchStartDate, setNewBatchStartDate] = useState('');
   const [newBatchEndDate, setNewBatchEndDate] = useState('');
   const [newBatchStatus, setNewBatchStatus] = useState<'draft' | 'active' | 'ended'>('draft');
-  const [newBatchTeamCount, setNewBatchTeamCount] = useState<number>(4);
+  const [newBatchTeamCount, setNewBatchTeamCount] = useState<number | string>(4);
 
   const [editingBatchId, setEditingBatchId] = useState<string | null>(null);
   const [editBatchName, setEditBatchName] = useState('');
   const [editBatchStartDate, setEditBatchStartDate] = useState('');
   const [editBatchEndDate, setEditBatchEndDate] = useState('');
   const [editBatchStatus, setEditBatchStatus] = useState<'draft' | 'active' | 'ended'>('draft');
-  const [editBatchTeamCount, setEditBatchTeamCount] = useState<number>(4);
+  const [editBatchTeamCount, setEditBatchTeamCount] = useState<number | string>(4);
 
   const startEditBatch = (batch: Batch) => {
     setEditingBatchId(batch.id);
@@ -45,15 +45,17 @@ export function BatchesTab({ batches, teams, isSyncing, onCreateBatch, onUpdateB
 
   const handleSaveBatchEdit = async (batchId: string) => {
     if (!editBatchName || !editBatchStartDate || !editBatchEndDate) return;
-    if (onUpdateBatch) {
-      await onUpdateBatch(batchId, {
-        name: editBatchName,
-        start_date: new Date(editBatchStartDate).toISOString(),
-        end_date: new Date(editBatchEndDate).toISOString(),
-        status: editBatchStatus
-      }, editBatchTeamCount);
-      setEditingBatchId(null);
-      alert('期數與小隊更新成功！');
+    if (confirm(`確定要儲存期數「${editBatchName}」的設定與小隊變更嗎？`)) {
+      if (onUpdateBatch) {
+        await onUpdateBatch(batchId, {
+          name: editBatchName,
+          start_date: new Date(editBatchStartDate).toISOString(),
+          end_date: new Date(editBatchEndDate).toISOString(),
+          status: editBatchStatus
+        }, Number(editBatchTeamCount) || 4);
+        setEditingBatchId(null);
+        alert('期數與小隊更新成功！');
+      }
     }
   };
 
@@ -66,7 +68,7 @@ export function BatchesTab({ batches, teams, isSyncing, onCreateBatch, onUpdateB
         start_date: new Date(newBatchStartDate).toISOString(),
         end_date: new Date(newBatchEndDate).toISOString(),
         status: newBatchStatus
-      }, newBatchTeamCount);
+      }, Number(newBatchTeamCount) || 4);
       setNewBatchName('');
       setNewBatchStartDate('');
       setNewBatchEndDate('');
@@ -137,7 +139,8 @@ export function BatchesTab({ batches, teams, isSyncing, onCreateBatch, onUpdateB
                   min="1"
                   max="20"
                   value={newBatchTeamCount}
-                  onChange={e => setNewBatchTeamCount(Number(e.target.value))}
+                  onChange={e => setNewBatchTeamCount(e.target.value === '' ? '' : (Number(e.target.value) || 0))}
+                  onBlur={() => { if (newBatchTeamCount === '') setNewBatchTeamCount(4); }}
                   placeholder="本期預計生成的小隊數量"
                   className="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl p-3 text-xs outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 transition-all light:bg-slate-50 light:border-slate-200 light:text-slate-900"
                 />
@@ -209,7 +212,8 @@ export function BatchesTab({ batches, teams, isSyncing, onCreateBatch, onUpdateB
                                 min="1"
                                 max="20"
                                 value={editBatchTeamCount}
-                                onChange={e => setEditBatchTeamCount(Number(e.target.value))}
+                                onChange={e => setEditBatchTeamCount(e.target.value === '' ? '' : (Number(e.target.value) || 0))}
+                                onBlur={() => { if (editBatchTeamCount === '') setEditBatchTeamCount(4); }}
                                 className="w-14 bg-slate-905 border border-slate-800 text-white rounded p-1.5 text-xs outline-none text-center focus:border-red-500"
                               />
                             </td>

@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Course, CourseAttendance, Profile, Team } from '@/types';
-import { Calendar, ExternalLink, Info } from 'lucide-react';
+import { Calendar, ExternalLink, Info, CheckCircle2, Clock } from 'lucide-react';
 
 interface CourseTabProps {
   courses: Course[];
@@ -15,7 +15,21 @@ interface CourseTabProps {
   isSyncing?: boolean;
 }
 
-export function CourseTab({ courses }: CourseTabProps) {
+export function CourseTab({
+  courses,
+  attendance = [],
+  currentUserId,
+  onRegisterCourse,
+  isSyncing = false
+}: CourseTabProps) {
+  // Sort courses by class_date if available
+  const sortedCourses = [...courses].sort((a, b) => {
+    if (a.sort_order !== null && b.sort_order !== null && a.sort_order !== undefined && b.sort_order !== undefined) {
+      return a.sort_order - b.sort_order;
+    }
+    return new Date(a.class_date).getTime() - new Date(b.class_date).getTime();
+  });
+
   return (
     <div className="w-full max-w-2xl mx-auto space-y-6 animate-in fade-in duration-300">
       
@@ -32,54 +46,121 @@ export function CourseTab({ courses }: CourseTabProps) {
 
       {/* Courses Feed */}
       <div className="space-y-4">
-        {courses.length === 0 ? (
+        {sortedCourses.length === 0 ? (
           <div className="glass-panel p-10 rounded-3xl text-center text-slate-500 font-bold text-sm">
             目前沒有發布中的課程或時間資訊。
           </div>
         ) : (
-          courses.map((course) => {
+          sortedCourses.map((course) => {
+            const parsedDate = course.class_date ? new Date(course.class_date) : null;
+            
+            // Check student attendance/registration status
+            const attRecord = currentUserId
+              ? attendance.find(a => a.course_id === course.id && a.student_id === currentUserId)
+              : null;
+            const isRegistered = attRecord?.status === 'registered';
+            const isAttended = attRecord?.status === 'attended';
+
             return (
               <div
                 key={course.id}
-                className="glass-panel p-6 rounded-3xl border border-white/5 flex flex-col justify-between gap-4 transition-all hover:border-white/10 light:bg-white light:border-slate-200 light:hover:border-slate-300"
+                className="glass-panel p-5 rounded-3xl border border-white/5 flex flex-col sm:flex-row justify-between gap-5 transition-all hover:border-white/10 light:bg-white light:border-slate-200 light:hover:border-slate-300 relative overflow-hidden"
               >
-                <div className="space-y-3">
-                  <h3 className="font-black text-amber-500 text-lg leading-snug light:text-amber-800">
-                    {course.name}
-                  </h3>
+                {/* Colored border indicator for registered/attended states */}
+                {isAttended && (
+                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500" />
+                )}
+                {isRegistered && (
+                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-sky-500" />
+                )}
+
+                {/* Left side: Tearing Calendar page badge */}
+                <div className="flex sm:flex-col items-center justify-center shrink-0 w-full sm:w-20 rounded-2xl border border-red-500/20 bg-red-500/5 overflow-hidden text-center select-none light:bg-red-50/30 light:border-red-200">
+                  <div className="w-full bg-gradient-to-r from-red-500 to-rose-600 text-[9px] font-black py-1 text-white uppercase tracking-widest whitespace-nowrap">
+                    {parsedDate ? `${parsedDate.getFullYear()} / ${parsedDate.getMonth() + 1}月` : 'SCHEDULE'}
+                  </div>
+                  <div className="py-2.5 px-3">
+                    {parsedDate ? (
+                      <>
+                        <span className="text-2xl font-black text-white leading-none light:text-slate-900 sm:block">
+                          {parsedDate.getDate()}
+                        </span>
+                        <span className="text-[9px] text-slate-400 font-bold block mt-1 light:text-slate-500">
+                          {['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'][parsedDate.getDay()]}
+                        </span>
+                        <span className="text-[9px] text-red-400 font-bold font-mono block mt-0.5 light:text-red-500">
+                          {parsedDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}
+                        </span>
+                      </>
+                    ) : (
+                      <span className="text-xs text-slate-500 font-bold">未定</span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Center: Course title, descriptions and status badges */}
+                <div className="flex-1 space-y-2 text-left">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="font-black text-amber-500 text-base leading-snug light:text-amber-800">
+                      {course.name}
+                    </h3>
+                    
+                    {isAttended && (
+                      <span className="flex items-center gap-1 text-[9px] font-black text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                        <CheckCircle2 size={10} />
+                        已出席
+                      </span>
+                    )}
+                    {isRegistered && (
+                      <span className="flex items-center gap-1 text-[9px] font-black text-sky-400 bg-sky-500/10 px-2 py-0.5 rounded border border-sky-500/20">
+                        <Clock size={10} />
+                        已預約複訊
+                      </span>
+                    )}
+                  </div>
                   
                   <p className="text-xs text-slate-300 leading-relaxed light:text-slate-700 whitespace-pre-line font-medium">
                     {course.description}
                   </p>
                 </div>
 
-                <div className="flex items-center justify-between border-t border-white/5 pt-4 light:border-slate-200 select-none">
-                  <span className="text-[10px] text-slate-400 font-bold flex items-center gap-1 light:text-slate-600">
-                    <Info size={12} />
-                    請點擊右側按鈕前往課程報名
-                  </span>
+                {/* Right side: Action Buttons */}
+                <div className="shrink-0 flex sm:flex-col justify-end sm:justify-center items-stretch gap-2 border-t border-white/5 pt-4 sm:border-t-0 sm:pt-0 light:border-slate-200 select-none">
+                  {/* Register action inside game database */}
+                  {!isRegistered && !isAttended && onRegisterCourse && currentUserId && (
+                    <button
+                      disabled={isSyncing}
+                      onClick={() => onRegisterCourse(course.id)}
+                      className="text-center text-xs font-black text-slate-950 bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-300 hover:to-orange-400 active:scale-95 transition-all px-3 py-2 rounded-xl shadow-md border border-amber-400/20 cursor-pointer disabled:opacity-50"
+                    >
+                      登記複訊 ✓
+                    </button>
+                  )}
 
+                  {/* Register official link */}
                   {course.register_url ? (
                     <a
                       href={course.register_url.startsWith('http') ? course.register_url : `https://${course.register_url}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 text-xs font-black text-white bg-purple-600 hover:bg-purple-700 border border-purple-500/30 px-4 py-2 rounded-xl transition-all shadow-md shadow-purple-900/20 cursor-pointer"
+                      className="text-center inline-flex items-center justify-center gap-1.5 text-xs font-black text-white bg-purple-600 hover:bg-purple-700 border border-purple-500/30 px-3 py-2 rounded-xl transition-all shadow-md shadow-purple-900/20 cursor-pointer"
                     >
-                      <ExternalLink size={12} />
-                      前往課程報名連結
+                      <ExternalLink size={11} />
+                      官方報名連結
                     </a>
                   ) : (
-                    <span className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 bg-slate-800/50 border border-white/5 px-4 py-2 rounded-xl select-none cursor-not-allowed light:bg-slate-100 light:text-slate-400 light:border-slate-200">
-                      報名尚未開放
+                    <span className="text-center inline-flex items-center justify-center gap-1.5 text-xs font-bold text-slate-500 bg-slate-800/50 border border-white/5 px-3 py-2 rounded-xl select-none cursor-not-allowed light:bg-slate-100 light:text-slate-400 light:border-slate-200">
+                      報名未開放
                     </span>
                   )}
                 </div>
+
               </div>
             );
           })
         )}
       </div>
+
     </div>
   );
 }
