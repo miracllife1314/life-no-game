@@ -83,6 +83,9 @@ export function LeaderboardTab({
     return batch ? batch.name : '未知期數';
   };
 
+  // 顯示用:去掉「NLP」字樣讓排行榜版面更精簡(僅顯示,不影響配對/排序邏輯)
+  const stripNLP = (s: string) => (s || '').replace(/NLP\s*/gi, '').trim();
+
   const getSubTeamNameOnly = (teamName: string, batchName: string) => {
     if (batchName && teamName.startsWith(batchName)) {
       return teamName.replace(batchName, '').trim();
@@ -353,10 +356,10 @@ export function LeaderboardTab({
         <>
           {subTab === 'individual' && (
             /* 🥇 當期個人榜 */
-            <section className="glass-panel p-6 rounded-3xl border border-white/5 space-y-4 light:bg-white light:border-slate-200">
+            <section className="glass-panel px-2.5 py-5 sm:p-6 rounded-3xl border border-white/5 space-y-4 light:bg-white light:border-slate-200">
               <h3 className="text-center font-black text-white text-base tracking-widest flex items-center justify-center gap-1.5 mb-4 light:text-slate-900">
                 <Trophy size={18} className="text-yellow-500" />
-                {activeBatchName}個人等級排行榜
+                {stripNLP(activeBatchName)}個人等級排行榜
               </h3>
 
               {/* 🏆 Podium (個人頒獎台) */}
@@ -524,10 +527,10 @@ export function LeaderboardTab({
 
           {subTab === 'team' && (
             /* 👥 當期小隊榜 */
-            <section className="glass-panel p-6 rounded-3xl border border-white/5 space-y-4 light:bg-white light:border-slate-200">
+            <section className="glass-panel px-2.5 py-5 sm:p-6 rounded-3xl border border-white/5 space-y-4 light:bg-white light:border-slate-200">
               <h3 className="text-center font-black text-white text-base tracking-widest flex items-center justify-center gap-1.5 mb-4 light:text-slate-900">
                 <Users size={18} className="text-yellow-500" />
-                {activeBatchName}小隊等級排行榜
+                {stripNLP(activeBatchName)}小隊等級排行榜
               </h3>
 
               {/* 🏆 Podium (小隊頒獎台) */}
@@ -708,7 +711,7 @@ export function LeaderboardTab({
 
           {subTab === 'hall_individual' && (
             /* 🏆 歷屆神人榜 */
-            <section className="glass-panel p-6 rounded-3xl border border-white/5 space-y-4 light:bg-white light:border-slate-200">
+            <section className="glass-panel px-2.5 py-5 sm:p-6 rounded-3xl border border-white/5 space-y-4 light:bg-white light:border-slate-200">
               <h3 className="text-center font-black text-white text-base tracking-widest flex items-center justify-center gap-1.5 mb-4 light:text-slate-900">
                 <Trophy size={18} className="text-yellow-500 animate-pulse" />
                 神人排行榜
@@ -718,10 +721,10 @@ export function LeaderboardTab({
                 <table className="w-full text-left text-xs border-collapse">
                   <thead>
                     <tr className="border-b border-white/5 text-slate-500 font-bold uppercase light:border-slate-200">
-                      <th className="p-3 w-12 text-center">排行</th>
-                      <th className="p-3">期數 / 連勝</th>
-                      <th className="p-3">等級 / 姓名</th>
-                      <th className="p-3 text-right">經驗</th>
+                      <th className="px-1.5 py-3 w-9 text-center">排行</th>
+                      <th className="px-1.5 py-3">期數 / 連勝</th>
+                      <th className="px-1.5 py-3">等級 / 姓名</th>
+                      <th className="px-1.5 py-3 text-right">經驗</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/5 light:divide-slate-200">
@@ -759,9 +762,9 @@ export function LeaderboardTab({
                             )}
                           </td>
                           {/* 期數(上) / 連勝火焰(下) */}
-                          <td className="p-3">
+                          <td className="px-1.5 py-3">
                             <div className="flex flex-col gap-1 leading-tight items-start select-none">
-                              <span className="text-[10px] font-bold text-slate-400 light:text-slate-500 whitespace-nowrap">{getBatchName(p.batch_id)}</span>
+                              <span className="text-[10px] font-bold text-slate-400 light:text-slate-500 whitespace-nowrap">{stripNLP(getBatchName(p.batch_id))}</span>
                               {studentStreaks[p.id] ? (
                                 <span className="text-[10px] font-extrabold text-orange-400 bg-orange-500/10 border border-orange-500/20 px-1.5 py-0.5 rounded-md inline-flex items-center gap-0.5 whitespace-nowrap leading-none" title={`連續打卡 ${studentStreaks[p.id]} 天`}>
                                   🔥 {studentStreaks[p.id]}天
@@ -772,17 +775,17 @@ export function LeaderboardTab({
                             </div>
                           </td>
                           {/* 等級(上) / 姓名(下) */}
-                          <td className="p-3">
+                          <td className="px-1.5 py-3">
                             <div className="flex flex-col gap-0.5 leading-tight select-none">
                               <span className="text-[11px] font-black text-indigo-400 whitespace-nowrap">LV.{level}</span>
-                              <span className="text-sm font-black text-white light:text-slate-900 whitespace-nowrap flex items-center gap-1">
-                                {p.name}
+                              <span className="text-sm font-black text-white light:text-slate-900 flex items-center gap-1 max-w-[88px]">
+                                <span className="truncate">{p.name}</span>
                                 {isSelf && <span className="text-[8px] bg-amber-500/10 text-amber-500 border border-amber-500/20 px-1 py-0.2 rounded shrink-0">您</span>}
                               </span>
                             </div>
                           </td>
                           {/* 經驗 */}
-                          <td className="p-3 text-right">
+                          <td className="px-1.5 py-3 text-right">
                             <div className="flex flex-col items-end leading-tight select-none">
                               <span className="font-black text-amber-500 font-mono text-sm whitespace-nowrap">{p.score.toLocaleString()}</span>
                               <span className="text-[9px] text-slate-500 font-bold mt-0.5">XP</span>
@@ -806,7 +809,7 @@ export function LeaderboardTab({
 
           {subTab === 'hall_team' && (
             /* 🏆 歷屆神隊榜 */
-            <section className="glass-panel p-6 rounded-3xl border border-white/5 space-y-4 light:bg-white light:border-slate-200">
+            <section className="glass-panel px-2.5 py-5 sm:p-6 rounded-3xl border border-white/5 space-y-4 light:bg-white light:border-slate-200">
               <h3 className="text-center font-black text-white text-base tracking-widest flex items-center justify-center gap-1.5 mb-4 light:text-slate-900">
                 <Users size={18} className="text-yellow-500 animate-pulse" />
                 神隊排行榜
@@ -856,7 +859,7 @@ export function LeaderboardTab({
                           {/* 期數(上) / 隊名(下) */}
                           <td className="px-1.5 py-3">
                             <div className="flex flex-col gap-0.5 leading-tight">
-                              <span className="text-[10px] font-bold text-slate-400 light:text-slate-500 whitespace-nowrap">{getBatchName(team.batch_id).replace('NLP', '').trim()}</span>
+                              <span className="text-[10px] font-bold text-slate-400 light:text-slate-500 whitespace-nowrap">{stripNLP(getBatchName(team.batch_id))}</span>
                               <span className="text-sm font-black text-white light:text-slate-900 whitespace-nowrap">{getSubTeamNameOnly(team.name, getBatchName(team.batch_id))}</span>
                             </div>
                           </td>
@@ -892,14 +895,14 @@ export function LeaderboardTab({
 
           {(rankType === 'invite' || rankType === 'influence') && (
             /* 🤝 邀約王者 / ✨ 影響力之神:依任務名稱關鍵字數「審核通過」筆數 */
-            <section className="glass-panel p-6 rounded-3xl border border-white/5 space-y-4 light:bg-white light:border-slate-200">
+            <section className="glass-panel px-2.5 py-5 sm:p-6 rounded-3xl border border-white/5 space-y-4 light:bg-white light:border-slate-200">
               <h3 className="text-center font-black text-white text-base tracking-widest flex items-center justify-center gap-1.5 mb-1 light:text-slate-900">
                 {rankType === 'invite'
                   ? <><Users size={18} className="text-emerald-400" /> 邀約王者</>
                   : <><Zap size={18} className="text-purple-400" /> 影響力之神</>}
               </h3>
               <p className="text-center text-[10px] font-bold text-slate-500 -mt-1">
-                {rankType === 'invite' ? '邀約入門課人數排名' : '推薦報名初階人數排名'}（{scope === 'current' ? activeBatchName : '歷屆'}）
+                {rankType === 'invite' ? '邀約入門課人數排名' : '推薦報名初階人數排名'}（{scope === 'current' ? stripNLP(activeBatchName) : '歷屆'}）
               </p>
               <div className="overflow-x-auto select-none pt-2">
                 <table className="w-full text-left text-xs border-collapse">
@@ -943,7 +946,7 @@ export function LeaderboardTab({
                               </span>
                             )}
                           </td>
-                          <td className="p-3 font-bold text-slate-300 light:text-slate-700 whitespace-nowrap">{getBatchName(x.p.batch_id)}</td>
+                          <td className="p-3 font-bold text-slate-300 light:text-slate-700 whitespace-nowrap">{stripNLP(getBatchName(x.p.batch_id))}</td>
                           <td className="p-3 font-bold text-white light:text-slate-900 flex items-center gap-1">
                             {x.p.name}
                             {isSelf && <span className="text-[8px] bg-amber-500/10 text-amber-500 border border-amber-500/20 px-1 py-0.2 rounded">您</span>}
