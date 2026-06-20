@@ -2040,19 +2040,22 @@ export function DailyQuestsTab({
                 return (
                   <div className="relative w-60 h-[340px] flex items-center justify-center select-none">
                     
+                    {/* 🌟 琥珀金背景柔和呼吸光 (Radial Glow) - 增加對比度與懸浮立體感 */}
+                    <div className="absolute inset-0 -m-10 bg-[radial-gradient(circle_at_center,rgba(245,158,11,0.18)_0%,transparent_70%)] opacity-70 animate-pulse pointer-events-none" />
+
                     {/* 🃏 卡片堆疊效果 (僅在未抽卡或正在抽出時顯示，營造卡組厚度) */}
                     {(!hasDrawnToday || isDrawingAnimation) && (
                       <>
                         {/* 最底層卡片 (疊卡 3) */}
                         <div 
-                          className="absolute inset-0 rounded-[24px] border-2 border-amber-500/10 bg-gradient-to-br from-[#0c0920] to-[#04030a] opacity-35 shadow-lg pointer-events-none transition-transform duration-500"
+                          className="absolute inset-0 rounded-[24px] border-2 border-amber-500/10 bg-slate-950/75 backdrop-blur-md opacity-35 shadow-lg pointer-events-none transition-transform duration-500"
                           style={{
                             transform: 'translate(-12px, 12px) rotate(-8deg)',
                           }}
                         />
                         {/* 中間層卡片 (疊卡 2) */}
                         <div 
-                          className="absolute inset-0 rounded-[24px] border-2 border-amber-500/20 bg-gradient-to-br from-[#100c28] to-[#06050e] opacity-60 shadow-xl pointer-events-none transition-transform duration-500"
+                          className="absolute inset-0 rounded-[24px] border-2 border-amber-500/20 bg-slate-950/75 backdrop-blur-md opacity-60 shadow-xl pointer-events-none transition-transform duration-500"
                           style={{
                             transform: 'translate(6px, 6px) rotate(4deg)',
                           }}
@@ -2062,7 +2065,7 @@ export function DailyQuestsTab({
 
                     {/* 🔮 作用卡片 (3D 旋轉與抽卡主體，藉由 inline styles 確保絕對定位不跑版) */}
                     <div 
-                      onClick={!hasDrawnToday ? handleDrawCard : undefined}
+                       onClick={!hasDrawnToday ? handleDrawCard : undefined}
                       className="relative w-full h-full"
                       style={{
                         perspective: '1200px',
@@ -2084,22 +2087,31 @@ export function DailyQuestsTab({
                           transition: 'transform 0.8s cubic-bezier(0.4, 0, 0.2, 1)',
                         }}
                       >
-                        {/* 🔒 卡片背面 (使用 absolute 與 backface-visibility) */}
+                        {/* 🔒 卡片背面 (使用 absolute 與 backface-visibility) - 曜石玻璃磨砂質感 */}
                         <div 
-                          className="absolute inset-0 w-full h-full rounded-[24px] border-2 border-amber-500/35 bg-gradient-to-br from-[#120e2e] via-[#08071a] to-[#1c0b30] flex flex-col justify-between items-center p-6 shadow-2xl transition-all duration-300 hover:border-amber-400/70 hover:shadow-[0_15px_40px_rgba(0,0,0,0.5),0_0_25px_rgba(245,158,11,0.2)]"
+                          className="absolute inset-0 w-full h-full rounded-[24px] border-2 border-amber-500/40 bg-gradient-to-br from-slate-900/80 via-slate-950/85 to-slate-900/80 backdrop-blur-xl flex flex-col justify-between items-center p-6 shadow-2xl transition-all duration-300 hover:border-amber-400/70 hover:shadow-[0_20px_50px_rgba(0,0,0,0.6),0_0_30px_rgba(245,158,11,0.25)]"
                           style={{
                             backfaceVisibility: 'hidden',
                             WebkitBackfaceVisibility: 'hidden',
                             zIndex: 2,
                           }}
                         >
+                          {/* Dashed border inlay */}
+                          <div className="absolute inset-2 border border-dashed border-amber-500/20 rounded-[18px] pointer-events-none" />
+                          
+                          {/* ⚜️ 金屬古典防撞角飾 (Corner Brackets) */}
+                          <div className="absolute top-3.5 left-3.5 w-3 h-3 border-t border-l border-amber-500/40 pointer-events-none" />
+                          <div className="absolute top-3.5 right-3.5 w-3 h-3 border-t border-r border-amber-500/40 pointer-events-none" />
+                          <div className="absolute bottom-3.5 left-3.5 w-3 h-3 border-b border-l border-amber-500/40 pointer-events-none" />
+                          <div className="absolute bottom-3.5 right-3.5 w-3 h-3 border-b border-r border-amber-500/40 pointer-events-none" />
+
                           {/* Decorative Gold Header Icon */}
-                          <div className="w-12 h-12 rounded-full border border-amber-500/20 bg-amber-500/5 flex items-center justify-center text-amber-500 shrink-0">
+                          <div className="w-12 h-12 rounded-full border border-amber-500/20 bg-amber-500/5 flex items-center justify-center text-amber-500 shrink-0 z-10">
                             <Sparkles size={20} className="animate-pulse" />
                           </div>
                           
                           {/* Prompt Text */}
-                          <div className="space-y-2 text-center">
+                          <div className="space-y-2 text-center z-10">
                             <p className="text-sm font-black tracking-widest text-amber-400 uppercase">
                               以終為始
                             </p>
@@ -2109,14 +2121,14 @@ export function DailyQuestsTab({
                           </div>
                           
                           {/* Bottom Plaque */}
-                          <span className="text-[9px] font-black text-slate-500 bg-slate-950/60 px-3 py-1 rounded-full border border-white/5 uppercase tracking-widest shrink-0">
+                          <span className="text-[9px] font-black text-slate-500 bg-slate-950/60 px-3 py-1 rounded-full border border-white/5 uppercase tracking-widest shrink-0 z-10">
                             NLP CULTIVATION
                           </span>
                         </div>
                         
-                        {/* 🔓 卡片正面 (使用 absolute 與 backface-visibility，翻轉 180 度) */}
+                        {/* 🔓 卡片正面 (使用 absolute 與 backface-visibility，翻轉 180 度) - 曜石玻璃磨砂質感 */}
                         <div 
-                          className="absolute inset-0 w-full h-full rounded-[24px] border-2 border-amber-500/50 bg-gradient-to-br from-[#020617] via-[#0f172a] to-[#1e1b4b] flex flex-col justify-between items-center p-6 shadow-2xl"
+                          className="absolute inset-0 w-full h-full rounded-[24px] border-2 border-amber-500/55 bg-gradient-to-br from-slate-900/80 via-slate-950/85 to-slate-900/80 backdrop-blur-xl flex flex-col justify-between items-center p-6 shadow-2xl"
                           style={{
                             backfaceVisibility: 'hidden',
                             WebkitBackfaceVisibility: 'hidden',
@@ -2126,12 +2138,18 @@ export function DailyQuestsTab({
                           {/* Dashed border inlay */}
                           <div className="absolute inset-2 border border-dashed border-amber-500/20 rounded-[18px] pointer-events-none" />
                           
+                          {/* ⚜️ 金屬古典防撞角飾 (Corner Brackets) */}
+                          <div className="absolute top-3.5 left-3.5 w-3 h-3 border-t border-l border-amber-500/40 pointer-events-none" />
+                          <div className="absolute top-3.5 right-3.5 w-3 h-3 border-t border-r border-amber-500/40 pointer-events-none" />
+                          <div className="absolute bottom-3.5 left-3.5 w-3 h-3 border-b border-l border-amber-500/40 pointer-events-none" />
+                          <div className="absolute bottom-3.5 right-3.5 w-3 h-3 border-b border-r border-amber-500/40 pointer-events-none" />
+                          
                           <div className="text-[10px] font-black tracking-wider text-amber-400/80 uppercase z-10">
                             ★ 今日以終為始修行 ★
                           </div>
                           
                           <div className="my-auto py-4 flex flex-col items-center z-10">
-                            <span className="gold-calligraphy text-4xl font-extrabold tracking-widest block mb-2 select-text">
+                            <span className="gold-calligraphy text-4xl font-extrabold tracking-widest block mb-2 select-text drop-shadow-[0_0_12px_rgba(245,158,11,0.5)]">
                               {dailyDraw?.word}
                             </span>
                             <span className="text-[11px] text-slate-400 font-bold block mt-1">
@@ -2140,7 +2158,7 @@ export function DailyQuestsTab({
                           </div>
                           
                           <div className="w-full space-y-2.5 z-10">
-                            <p className="text-[10px] text-amber-500/90 bg-amber-500/5 border border-amber-500/20 px-2 py-2 rounded-xl leading-relaxed font-bold text-center">
+                            <p className="text-[11px] text-amber-400 bg-slate-950/70 border border-amber-500/30 px-3 py-2.5 rounded-xl leading-relaxed font-bold text-center shadow-inner">
                               🎯 引導他人說出這個詞彙以完成今日修行
                             </p>
                             <div className="flex items-center justify-center gap-1 text-[9px] text-slate-500 font-black">
