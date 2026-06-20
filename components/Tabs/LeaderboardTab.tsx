@@ -371,8 +371,11 @@ export function LeaderboardTab({
                   {topIndividual[1] && (
                     <div className="flex flex-col items-center animate-in fade-in slide-in-from-bottom-4 duration-500">
                       <div className="relative">
-                        <div className="w-[84px] sm:w-24 h-14 rounded-2xl bg-gradient-to-br from-slate-300 to-slate-400 text-slate-950 font-black flex items-center justify-center shadow-[0_0_15px_rgba(203,213,225,0.3)] border border-white/20 select-none text-center">
-                          <span className="truncate w-full block text-center px-0.5 text-[11px] sm:text-xs">{topIndividual[1].name}</span>
+                        {currentUser?.id === topIndividual[1].id && (
+                          <span className="absolute -top-3 right-0 z-20 text-xs font-black bg-amber-500 text-slate-950 border border-amber-400 px-2 py-0.5 rounded shadow-lg animate-pulse">本人</span>
+                        )}
+                        <div className="w-[90px] sm:w-28 h-14 rounded-2xl bg-gradient-to-br from-slate-300 to-slate-400 text-slate-950 font-black flex items-center justify-center shadow-[0_0_15px_rgba(203,213,225,0.3)] border border-white/20 select-none text-center">
+                          <span className="truncate w-full block text-center px-1 text-sm sm:text-base">{topIndividual[1].name}</span>
                         </div>
                         <span className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-slate-400 text-slate-950 text-[10px] font-black flex items-center justify-center border border-slate-900">
                           2
@@ -383,18 +386,21 @@ export function LeaderboardTab({
                           </span>
                         )}
                       </div>
-                      <span className="font-black text-white text-xs mt-2 truncate w-20 text-center light:text-slate-900">
-                        第二名
-                      </span>
-                      <span className="text-[10px] font-bold text-slate-400 flex flex-col items-center leading-tight">
-                        <span className="font-mono text-sm font-extrabold">{topIndividual[1].score.toLocaleString()}</span>
-                        <span className="text-[10px] opacity-80 mt-0.5 select-none tracking-wider">XP</span>
-                      </span>
+                      
+                      <div className="flex flex-col items-center mt-2 mb-1 gap-0.5">
+                        <span className="font-black text-white text-xs light:text-slate-900">第二名</span>
+                        <div className="flex items-baseline gap-1 mt-0.5">
+                          <span className="font-mono text-sm font-extrabold text-slate-400 light:text-slate-600">{topIndividual[1].score.toLocaleString()}</span>
+                          <span className="text-[9px] text-slate-400 opacity-80 font-bold tracking-wider">XP</span>
+                        </div>
+                      </div>
                       
                       {/* Pedestal with Level inside */}
-                      <div className="h-16 w-[84px] sm:w-24 mt-3 rounded-t-xl bg-gradient-to-t from-slate-800/80 to-slate-700/30 border border-slate-700/40 flex flex-col items-center justify-center shadow-lg light:from-slate-200 light:to-slate-100">
+                      <div className="h-16 w-[90px] sm:w-28 mt-2 rounded-t-xl bg-gradient-to-t from-slate-800/80 to-slate-700/30 border border-slate-700/40 flex flex-col items-center justify-center shadow-lg light:from-slate-200 light:to-slate-100">
                         <span className="text-slate-500 font-extrabold text-xs font-mono">II</span>
-                        <span className="text-[9px] font-bold text-slate-400 mt-0.5 whitespace-nowrap">LV.{calculateLevelFromExp(topIndividual[1].score)}</span>
+                        <div className="mt-1 bg-slate-900 border border-slate-700 px-2.5 py-0.5 rounded-full shadow-inner flex items-center justify-center light:bg-white light:border-slate-300 light:shadow-sm">
+                          <span className="text-xs sm:text-sm font-black text-slate-200 light:text-slate-800 whitespace-nowrap">LV.{calculateLevelFromExp(topIndividual[1].score)}</span>
+                        </div>
                       </div>
                     </div>
                   )}
@@ -404,8 +410,11 @@ export function LeaderboardTab({
                     <div className="flex flex-col items-center animate-in fade-in slide-in-from-bottom-8 duration-700 relative z-10 -mt-4">
                       <div className="absolute -top-6 text-xl animate-bounce">👑</div>
                       <div className="relative">
-                        <div className="w-[96px] sm:w-28 h-16 rounded-2xl bg-gradient-to-br from-yellow-400 via-amber-400 to-amber-500 text-slate-950 font-black flex items-center justify-center shadow-[0_0_20px_rgba(251,191,36,0.4)] border border-yellow-300/30 select-none text-center">
-                          <span className="truncate w-full block text-center px-0.5 text-xs font-black">{topIndividual[0].name}</span>
+                        {currentUser?.id === topIndividual[0].id && (
+                          <span className="absolute -top-3 right-0 z-20 text-xs font-black bg-white text-amber-600 border border-amber-300 px-2 py-0.5 rounded shadow-lg animate-pulse">本人</span>
+                        )}
+                        <div className="w-[104px] sm:w-32 h-16 rounded-2xl bg-gradient-to-br from-yellow-400 via-amber-400 to-amber-500 text-slate-950 font-black flex items-center justify-center shadow-[0_0_20px_rgba(251,191,36,0.4)] border border-yellow-300/30 select-none text-center">
+                          <span className="truncate w-full block text-center px-1 text-lg sm:text-xl font-black">{topIndividual[0].name}</span>
                         </div>
                         <span className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-amber-500 text-slate-950 text-[10px] font-black flex items-center justify-center border border-slate-900">
                           1
@@ -416,19 +425,22 @@ export function LeaderboardTab({
                           </span>
                         )}
                       </div>
-                      <span className="font-black text-amber-200 text-sm mt-2 truncate w-24 text-center light:text-amber-600">
-                        第一名
-                      </span>
-                      <span className="text-[10px] font-bold text-amber-400 flex flex-col items-center leading-tight">
-                        <span className="font-mono text-base font-black">{topIndividual[0].score.toLocaleString()}</span>
-                        <span className="text-[10px] opacity-80 mt-0.5 select-none tracking-wider">XP</span>
-                      </span>
+                      
+                      <div className="flex flex-col items-center mt-2 mb-1 gap-0.5">
+                        <span className="font-black text-white text-sm light:text-slate-900">第一名</span>
+                        <div className="flex items-baseline gap-1 mt-0.5">
+                          <span className="font-mono text-base font-black text-slate-400 light:text-slate-600">{topIndividual[0].score.toLocaleString()}</span>
+                          <span className="text-[10px] text-slate-400 opacity-80 font-bold tracking-wider">XP</span>
+                        </div>
+                      </div>
                       
                       {/* Pedestal with Level inside */}
-                      <div className="h-24 w-[96px] sm:w-28 mt-3 rounded-t-xl bg-gradient-to-t from-amber-600/80 to-amber-500/30 border border-amber-500/40 flex flex-col items-center justify-center shadow-2xl relative overflow-hidden light:from-amber-100 light:to-amber-50">
+                      <div className="h-24 w-[104px] sm:w-32 mt-2 rounded-t-xl bg-gradient-to-t from-amber-600/80 to-amber-500/30 border border-amber-500/40 flex flex-col items-center justify-center shadow-2xl relative overflow-hidden light:from-amber-100 light:to-amber-50">
                         <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent animate-pulse" />
                         <span className="text-amber-500/70 font-extrabold text-lg font-mono z-10">I</span>
-                        <span className="text-[9px] font-black text-amber-400 mt-0.5 z-10 whitespace-nowrap">LV.{calculateLevelFromExp(topIndividual[0].score)}</span>
+                        <div className="mt-1 bg-amber-950 border border-amber-700 px-3.5 py-0.5 rounded-full shadow-inner z-10 flex items-center justify-center light:bg-white light:border-amber-300 light:shadow-sm">
+                          <span className="text-sm sm:text-base font-black text-amber-400 light:text-amber-600 whitespace-nowrap">LV.{calculateLevelFromExp(topIndividual[0].score)}</span>
+                        </div>
                       </div>
                     </div>
                   )}
@@ -437,8 +449,11 @@ export function LeaderboardTab({
                   {topIndividual[2] && (
                     <div className="flex flex-col items-center animate-in fade-in slide-in-from-bottom-3 duration-400">
                       <div className="relative">
-                        <div className="w-[84px] sm:w-24 h-12 rounded-2xl bg-gradient-to-br from-orange-400 to-orange-600 text-slate-950 font-black flex items-center justify-center shadow-[0_0_10px_rgba(249,115,22,0.3)] border border-white/20 select-none text-center">
-                          <span className="truncate w-full block text-center px-0.5 text-[10px] sm:text-xs">{topIndividual[2].name}</span>
+                        {currentUser?.id === topIndividual[2].id && (
+                          <span className="absolute -top-3 right-0 z-20 text-xs font-black bg-amber-500 text-slate-950 border border-amber-400 px-2 py-0.5 rounded shadow-lg animate-pulse">本人</span>
+                        )}
+                        <div className="w-[90px] sm:w-28 h-12 rounded-2xl bg-gradient-to-br from-orange-400 to-orange-600 text-slate-950 font-black flex items-center justify-center shadow-[0_0_10px_rgba(249,115,22,0.3)] border border-white/20 select-none text-center">
+                          <span className="truncate w-full block text-center px-1 text-sm sm:text-base">{topIndividual[2].name}</span>
                         </div>
                         <span className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-orange-500 text-slate-950 text-[9px] font-black flex items-center justify-center border border-slate-900">
                           3
@@ -449,18 +464,21 @@ export function LeaderboardTab({
                           </span>
                         )}
                       </div>
-                      <span className="font-black text-white text-xs mt-2 truncate w-20 text-center light:text-slate-900">
-                        第三名
-                      </span>
-                      <span className="text-[10px] font-bold text-slate-400 flex flex-col items-center leading-tight">
-                        <span className="font-mono text-sm font-extrabold">{topIndividual[2].score.toLocaleString()}</span>
-                        <span className="text-[10px] opacity-80 mt-0.5 select-none tracking-wider">XP</span>
-                      </span>
+                      
+                      <div className="flex flex-col items-center mt-2 mb-1 gap-0.5">
+                        <span className="font-black text-white text-xs light:text-slate-900">第三名</span>
+                        <div className="flex items-baseline gap-1 mt-0.5">
+                          <span className="font-mono text-sm font-extrabold text-slate-400 light:text-slate-600">{topIndividual[2].score.toLocaleString()}</span>
+                          <span className="text-[9px] text-slate-400 opacity-80 font-bold tracking-wider">XP</span>
+                        </div>
+                      </div>
                       
                       {/* Pedestal with Level inside */}
-                      <div className="h-12 w-[84px] sm:w-24 mt-3 rounded-t-xl bg-gradient-to-t from-orange-900/60 to-orange-850/30 border border-orange-800/40 flex flex-col items-center justify-center shadow-md light:from-orange-100 light:to-orange-50">
-                        <span className="text-orange-600/70 font-extrabold text-sm font-mono">III</span>
-                        <span className="text-[9px] font-bold text-orange-500 mt-0.5 whitespace-nowrap">LV.{calculateLevelFromExp(topIndividual[2].score)}</span>
+                      <div className="h-12 w-[90px] sm:w-28 mt-2 rounded-t-xl bg-gradient-to-t from-orange-900/60 to-orange-850/30 border border-orange-800/40 flex flex-col items-center justify-center shadow-md light:from-orange-100 light:to-orange-50">
+                        <span className="text-orange-600/70 font-extrabold text-sm font-mono leading-none mt-1">III</span>
+                        <div className="mt-0.5 bg-orange-950 border border-orange-800 px-2.5 py-0.5 rounded-full shadow-inner flex items-center justify-center light:bg-white light:border-orange-300 light:shadow-sm">
+                          <span className="text-xs sm:text-sm font-black text-orange-400 light:text-orange-600 whitespace-nowrap">LV.{calculateLevelFromExp(topIndividual[2].score)}</span>
+                        </div>
                       </div>
                     </div>
                   )}
@@ -488,8 +506,8 @@ export function LeaderboardTab({
                           {rank}
                         </div>
                         <div className="flex flex-col min-w-0">
-                          <span className="font-black text-white text-sm flex items-center gap-1.5 light:text-slate-950 truncate">
-                            <span className="truncate">{p.name}</span>
+                          <span className="font-black text-white text-base sm:text-lg flex items-center flex-wrap gap-1.5 light:text-slate-950">
+                            <span>{p.name}</span>
                             {isSelf && (
                               <span className="text-[11px] font-black bg-amber-500/10 text-amber-500 border border-amber-500/20 px-2 py-0.5 rounded-md shrink-0">
                                 本人
@@ -509,7 +527,7 @@ export function LeaderboardTab({
 
                       {/* Middle: Level (col-span-3 text-center) */}
                       <div className="col-span-3 text-center">
-                        <span className="text-xs font-bold text-slate-400">LV.{level}</span>
+                        <span className="text-base sm:text-lg font-black text-slate-300 light:text-slate-800 tracking-wide">LV.{level}</span>
                       </div>
 
                       {/* Right: Score (col-span-3 text-right) */}
@@ -542,8 +560,8 @@ export function LeaderboardTab({
                   {topTeams[1] && (
                     <div className="flex flex-col items-center animate-in fade-in slide-in-from-bottom-4 duration-500">
                       <div className="relative">
-                        <div className="w-[84px] sm:w-24 h-14 rounded-2xl bg-gradient-to-br from-slate-300 to-slate-500 text-slate-950 font-black flex items-center justify-center shadow-[0_0_15px_rgba(203,213,225,0.3)] border border-white/20 select-none text-center">
-                          <span className="truncate w-full block text-center px-0.5 text-[11px] sm:text-xs">
+                        <div className="w-[90px] sm:w-28 h-14 rounded-2xl bg-gradient-to-br from-slate-300 to-slate-500 text-slate-950 font-black flex items-center justify-center shadow-[0_0_15px_rgba(203,213,225,0.3)] border border-white/20 select-none text-center">
+                          <span className="truncate w-full block text-center px-1 text-sm sm:text-base">
                             {getSubTeamNameOnly(topTeams[1].name, activeBatchName)}
                           </span>
                         </div>
@@ -552,26 +570,26 @@ export function LeaderboardTab({
                         </span>
                       </div>
                       
-                      {/* Name of subteam only replaced with place name */}
-                      <span className="font-black text-white text-xs mt-2 truncate w-20 text-center light:text-slate-900">
-                        第二名
-                      </span>
-                      
-                      {/* Captain & Score details */}
-                      <span className="text-[9px] text-slate-500 font-bold whitespace-nowrap">
-                        隊長：{profiles.find(p => p.id === topTeams[1].captain_id)?.name || '未指派'}
-                      </span>
-                      <span className="text-xs font-black text-amber-500 animate-pulse mt-0.5 whitespace-nowrap">
-                        {topTeams[1].averageScore.toLocaleString()} 人均
-                      </span>
-                      <span className="text-[10px] text-slate-300 font-bold whitespace-nowrap">
-                        總 {topTeams[1].total_score.toLocaleString()} XP
-                      </span>
+                      <div className="flex flex-col items-center mt-2 mb-1 gap-0.5">
+                        <span className="font-black text-white text-xs light:text-slate-900">第二名</span>
+                        <span className="text-[9px] text-slate-400 light:text-slate-500 font-bold whitespace-nowrap">
+                          隊長: {profiles.find(p => p.id === topTeams[1].captain_id)?.name || '未指派'}
+                        </span>
+                        <div className="flex items-baseline gap-1 mt-0.5">
+                          <span className="text-xs font-black text-slate-400 light:text-slate-600">{topTeams[1].averageScore.toLocaleString()}</span>
+                          <span className="text-[9px] text-slate-400 font-bold">人均</span>
+                        </div>
+                        <span className="text-[9px] text-slate-400 light:text-slate-500 font-bold whitespace-nowrap">
+                          總 {topTeams[1].total_score.toLocaleString()} XP
+                        </span>
+                      </div>
                       
                       {/* Pedestal with Team Total Level inside */}
-                      <div className="h-16 w-[84px] sm:w-24 mt-3 rounded-t-xl bg-gradient-to-t from-slate-800/80 to-slate-700/30 border border-slate-700/40 flex flex-col items-center justify-center shadow-lg light:from-slate-200 light:to-slate-100">
+                      <div className="h-16 w-[90px] sm:w-28 mt-2 rounded-t-xl bg-gradient-to-t from-slate-800/80 to-slate-700/30 border border-slate-700/40 flex flex-col items-center justify-center shadow-lg light:from-slate-200 light:to-slate-100">
                         <span className="text-slate-500 font-extrabold text-xs font-mono">II</span>
-                        <span className="text-[9px] font-black text-slate-400 whitespace-nowrap">總LV.{topTeams[1].totalLevel}</span>
+                        <div className="mt-1 bg-slate-900 border border-slate-700 px-2.5 py-0.5 rounded-full shadow-inner flex items-center justify-center light:bg-white light:border-slate-300 light:shadow-sm">
+                          <span className="text-xs sm:text-sm font-black text-slate-200 light:text-slate-800 whitespace-nowrap">LV.{topTeams[1].totalLevel}</span>
+                        </div>
                       </div>
                     </div>
                   )}
@@ -581,8 +599,8 @@ export function LeaderboardTab({
                     <div className="flex flex-col items-center animate-in fade-in slide-in-from-bottom-8 duration-700 relative z-10 -mt-4">
                       <div className="absolute -top-6 text-xl animate-bounce">👑</div>
                       <div className="relative">
-                        <div className="w-[96px] sm:w-28 h-16 rounded-2xl bg-gradient-to-br from-yellow-400 via-amber-400 to-amber-500 text-slate-950 font-black flex items-center justify-center shadow-[0_0_20px_rgba(251,191,36,0.4)] border border-yellow-300/30 select-none text-center">
-                          <span className="truncate w-full block text-center px-0.5 text-xs font-black">
+                        <div className="w-[104px] sm:w-32 h-16 rounded-2xl bg-gradient-to-br from-yellow-400 via-amber-400 to-amber-500 text-slate-950 font-black flex items-center justify-center shadow-[0_0_20px_rgba(251,191,36,0.4)] border border-yellow-300/30 select-none text-center">
+                          <span className="truncate w-full block text-center px-1 text-lg sm:text-xl font-black">
                             {getSubTeamNameOnly(topTeams[0].name, activeBatchName)}
                           </span>
                         </div>
@@ -591,27 +609,27 @@ export function LeaderboardTab({
                         </span>
                       </div>
                       
-                      {/* Name of subteam only replaced with place name */}
-                      <span className="font-black text-amber-200 text-sm mt-2 truncate w-24 text-center light:text-amber-600">
-                        第一名
-                      </span>
-                      
-                      {/* Captain & Score details */}
-                      <span className="text-[9px] text-amber-500/70 font-bold whitespace-nowrap">
-                        隊長：{profiles.find(p => p.id === topTeams[0].captain_id)?.name || '未指派'}
-                      </span>
-                      <span className="text-sm font-black text-amber-400 animate-pulse mt-0.5 whitespace-nowrap">
-                        {topTeams[0].averageScore.toLocaleString()} 人均
-                      </span>
-                      <span className="text-[10px] text-amber-400/80 font-bold whitespace-nowrap">
-                        總 {topTeams[0].total_score.toLocaleString()} XP
-                      </span>
+                      <div className="flex flex-col items-center mt-2 mb-1 gap-0.5">
+                        <span className="font-black text-white text-sm light:text-slate-900">第一名</span>
+                        <span className="text-[9px] text-amber-500/70 font-bold whitespace-nowrap">
+                          隊長: {profiles.find(p => p.id === topTeams[0].captain_id)?.name || '未指派'}
+                        </span>
+                        <div className="flex items-baseline gap-1 mt-0.5">
+                          <span className="text-sm font-black text-slate-400 light:text-slate-600">{topTeams[0].averageScore.toLocaleString()}</span>
+                          <span className="text-[10px] text-slate-400 font-bold">人均</span>
+                        </div>
+                        <span className="text-[9px] text-amber-400/80 light:text-slate-500 font-bold whitespace-nowrap">
+                          總 {topTeams[0].total_score.toLocaleString()} XP
+                        </span>
+                      </div>
                       
                       {/* Pedestal with Team Total Level inside */}
-                      <div className="h-24 w-[96px] sm:w-28 mt-3 rounded-t-xl bg-gradient-to-t from-amber-600/80 to-amber-500/30 border border-amber-500/40 flex flex-col items-center justify-center shadow-2xl relative overflow-hidden light:from-amber-100 light:to-amber-50">
+                      <div className="h-24 w-[104px] sm:w-32 mt-2 rounded-t-xl bg-gradient-to-t from-amber-600/80 to-amber-500/30 border border-amber-500/40 flex flex-col items-center justify-center shadow-2xl relative overflow-hidden light:from-amber-100 light:to-amber-50">
                         <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent animate-pulse" />
-                        <span className="text-amber-500/70 font-extrabold text-base font-mono z-10">I</span>
-                        <span className="text-[9px] font-black text-amber-400 z-10 whitespace-nowrap">總LV.{topTeams[0].totalLevel}</span>
+                        <span className="text-amber-500/70 font-extrabold text-lg font-mono z-10">I</span>
+                        <div className="mt-1 bg-amber-950 border border-amber-700 px-3.5 py-0.5 rounded-full shadow-inner z-10 flex items-center justify-center light:bg-white light:border-amber-300 light:shadow-sm">
+                          <span className="text-sm sm:text-base font-black text-amber-400 light:text-amber-600 whitespace-nowrap">LV.{topTeams[0].totalLevel}</span>
+                        </div>
                       </div>
                     </div>
                   )}
@@ -620,8 +638,8 @@ export function LeaderboardTab({
                   {topTeams[2] && (
                     <div className="flex flex-col items-center animate-in fade-in slide-in-from-bottom-3 duration-400">
                       <div className="relative">
-                        <div className="w-[84px] sm:w-24 h-12 rounded-2xl bg-gradient-to-br from-orange-400 to-orange-600 text-slate-950 font-black flex items-center justify-center shadow-[0_0_10px_rgba(249,115,22,0.3)] border border-white/20 select-none text-center">
-                          <span className="truncate w-full block text-center px-0.5 text-[10px] sm:text-xs">
+                        <div className="w-[90px] sm:w-28 h-12 rounded-2xl bg-gradient-to-br from-orange-400 to-orange-600 text-slate-950 font-black flex items-center justify-center shadow-[0_0_10px_rgba(249,115,22,0.3)] border border-white/20 select-none text-center">
+                          <span className="truncate w-full block text-center px-1 text-sm sm:text-base">
                             {getSubTeamNameOnly(topTeams[2].name, activeBatchName)}
                           </span>
                         </div>
@@ -630,26 +648,26 @@ export function LeaderboardTab({
                         </span>
                       </div>
                       
-                      {/* Name of subteam only replaced with place name */}
-                      <span className="font-black text-white text-xs mt-2 truncate w-20 text-center light:text-slate-900">
-                        第三名
-                      </span>
-                      
-                      {/* Captain & Score details */}
-                      <span className="text-[9px] text-slate-500 font-bold whitespace-nowrap">
-                        隊長：{profiles.find(p => p.id === topTeams[2].captain_id)?.name || '未指派'}
-                      </span>
-                      <span className="text-xs font-black text-amber-500 animate-pulse mt-0.5 whitespace-nowrap">
-                        {topTeams[2].averageScore.toLocaleString()} 人均
-                      </span>
-                      <span className="text-[10px] text-slate-300 font-bold whitespace-nowrap">
-                        總 {topTeams[2].total_score.toLocaleString()} XP
-                      </span>
+                      <div className="flex flex-col items-center mt-2 mb-1 gap-0.5">
+                        <span className="font-black text-white text-xs light:text-slate-900">第三名</span>
+                        <span className="text-[9px] text-slate-400 light:text-slate-500 font-bold whitespace-nowrap">
+                          隊長: {profiles.find(p => p.id === topTeams[2].captain_id)?.name || '未指派'}
+                        </span>
+                        <div className="flex items-baseline gap-1 mt-0.5">
+                          <span className="text-xs font-black text-slate-400 light:text-slate-600">{topTeams[2].averageScore.toLocaleString()}</span>
+                          <span className="text-[9px] text-slate-400 font-bold">人均</span>
+                        </div>
+                        <span className="text-[9px] text-slate-400 light:text-slate-500 font-bold whitespace-nowrap">
+                          總 {topTeams[2].total_score.toLocaleString()} XP
+                        </span>
+                      </div>
                       
                       {/* Pedestal with Team Total Level inside */}
-                      <div className="h-12 w-[84px] sm:w-24 mt-3 rounded-t-xl bg-gradient-to-t from-orange-900/60 to-orange-850/30 border border-orange-800/40 flex flex-col items-center justify-center shadow-md light:from-orange-100 light:to-orange-50">
-                        <span className="text-orange-600/70 font-extrabold text-xs font-mono">III</span>
-                        <span className="text-[9px] font-black text-orange-500 whitespace-nowrap">總LV.{topTeams[2].totalLevel}</span>
+                      <div className="h-12 w-[90px] sm:w-28 mt-2 rounded-t-xl bg-gradient-to-t from-orange-900/60 to-orange-850/30 border border-orange-800/40 flex flex-col items-center justify-center shadow-md light:from-orange-100 light:to-orange-50">
+                        <span className="text-orange-600/70 font-extrabold text-sm font-mono leading-none mt-1">III</span>
+                        <div className="mt-0.5 bg-orange-950 border border-orange-800 px-2.5 py-0.5 rounded-full shadow-inner flex items-center justify-center light:bg-white light:border-orange-300 light:shadow-sm">
+                          <span className="text-xs sm:text-sm font-black text-orange-400 light:text-orange-600 whitespace-nowrap">LV.{topTeams[2].totalLevel}</span>
+                        </div>
                       </div>
                     </div>
                   )}
@@ -675,7 +693,7 @@ export function LeaderboardTab({
                         </div>
                         
                         <div className="flex flex-col min-w-0">
-                          <span className="font-black text-white text-sm light:text-slate-950 truncate">
+                          <span className="font-black text-white text-base sm:text-lg light:text-slate-950">
                             {getTeamDisplayName(team)}
                           </span>
                           <span className="text-[10px] text-slate-500 font-bold flex items-center gap-1 mt-0.5 select-none truncate">
@@ -687,7 +705,7 @@ export function LeaderboardTab({
 
                       {/* Middle: Total Level (col-span-3 text-center) */}
                       <div className="col-span-3 text-center">
-                        <span className="text-xs font-bold text-slate-400">LV.{team.totalLevel}</span>
+                        <span className="text-base sm:text-lg font-black text-slate-300 light:text-slate-800 tracking-wide">LV.{team.totalLevel}</span>
                         <span className="block text-[8px] text-slate-500 select-none">小組總等級</span>
                       </div>
 
@@ -778,10 +796,10 @@ export function LeaderboardTab({
                           {/* 等級(上) / 姓名(下) */}
                           <td className="px-1.5 py-3">
                             <div className="flex flex-col gap-0.5 leading-tight select-none">
-                              <span className="text-[11px] font-black text-indigo-400 whitespace-nowrap">LV.{level}</span>
-                              <span className="text-sm font-black text-white light:text-slate-900 flex items-center gap-1 max-w-[88px]">
-                                <span className="truncate">{p.name}</span>
-                                {isSelf && <span className="text-[10px] font-black bg-amber-500/10 text-amber-500 border border-amber-500/20 px-1.5 py-0.25 rounded shrink-0">本人</span>}
+                              <span className="text-sm font-black text-indigo-400 light:text-indigo-600 whitespace-nowrap">LV.{level}</span>
+                              <span className="text-base sm:text-lg font-black text-white light:text-slate-900 flex items-center flex-wrap gap-1.5">
+                                <span>{p.name}</span>
+                                {isSelf && <span className="text-[10px] sm:text-xs font-black bg-amber-500 text-slate-950 border border-amber-400 px-2 py-0.5 rounded-md shrink-0 shadow-[0_0_8px_rgba(245,158,11,0.5)] mt-0.5">本人</span>}
                               </span>
                             </div>
                           </td>
@@ -861,14 +879,14 @@ export function LeaderboardTab({
                           <td className="px-1.5 py-3">
                             <div className="flex flex-col gap-0.5 leading-tight">
                               <span className="text-[10px] font-bold text-slate-400 light:text-slate-500 whitespace-nowrap">{stripNLP(getBatchName(team.batch_id))}</span>
-                              <span className="text-sm font-black text-white light:text-slate-900 whitespace-nowrap">{getSubTeamNameOnly(team.name, getBatchName(team.batch_id))}</span>
+                              <span className="text-base sm:text-lg font-black text-white light:text-slate-900 break-words">{getSubTeamNameOnly(team.name, getBatchName(team.batch_id))}</span>
                             </div>
                           </td>
                           {/* 總等級(上) / 小隊長(下) */}
                           <td className="px-1.5 py-3">
-                            <div className="flex flex-col gap-0.5 leading-tight">
-                              <span className="text-[11px] font-black text-indigo-400 whitespace-nowrap">總LV.{team.totalLevel}</span>
-                              <span className="text-xs font-bold text-slate-300 light:text-slate-600 whitespace-nowrap">{captainName}</span>
+                            <div className="flex flex-col gap-0.5 leading-tight select-none">
+                              <span className="text-lg font-black text-indigo-400 light:text-indigo-600 whitespace-nowrap">總LV.{team.totalLevel}</span>
+                              <span className="text-sm sm:text-base font-bold text-slate-300 light:text-slate-600 break-words">{captainName}</span>
                             </div>
                           </td>
                           {/* 人均(上) / 總分(下) */}
@@ -950,7 +968,7 @@ export function LeaderboardTab({
                           <td className="p-3 font-bold text-slate-300 light:text-slate-700 whitespace-nowrap">{stripNLP(getBatchName(x.p.batch_id))}</td>
                           <td className="p-3 font-bold text-white light:text-slate-900 flex items-center gap-1">
                             {x.p.name}
-                            {isSelf && <span className="text-[10px] font-black bg-amber-500/10 text-amber-500 border border-amber-500/20 px-1.5 py-0.25 rounded">本人</span>}
+                            {isSelf && <span className="text-xs font-black bg-amber-500 text-slate-950 border border-amber-400 px-2 py-0.5 rounded-md shrink-0 shadow-[0_0_8px_rgba(245,158,11,0.5)]">本人</span>}
                           </td>
                           <td className="p-3 text-right font-black text-amber-500 font-mono">{x.count} 人</td>
                         </tr>
