@@ -491,8 +491,8 @@ export function LeaderboardTab({
                           <span className="font-black text-white text-sm flex items-center gap-1.5 light:text-slate-950 truncate">
                             <span className="truncate">{p.name}</span>
                             {isSelf && (
-                              <span className="text-[9px] font-black bg-amber-500/10 text-amber-500 border border-amber-500/20 px-1.5 py-0.25 rounded-md shrink-0">
-                                您
+                              <span className="text-[11px] font-black bg-amber-500/10 text-amber-500 border border-amber-500/20 px-2 py-0.5 rounded-md shrink-0">
+                                本人
                               </span>
                             )}
                           </span>
@@ -781,7 +781,7 @@ export function LeaderboardTab({
                               <span className="text-[11px] font-black text-indigo-400 whitespace-nowrap">LV.{level}</span>
                               <span className="text-sm font-black text-white light:text-slate-900 flex items-center gap-1 max-w-[88px]">
                                 <span className="truncate">{p.name}</span>
-                                {isSelf && <span className="text-[8px] bg-amber-500/10 text-amber-500 border border-amber-500/20 px-1 py-0.2 rounded shrink-0">您</span>}
+                                {isSelf && <span className="text-[10px] font-black bg-amber-500/10 text-amber-500 border border-amber-500/20 px-1.5 py-0.25 rounded shrink-0">本人</span>}
                               </span>
                             </div>
                           </td>
@@ -950,7 +950,7 @@ export function LeaderboardTab({
                           <td className="p-3 font-bold text-slate-300 light:text-slate-700 whitespace-nowrap">{stripNLP(getBatchName(x.p.batch_id))}</td>
                           <td className="p-3 font-bold text-white light:text-slate-900 flex items-center gap-1">
                             {x.p.name}
-                            {isSelf && <span className="text-[8px] bg-amber-500/10 text-amber-500 border border-amber-500/20 px-1 py-0.2 rounded">您</span>}
+                            {isSelf && <span className="text-[10px] font-black bg-amber-500/10 text-amber-500 border border-amber-500/20 px-1.5 py-0.25 rounded">本人</span>}
                           </td>
                           <td className="p-3 text-right font-black text-amber-500 font-mono">{x.count} 人</td>
                         </tr>
