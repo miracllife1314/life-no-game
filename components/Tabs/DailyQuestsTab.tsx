@@ -2038,7 +2038,7 @@ export function DailyQuestsTab({
                 const hasDrawnToday = dailyDraw && dailyDraw.drawnDate === todayStr;
                 
                 return (
-                  <div className="relative w-60 h-[340px] flex items-center justify-center select-none">
+                  <div className="relative w-60 h-[340px] flex items-center justify-center select-none modal-force-dark">
                     
                     {/* 🌟 琥珀金背景柔和呼吸光 (Radial Glow) - 增加對比度與懸浮立體感 */}
                     <div className="absolute inset-0 -m-10 bg-[radial-gradient(circle_at_center,rgba(245,158,11,0.18)_0%,transparent_70%)] opacity-70 animate-pulse pointer-events-none" />
@@ -2161,7 +2161,7 @@ export function DailyQuestsTab({
                             <p className="text-[11px] text-amber-400 bg-slate-950/70 border border-amber-500/30 px-3 py-2.5 rounded-xl leading-relaxed font-bold text-center shadow-inner">
                               🎯 引導他人說出這個詞彙以完成今日修行
                             </p>
-                            <div className="flex items-center justify-center gap-1 text-[9px] text-slate-500 font-black">
+                            <div className="flex items-center justify-center gap-1 text-[9px] text-slate-400 font-black">
                               <CheckCircle2 size={10} className="text-emerald-500" />
                               已記錄至個人面板
                             </div>
