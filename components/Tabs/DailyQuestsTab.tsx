@@ -2014,12 +2014,9 @@ export function DailyQuestsTab({
           <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-amber-500/50 to-transparent" />
           
           {/* Left / Info Area */}
-          <div className="flex-1 space-y-4 text-center md:text-left">
-            <span className="text-[10px] font-black tracking-widest text-amber-500 bg-amber-500/10 px-3 py-1 rounded-full uppercase inline-block">
-              Beginner Character Panel
-            </span>
+          <div className="flex-1 space-y-3 text-center md:text-left">
             <h2 className="text-xl font-black bg-gradient-to-r from-yellow-300 via-amber-400 to-orange-500 bg-clip-text text-transparent light:from-amber-600 light:to-orange-700">
-              初階人物面板：以終為始
+              以終為始
             </h2>
             <p className="text-xs text-slate-400 leading-relaxed font-bold max-w-md light:text-slate-600">
               每天可抽取一張「以終為始」修行卡。
