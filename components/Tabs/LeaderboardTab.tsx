@@ -114,11 +114,11 @@ export function LeaderboardTab({
   const getRankBadge = (rank: number) => {
     switch (rank) {
       case 1:
-        return 'bg-gradient-to-br from-yellow-350 via-amber-400 to-amber-600 text-slate-950 font-black shadow-[0_0_8px_rgba(245,158,11,0.6)] border border-yellow-300/30 scale-110';
+        return 'bg-gradient-to-br from-yellow-400 via-amber-400 to-amber-600 text-slate-950 font-black shadow-[0_0_8px_rgba(245,158,11,0.6)] border border-yellow-300/30 scale-110';
       case 2:
-        return 'bg-gradient-to-br from-slate-200 via-slate-350 to-slate-500 text-slate-950 font-black shadow-[0_0_8px_rgba(203,213,225,0.4)] border border-slate-200/30 scale-105';
+        return 'bg-gradient-to-br from-slate-200 via-slate-300 to-slate-500 text-slate-950 font-black shadow-[0_0_8px_rgba(203,213,225,0.4)] border border-slate-200/30 scale-105';
       case 3:
-        return 'bg-gradient-to-br from-orange-300 via-orange-450 to-orange-600 text-slate-950 font-black shadow-[0_0_8px_rgba(249,115,22,0.4)] border border-orange-400/20';
+        return 'bg-gradient-to-br from-orange-300 via-orange-500 to-orange-600 text-slate-950 font-black shadow-[0_0_8px_rgba(249,115,22,0.4)] border border-orange-400/20';
       default:
         return 'bg-slate-900/60 border border-white/5 text-slate-400 light:bg-slate-100 light:border-slate-300';
     }
@@ -719,10 +719,9 @@ export function LeaderboardTab({
                   <thead>
                     <tr className="border-b border-white/5 text-slate-500 font-bold uppercase light:border-slate-200">
                       <th className="p-3 w-12 text-center">排行</th>
-                      <th className="p-3">期數</th>
-                      <th className="p-3">姓名</th>
-                      <th className="p-3 text-center">等級</th>
-                      <th className="p-3 text-right">XP</th>
+                      <th className="p-3">期數 / 連勝</th>
+                      <th className="p-3">等級 / 姓名</th>
+                      <th className="p-3 text-right">經驗</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/5 light:divide-slate-200">
@@ -759,24 +758,33 @@ export function LeaderboardTab({
                               </span>
                             )}
                           </td>
-                          <td className="p-3 font-bold text-slate-300 light:text-slate-700 whitespace-nowrap">{getBatchName(p.batch_id)}</td>
-                          <td className="p-3 font-bold text-left">
-                            <div className="flex flex-col gap-0.5 select-none">
-                              <div className="flex items-center gap-1 text-white light:text-slate-900">
-                                <span>{p.name}</span>
-                                {isSelf && <span className="text-[8px] bg-amber-500/10 text-amber-500 border border-amber-500/20 px-1 py-0.2 rounded">您</span>}
-                              </div>
-                              {studentStreaks[p.id] && (
-                                <span className="w-fit text-[10px] font-extrabold text-orange-400 bg-orange-500/10 border border-orange-500/20 px-1.5 py-0.5 rounded-md inline-flex items-center gap-0.5 shrink-0 whitespace-nowrap leading-none" title={`連續打卡 ${studentStreaks[p.id]} 天`}>
+                          {/* 期數(上) / 連勝火焰(下) */}
+                          <td className="p-3">
+                            <div className="flex flex-col gap-1 leading-tight items-start select-none">
+                              <span className="text-[10px] font-bold text-slate-400 light:text-slate-500 whitespace-nowrap">{getBatchName(p.batch_id)}</span>
+                              {studentStreaks[p.id] ? (
+                                <span className="text-[10px] font-extrabold text-orange-400 bg-orange-500/10 border border-orange-500/20 px-1.5 py-0.5 rounded-md inline-flex items-center gap-0.5 whitespace-nowrap leading-none" title={`連續打卡 ${studentStreaks[p.id]} 天`}>
                                   🔥 {studentStreaks[p.id]}天
                                 </span>
+                              ) : (
+                                <span className="text-[10px] text-slate-600 light:text-slate-400">—</span>
                               )}
                             </div>
                           </td>
-                          <td className="p-3 text-center font-bold text-indigo-400">LV.{level}</td>
+                          {/* 等級(上) / 姓名(下) */}
+                          <td className="p-3">
+                            <div className="flex flex-col gap-0.5 leading-tight select-none">
+                              <span className="text-[11px] font-black text-indigo-400 whitespace-nowrap">LV.{level}</span>
+                              <span className="text-sm font-black text-white light:text-slate-900 whitespace-nowrap flex items-center gap-1">
+                                {p.name}
+                                {isSelf && <span className="text-[8px] bg-amber-500/10 text-amber-500 border border-amber-500/20 px-1 py-0.2 rounded shrink-0">您</span>}
+                              </span>
+                            </div>
+                          </td>
+                          {/* 經驗 */}
                           <td className="p-3 text-right">
                             <div className="flex flex-col items-end leading-tight select-none">
-                              <span className="font-black text-amber-500 font-mono">{p.score.toLocaleString()}</span>
+                              <span className="font-black text-amber-500 font-mono text-sm whitespace-nowrap">{p.score.toLocaleString()}</span>
                               <span className="text-[9px] text-slate-500 font-bold mt-0.5">XP</span>
                             </div>
                           </td>
@@ -785,7 +793,7 @@ export function LeaderboardTab({
                     })}
                     {sortedAllTimeIndividual.length === 0 && (
                       <tr>
-                        <td colSpan={5} className="p-8 text-center text-slate-500 font-bold">
+                        <td colSpan={4} className="p-8 text-center text-slate-500 font-bold">
                           目前尚無任何神人排行。
                         </td>
                       </tr>
@@ -808,12 +816,10 @@ export function LeaderboardTab({
                 <table className="w-full text-left text-xs border-collapse">
                   <thead>
                     <tr className="border-b border-white/5 text-slate-500 font-bold uppercase light:border-slate-200">
-                      <th className="p-3 w-12 text-center">排行</th>
-                      <th className="p-3">期數</th>
-                      <th className="p-3">隊名</th>
-                      <th className="p-3">小隊長</th>
-                      <th className="p-3 text-center">總等級</th>
-                      <th className="p-3 text-right">經驗 (人均)</th>
+                      <th className="px-1.5 py-3 w-9 text-center">排行</th>
+                      <th className="px-1.5 py-3">期數 / 隊名</th>
+                      <th className="px-1.5 py-3">等級 / 隊長</th>
+                      <th className="px-1.5 py-3 text-right">人均 / 總分</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/5 light:divide-slate-200">
@@ -847,20 +853,33 @@ export function LeaderboardTab({
                               </span>
                             )}
                           </td>
-                          <td className="p-3 font-bold text-slate-300 light:text-slate-700 whitespace-nowrap">{getBatchName(team.batch_id)}</td>
-                          <td className="p-3 font-bold text-white light:text-slate-900 whitespace-nowrap">{getSubTeamNameOnly(team.name, getBatchName(team.batch_id))}</td>
-                          <td className="p-3 text-slate-400 font-bold whitespace-nowrap">{captainName}</td>
-                          <td className="p-3 text-center font-bold text-indigo-400">LV.{team.totalLevel}</td>
-                          <td className="p-3 text-right font-black text-amber-500 font-mono">
-                            {team.averageScore.toLocaleString()} <span className="text-[9px] text-slate-500 font-bold">人均</span>
-                            <div className="text-[8px] text-slate-500 font-bold mt-0.5">總分: {team.total_score.toLocaleString()} XP</div>
+                          {/* 期數(上) / 隊名(下) */}
+                          <td className="px-1.5 py-3">
+                            <div className="flex flex-col gap-0.5 leading-tight">
+                              <span className="text-[10px] font-bold text-slate-400 light:text-slate-500 whitespace-nowrap">{getBatchName(team.batch_id).replace('NLP', '').trim()}</span>
+                              <span className="text-sm font-black text-white light:text-slate-900 whitespace-nowrap">{getSubTeamNameOnly(team.name, getBatchName(team.batch_id))}</span>
+                            </div>
+                          </td>
+                          {/* 總等級(上) / 小隊長(下) */}
+                          <td className="px-1.5 py-3">
+                            <div className="flex flex-col gap-0.5 leading-tight">
+                              <span className="text-[11px] font-black text-indigo-400 whitespace-nowrap">總LV.{team.totalLevel}</span>
+                              <span className="text-xs font-bold text-slate-300 light:text-slate-600 whitespace-nowrap">{captainName}</span>
+                            </div>
+                          </td>
+                          {/* 人均(上) / 總分(下) */}
+                          <td className="px-1.5 py-3 text-right">
+                            <div className="flex flex-col items-end leading-tight select-none">
+                              <span className="font-black text-amber-500 font-mono text-sm whitespace-nowrap">{team.averageScore.toLocaleString()}</span>
+                              <span className="font-bold text-slate-400 light:text-slate-500 font-mono text-[11px] whitespace-nowrap mt-0.5">總 {team.total_score.toLocaleString()}</span>
+                            </div>
                           </td>
                         </tr>
                       );
                     })}
                     {enrichedAllTimeTeams.length === 0 && (
                       <tr>
-                        <td colSpan={6} className="p-8 text-center text-slate-500 font-bold">
+                        <td colSpan={4} className="p-8 text-center text-slate-500 font-bold">
                           目前尚無任何神隊排行。
                         </td>
                       </tr>
