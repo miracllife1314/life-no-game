@@ -1085,3 +1085,85 @@ input:-webkit-autofill:active {
 .light .modal-force-dark .evolution-card-mysterious.bg-amber-500\/10 h4 + span {
   color: #78350f !important; /* Dark brown for high contrast on light amber background */
 }
+
+/* ── 🔮 每日以終為始抽卡 3D 翻牌特效與 VIP 卡片設計 ── */
+.daily-card-container {
+  perspective: 1200px;
+  width: 100%;
+  max-width: 240px;
+  height: 340px;
+  cursor: pointer;
+}
+
+.daily-card-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  transform-style: preserve-3d;
+}
+
+.daily-card-container.is-flipped .daily-card-inner {
+  transform: rotateY(180deg);
+}
+
+.daily-card-front, .daily-card-back {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  backface-visibility: hidden;
+  border-radius: 24px;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4), 0 0 15px rgba(245, 158, 11, 0.05);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.5rem;
+  box-sizing: border-box;
+}
+
+/* 🔒 卡片背面 */
+.daily-card-back {
+  background: linear-gradient(135deg, #120e2e 0%, #08071a 50%, #1c0b30 100%);
+  border: 2px solid rgba(245, 158, 11, 0.35); /* 琥珀金邊框 */
+  z-index: 2;
+  transform: rotateY(0deg);
+}
+
+.daily-card-back:hover {
+  border-color: rgba(251, 191, 36, 0.7);
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.5), 0 0 25px rgba(245, 158, 11, 0.2);
+}
+
+/* 🔓 卡片正面 */
+.daily-card-front {
+  background: linear-gradient(135deg, #020617 0%, #0f172a 40%, #1e1b4b 100%);
+  border: 2px solid rgba(245, 158, 11, 0.5); /* 亮金色邊框 */
+  transform: rotateY(180deg);
+}
+
+.daily-card-front::after {
+  content: '';
+  position: absolute;
+  inset: 6px;
+  border: 1px dashed rgba(245, 158, 11, 0.2);
+  border-radius: 18px;
+  pointer-events: none;
+}
+
+/* 卡面文字發光效果 */
+.gold-glow-text {
+  color: #fbbf24;
+  text-shadow: 0 0 8px rgba(245, 158, 11, 0.5), 0 0 20px rgba(245, 158, 11, 0.2);
+}
+
+.gold-calligraphy {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-weight: 900;
+  letter-spacing: 0.15em;
+  background: linear-gradient(to bottom, #ffe082 0%, #ffb300 50%, #ffa000 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 2px 8px rgba(245, 158, 11, 0.3));
+}

@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Task, Submission, Announcement, Profile, Mission, UserPet, PetStage, Batch, PetLine, MissionTemplate } from '@/types';
-import { nowTaipei } from '@/lib/time';
+import { nowTaipei, taipeiDateStr } from '@/lib/time';
+import { supabase } from '@/lib/supabase';
 import { parsePetOffset } from '@/lib/petImage';
 import {
   parseLocalTime, isEvolutionTask, getActiveStage, getCountdownText,
@@ -19,6 +20,15 @@ import {
   AlertCircle, FileText, Send, Flame, Sparkles, 
   Star, Timer, ExternalLink, ChevronDown, ChevronUp, X, ImageIcon, Upload
 } from 'lucide-react';
+
+const DAILY_WORD_POOL = [
+  '學習', '專注', '行動', '運動', '溝通', '傾聽', '喜悅', '感恩', '轉念', '熱情',
+  '包容', '肯定', '讚美', '信任', '堅持', '承諾', '負責', '尊重', '接納', '體貼',
+  '誠實', '勇敢', '自信', '謙虛', '耐心', '溫柔', '樂觀', '平靜', '喜樂', '豐盛',
+  '自由', '創造', '效率', '突破', '分享', '合作', '支持', '陪伴', '理解', '同理',
+  '回饋', '探索', '冒險', '好奇', '創新', '直覺', '智慧', '冷靜', '放鬆', '療癒',
+  '淨化', '覺察', '紀律', '恆心', '毅力', '決心', '蛻變', '重生', '誠意'
+];
 
 interface DailyQuestsTabProps {
   profile: Profile;
@@ -87,6 +97,11 @@ export function DailyQuestsTab({
   const [isAnnExpanded, setIsAnnExpanded] = useState(false);
   const [hasInitializedAnnExpansion, setHasInitializedAnnExpansion] = useState(false);
 
+  // --- 🔮 以終為始每日抽卡 States ---
+  const [dailyDraw, setDailyDraw] = useState<{ word: string; drawnDate: string } | null>(null);
+  const [isFlipping, setIsFlipping] = useState(false);
+  const [isLoadingDraw, setIsLoadingDraw] = useState(true);
+
   // Cohort resolving logic
   const activeProfile = profile;
   const activeBatch = batches.find(b => b.id === profile.batch_id);
@@ -99,6 +114,113 @@ export function DailyQuestsTab({
   // Level and Pet stage logic
   const totalExp = userPet ? userPet.total_exp : activeProfile.score;
   const userLevel = userPet ? userPet.level : Math.floor(activeProfile.score / 700);
+
+  // --- 🔮 以終為始每日抽卡 Logic ---
+  useEffect(() => {
+    if (!profile?.id) {
+      setIsLoadingDraw(false);
+      return;
+    }
+    let isMounted = true;
+    
+    const fetchDailyDraw = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('daily_draws')
+          .select('*')
+          .eq('student_id', profile.id)
+          .single();
+          
+        if (error && error.code !== 'PGRST116') {
+          throw error;
+        }
+        
+        if (isMounted) {
+          if (data) {
+            setDailyDraw({ word: data.card_word, drawnDate: data.drawn_date });
+          } else {
+            // Fallback: Check local storage
+            const local = localStorage.getItem(`nlp_daily_draw_${profile.id}`);
+            if (local) {
+              const parsed = JSON.parse(local);
+              if (parsed && parsed.word && parsed.drawnDate) {
+                setDailyDraw(parsed);
+              }
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('Supabase fetch daily draw failed, trying localStorage fallback:', err);
+        if (isMounted) {
+          const local = localStorage.getItem(`nlp_daily_draw_${profile.id}`);
+          if (local) {
+            try {
+              const parsed = JSON.parse(local);
+              if (parsed && parsed.word && parsed.drawnDate) {
+                setDailyDraw(parsed);
+              }
+            } catch (e) {
+              console.error(e);
+            }
+          }
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoadingDraw(false);
+        }
+      }
+    };
+    
+    fetchDailyDraw();
+    return () => {
+      isMounted = false;
+    };
+  }, [profile?.id]);
+
+  const handleDrawCard = async () => {
+    if (isCohortEnded) {
+      showToast?.('已結束期數僅可查看，不可再抽卡。', 'info');
+      return;
+    }
+    const todayStr = taipeiDateStr();
+    if (dailyDraw && dailyDraw.drawnDate === todayStr) {
+      showToast?.('今天已經抽過卡片囉！', 'info');
+      return;
+    }
+    if (isFlipping) return;
+
+    // 隨機抽選 59 個單字之一
+    const randomIndex = Math.floor(Math.random() * DAILY_WORD_POOL.length);
+    const selectedWord = DAILY_WORD_POOL[randomIndex];
+    const newDraw = { word: selectedWord, drawnDate: todayStr };
+
+    setIsFlipping(true);
+
+    try {
+      // 1. 寫入 Supabase (採用 upsert 以便每日覆蓋，保持一人僅一筆)
+      const { error } = await supabase
+        .from('daily_draws')
+        .upsert({
+          student_id: profile.id,
+          card_word: selectedWord,
+          drawn_date: todayStr
+        }, { onConflict: 'student_id' });
+        
+      if (error) throw error;
+    } catch (err: any) {
+      console.warn('Failed to save daily draw to database, saving to localStorage fallback:', err.message);
+    }
+
+    // 同步更新 LocalStorage 作為備用與雙重保險
+    localStorage.setItem(`nlp_daily_draw_${profile.id}`, JSON.stringify(newDraw));
+
+    // 800ms 翻面特效動畫完成後更新 State
+    setTimeout(() => {
+      setDailyDraw(newDraw);
+      setIsFlipping(false);
+      showToast?.(`🔮 成功抽取今日修行詞彙：【${selectedWord}】`, 'success');
+    }, 800);
+  };
 
   // --- Pet Dialogue Bubble States & Functions ---
   const [petBubble, setPetBubble] = useState<string | null>(null);
@@ -1876,6 +1998,111 @@ export function DailyQuestsTab({
                 })}
           </div>
       </section>
+
+      {/* 🔮 初階專屬人物面板：以終為始每日抽卡 */}
+      {!isUserAdvanced && (
+        <section className="glass-panel p-6 rounded-3xl border border-white/10 bg-gradient-to-br from-slate-900/60 to-slate-950/60 light:bg-none light:bg-white light:border-slate-200 flex flex-col md:flex-row items-center gap-8 shadow-2xl relative overflow-hidden select-none">
+          {/* Subtle gold reflection bar */}
+          <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-amber-500/50 to-transparent" />
+          
+          {/* Left / Info Area */}
+          <div className="flex-1 space-y-4 text-center md:text-left">
+            <span className="text-[10px] font-black tracking-widest text-amber-500 bg-amber-500/10 px-3 py-1 rounded-full uppercase inline-block">
+              Beginner Character Panel
+            </span>
+            <h2 className="text-xl font-black bg-gradient-to-r from-yellow-250 via-amber-400 to-orange-500 bg-clip-text text-transparent light:from-amber-600 light:to-orange-700">
+              初階人物面板：以終為始每日抽卡
+            </h2>
+            <p className="text-xs text-slate-400 leading-relaxed font-bold max-w-md light:text-slate-600">
+              「以終為始」是高效能人士與 NLP 修行者的核心習慣。
+              <br />
+              學員每天（台北時間）可以抽取一張以終為始修行卡。
+              <br />
+              <span className="text-amber-400 light:text-amber-700">今日修行：</span>
+              在日常對話中引導他人主動說出卡片上的兩個字詞彙，完成無形中的溝通引導修煉！
+            </p>
+            {dailyDraw && (
+              <div className="text-[10px] text-slate-500 font-bold light:text-slate-400">
+                今日抽取日期：{dailyDraw.drawnDate} (台灣時間)
+              </div>
+            )}
+          </div>
+
+          {/* Right / 3D Card Area */}
+          <div className="flex justify-center shrink-0 w-full md:w-auto py-4">
+            {isLoadingDraw ? (
+              <div className="w-[240px] h-[340px] rounded-2xl border border-dashed border-slate-700 flex items-center justify-center text-slate-500 font-bold text-xs animate-pulse">
+                🔮 正在開啟修煉卡庫...
+              </div>
+            ) : (
+              (() => {
+                const todayStr = taipeiDateStr();
+                const hasDrawnToday = dailyDraw && dailyDraw.drawnDate === todayStr;
+                
+                return (
+                  <div 
+                    onClick={!hasDrawnToday ? handleDrawCard : undefined}
+                    className={`daily-card-container ${hasDrawnToday || isFlipping ? 'is-flipped' : ''}`}
+                    title={hasDrawnToday ? '今日修煉中' : '點擊抽取今日以終為始卡片'}
+                  >
+                    <div className="daily-card-inner">
+                      {/* 背面 (卡背) */}
+                      <div className="daily-card-back flex flex-col justify-between items-center text-center">
+                        {/* Decorative Gold Header Icon */}
+                        <div className="w-12 h-12 rounded-full border border-amber-500/20 bg-amber-500/5 flex items-center justify-center text-amber-500">
+                          <Sparkles size={20} className="animate-pulse" />
+                        </div>
+                        
+                        {/* Prompt Text */}
+                        <div className="space-y-2">
+                          <p className="text-sm font-black tracking-widest text-amber-400 uppercase">
+                            以終為始
+                          </p>
+                          <p className="text-[11px] text-slate-400 font-bold px-2 leading-relaxed">
+                            🔮 點擊抽取今日修行卡
+                          </p>
+                        </div>
+                        
+                        {/* Bottom Plaque */}
+                        <span className="text-[9px] font-black text-slate-500 bg-slate-950/60 px-3 py-1 rounded-full border border-white/5 uppercase tracking-widest">
+                          NLP CULTIVATION
+                        </span>
+                      </div>
+                      
+                      {/* 正面 (卡面) */}
+                      <div className="daily-card-front flex flex-col justify-between items-center text-center">
+                        {/* Calligraphy word display */}
+                        <div className="text-[10px] font-black tracking-wider text-amber-400/80 uppercase">
+                          ★ 今日以終為始修行 ★
+                        </div>
+                        
+                        <div className="my-auto py-4 flex flex-col items-center">
+                          <span className="gold-calligraphy text-4xl font-extrabold tracking-widest block mb-2 select-text">
+                            {dailyDraw?.word}
+                          </span>
+                          <span className="text-[11px] text-slate-400 font-bold block mt-1">
+                            今日修煉詞
+                          </span>
+                        </div>
+                        
+                        <div className="w-full space-y-2.5">
+                          <p className="text-[10px] text-amber-500/90 bg-amber-500/5 border border-amber-500/20 px-2 py-2 rounded-xl leading-relaxed font-bold">
+                            🎯 引導他人說出這個詞彙以完成今日修行
+                          </p>
+                          <div className="flex items-center justify-center gap-1 text-[9px] text-slate-500 font-black">
+                            <CheckCircle2 size={10} className="text-emerald-500" />
+                            已記錄至個人面板
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()
+            )}
+          </div>
+        </section>
+      )}
 
       {/* 📝 簽到證明上傳 Modal */}
       {showProofModal && selectedTask && (
