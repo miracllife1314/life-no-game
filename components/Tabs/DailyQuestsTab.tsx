@@ -2019,21 +2019,14 @@ export function DailyQuestsTab({
               Beginner Character Panel
             </span>
             <h2 className="text-xl font-black bg-gradient-to-r from-yellow-300 via-amber-400 to-orange-500 bg-clip-text text-transparent light:from-amber-600 light:to-orange-700">
-              初階人物面板：以終為始每日抽卡
+              初階人物面板：以終為始
             </h2>
             <p className="text-xs text-slate-400 leading-relaxed font-bold max-w-md light:text-slate-600">
-              「以終為始」是高效能人士與 NLP 修行者的核心習慣。
+              每天可抽取一張「以終為始」修行卡。
               <br />
-              學員每天（台北時間）可以抽取一張以終為始修行卡。
-              <br />
-              <span className="text-amber-400 light:text-amber-700">今日修行：</span>
-              在日常對話中引導他人主動說出卡片上的兩個字詞彙，完成無形中的溝通引導修煉！
+              <span className="text-amber-400 light:text-amber-700">今日挑戰：</span>
+              在日常對話中引導他人主動說出卡片上的雙字詞彙，完成無形中的溝通引導修煉！
             </p>
-            {dailyDraw && (
-              <div className="text-[10px] text-slate-500 font-bold light:text-slate-400">
-                今日抽取日期：{dailyDraw.drawnDate} (台灣時間)
-              </div>
-            )}
           </div>
 
           {/* Right / 3D Card Area */}
