@@ -4,6 +4,8 @@ import React from 'react';
 import { Sun, Moon, LogOut, ShieldAlert, Award, TrendingUp, Bookmark } from 'lucide-react';
 import { Profile, Team, Batch } from '@/types';
 
+import { calculateLevelFromExp } from '@/lib/levelLogic';
+
 interface HeaderProps {
   profile: Profile;
   team: Team | null;
@@ -33,8 +35,8 @@ export function Header({
   userEnrollments = [],
   onSwitchCohort
 }: HeaderProps) {
-  // Simple level formula: 1 level per 700 score (syncs with pet/leaderboard level)
-  const userLevel = Math.floor(profile.score / 700);
+  // Use unified level formula
+  const userLevel = calculateLevelFromExp(profile.score);
   const userBatch = batches?.find(b => b.id === profile.batch_id);
 
   const getRoleLabel = (role: string) => {

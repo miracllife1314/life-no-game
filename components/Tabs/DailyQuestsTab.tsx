@@ -10,6 +10,7 @@ import {
   isTodayLocal, isTodayInRangeLocal, compressImage,
 } from '@/lib/dailyQuestLogic';
 import { getAllGuides } from '@/lib/guideConfig';
+import { calculateLevelFromExp, getExpProgressInCurrentLevel, getExpThresholdForLevel } from '@/lib/levelLogic';
 import { SuccessModal } from '@/components/Tabs/quests/SuccessModal';
 import { LevelUpModal } from '@/components/Tabs/quests/LevelUpModal';
 import { ProofModal } from '@/components/Tabs/quests/ProofModal';
@@ -114,7 +115,7 @@ export function DailyQuestsTab({
 
   // Level and Pet stage logic
   const totalExp = userPet ? userPet.total_exp : activeProfile.score;
-  const userLevel = userPet ? userPet.level : Math.floor(activeProfile.score / 700);
+  const userLevel = userPet ? userPet.level : calculateLevelFromExp(activeProfile.score);
 
   // --- 🔮 以終為始每日抽卡 Logic ---
   useEffect(() => {
@@ -1170,28 +1171,35 @@ export function DailyQuestsTab({
 
           {/* Overall level progress bar */}
           <div className="space-y-1 select-none">
-            <div className="flex justify-between text-[11px] font-bold">
-              <span className="text-slate-400">
-                {userPet && userPet.current_stage_index > 1 ? (
-                  <span>成長等級：<span className="text-indigo-400">LV.{userLevel}</span></span>
-                ) : (
-                  '🔥 升級進度 (Next Level)'
-                )}
-              </span>
-              <span className="text-amber-500">{(totalExp % 700).toLocaleString()} / 700 EXP</span>
-            </div>
-            <div className="w-full bg-slate-950 h-2.5 rounded-full overflow-hidden border border-white/5 light:bg-slate-100 light:border-slate-300">
-              <div 
-                className="bg-gradient-to-r from-amber-400 via-orange-500 to-amber-500 h-full rounded-full transition-all duration-500 shadow-[0_0_10px_rgba(245,158,11,0.3)]"
-                style={{ width: `${((totalExp % 700) / 700) * 100}%` }}
-              />
-            </div>
-            {userPet && userPet.current_stage_index > 1 && (
-              <div className="flex justify-between text-[10px] text-slate-500 mt-1 font-bold">
-                <span>經驗：{totalExp.toLocaleString()} EXP</span>
-                <span>距離下一級：{(700 - (totalExp % 700)).toLocaleString()} EXP</span>
-              </div>
-            )}
+            {(() => {
+              const { currentLevelExp, nextLevelExp, percentage } = getExpProgressInCurrentLevel(totalExp);
+              return (
+                <>
+                  <div className="flex justify-between text-[11px] font-bold">
+                    <span className="text-slate-400">
+                      {userPet && userPet.current_stage_index > 1 ? (
+                        <span>成長等級：<span className="text-indigo-400">LV.{userLevel}</span></span>
+                      ) : (
+                        '🔥 升級進度 (Next Level)'
+                      )}
+                    </span>
+                    <span className="text-amber-500">{currentLevelExp.toLocaleString()} / {nextLevelExp.toLocaleString()} EXP</span>
+                  </div>
+                  <div className="w-full bg-slate-950 h-2.5 rounded-full overflow-hidden border border-white/5 light:bg-slate-100 light:border-slate-300">
+                    <div 
+                      className="bg-gradient-to-r from-amber-400 via-orange-500 to-amber-500 h-full rounded-full transition-all duration-500 shadow-[0_0_10px_rgba(245,158,11,0.3)]"
+                      style={{ width: `${percentage}%` }}
+                    />
+                  </div>
+                  {userPet && userPet.current_stage_index > 1 && (
+                    <div className="flex justify-between text-[10px] text-slate-500 mt-1 font-bold">
+                      <span>經驗：{totalExp.toLocaleString()} EXP</span>
+                      <span>距離下一級：{(nextLevelExp - currentLevelExp).toLocaleString()} EXP</span>
+                    </div>
+                  )}
+                </>
+              );
+            })()}
 
             {/* 🔮 大進化進度與遊戲化激勵指引 */}
             {(() => {
@@ -1203,7 +1211,7 @@ export function DailyQuestsTab({
                 s => (currentStageIdx === 1 ? s.stage_index === 2 : s.line_key === userPet?.pet_line && s.stage_index === nextStageIndex)
               );
               
-              const requiredTotalExp = nextStage ? nextStage.min_level * 700 : 0;
+              const requiredTotalExp = nextStage ? getExpThresholdForLevel(nextStage.min_level) : 0;
               const expNeeded = Math.max(0, requiredTotalExp - totalExp);
               const progressPercent = requiredTotalExp > 0 ? Math.min(100, (totalExp / requiredTotalExp) * 100) : 0;
               

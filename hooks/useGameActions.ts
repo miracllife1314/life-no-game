@@ -5,6 +5,7 @@
 // =====================================================================
 import { supabase, uploadProofImage } from '@/lib/supabase';
 import { removeStorageImageByUrl } from '@/lib/helpers';
+import { calculateLevelFromExp } from '@/lib/levelLogic';
 import {
   Profile, Submission, Task, Mission, ScoreLog, StudentNote, CourseAttendance,
   UserPet, PetStage, PetLine, MissionTemplate, Batch, Course, SubmissionStatus,
@@ -134,7 +135,7 @@ export function useGameActions(d: Deps) {
         setUserPets(prev => prev.map(up => {
           if (up.student_id === currentUser.id) {
             const nextExp = up.total_exp + points;
-            const nextLv = Math.floor(nextExp / 700);
+            const nextLv = calculateLevelFromExp(nextExp);
             return {
               ...up,
               total_exp: nextExp,
@@ -203,7 +204,7 @@ export function useGameActions(d: Deps) {
         setUserPets(prev => prev.map(up => {
           if (up.student_id === actingUser.id) {
             const nextExp = up.total_exp + points;
-            const nextLv = Math.floor(nextExp / 700);
+            const nextLv = calculateLevelFromExp(nextExp);
             return {
               ...up,
               total_exp: nextExp,
@@ -381,7 +382,7 @@ export function useGameActions(d: Deps) {
         setUserPets(prev => prev.map(up => {
           if (up.student_id === sub.student_id) {
             const nextExp = up.total_exp + totalDiff;
-            const nextLv = Math.floor(nextExp / 700);
+            const nextLv = calculateLevelFromExp(nextExp);
             return { ...up, total_exp: nextExp, level: nextLv, updated_at: new Date().toISOString() };
           }
           return up;
@@ -487,7 +488,7 @@ export function useGameActions(d: Deps) {
         setUserPets(prev => prev.map(up => {
           if (up.student_id === studentId) {
             const nextExp = up.total_exp + task.score;
-            const nextLv = Math.floor(nextExp / 700);
+            const nextLv = calculateLevelFromExp(nextExp);
             return { ...up, total_exp: nextExp, level: nextLv, updated_at: new Date().toISOString() };
           }
           return up;
@@ -534,7 +535,7 @@ export function useGameActions(d: Deps) {
         setUserPets(prev => prev.map(up => {
           if (up.student_id === studentId) {
             const nextExp = up.total_exp + task.score;
-            const nextLv = Math.floor(nextExp / 700);
+            const nextLv = calculateLevelFromExp(nextExp);
             return { ...up, total_exp: nextExp, level: nextLv, updated_at: new Date().toISOString() };
           }
           return up;
@@ -566,7 +567,7 @@ export function useGameActions(d: Deps) {
         setUserPets(prev => prev.map(up => {
           if (up.student_id === studentId) {
             const nextExp = up.total_exp - targetSub.score_awarded;
-            const nextLv = Math.floor(nextExp / 700);
+            const nextLv = calculateLevelFromExp(nextExp);
             return { ...up, total_exp: nextExp, level: nextLv, updated_at: new Date().toISOString() };
           }
           return up;
@@ -638,7 +639,7 @@ export function useGameActions(d: Deps) {
         setUserPets(prev => prev.map(up => {
           if (up.student_id === sub.student_id) {
             const nextExp = up.total_exp - deductAmt;
-            const nextLv = Math.floor(nextExp / 700);
+            const nextLv = calculateLevelFromExp(nextExp);
             return { ...up, total_exp: nextExp, level: nextLv, updated_at: new Date().toISOString() };
           }
           return up;
@@ -706,7 +707,7 @@ export function useGameActions(d: Deps) {
           setUserPets(prev => prev.map(up => {
             if (up.student_id === sub.student_id) {
               const nextExp = up.total_exp - deductAmt;
-              const nextLv = Math.floor(nextExp / 700);
+              const nextLv = calculateLevelFromExp(nextExp);
               return { ...up, total_exp: nextExp, level: nextLv, updated_at: new Date().toISOString() };
             }
             return up;
@@ -785,7 +786,7 @@ export function useGameActions(d: Deps) {
       await supabase.from('user_pets').insert({
         student_id: studentId,
         total_exp: exp,
-        level: Math.floor(exp / 700),
+        level: calculateLevelFromExp(exp),
         pet_line: lineKey,
         current_stage_index: Math.min(2, maxStage), // 第一次進化：蛋(1) → 第 2 階
         has_pending_evolution: false,
@@ -807,7 +808,7 @@ export function useGameActions(d: Deps) {
       const { data, error } = await supabase.from('user_pets').insert({
         student_id: studentId,
         total_exp: exp,
-        level: Math.floor(exp / 700),
+        level: calculateLevelFromExp(exp),
         pet_line: null,
         current_stage_index: 1,
         has_pending_evolution: false,
