@@ -111,6 +111,57 @@ export function useAdminPeople({ setIsSyncing, fetchData, teams, profiles, gmMod
     }
   };
 
+  // 🧩 統一的小隊長報名建立(小隊卡片 / 快速指派 共用):
+  //    確保某人(profile_id)在某期有「唯一一筆」captain 報名並綁到該隊。
+  //    一律以「資料庫即時查詢」判斷,不靠可能過時的前端 state → 冪等,重複呼叫也不會產生重複帳號。
+  const ensureCaptainEnrollment = async (
+    teamId: string,
+    capProfileId: string,
+    batchId: string | null,
+    directorId?: string | null
+  ) => {
+    if (!batchId) return;
+    const { data: rows } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('profile_id', capProfileId)
+      .eq('batch_id', batchId);
+
+    const update: any = { role: 'captain', team_id: teamId };
+    if (directorId !== undefined) update.director_id = directorId;
+
+    if (rows && rows.length > 0) {
+      // 該期已有此人(可能不只一筆)→ 全部沿用更新成此隊小隊長,絕不新建
+      await supabase.from('profiles').update(update).in('id', rows.map((r: any) => r.id));
+    } else {
+      // 該期完全沒有此人 → 取同一人(其他期)的姓名/電話,新增唯一一筆隊長報名
+      const { data: anyRows } = await supabase
+        .from('profiles')
+        .select('name, phone')
+        .eq('profile_id', capProfileId)
+        .limit(1);
+      const anyProfile: any = anyRows?.[0];
+      if (anyProfile) {
+        const newId = (typeof crypto !== 'undefined' && crypto.randomUUID)
+          ? crypto.randomUUID()
+          : `usr-${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
+        await supabase.from('profiles').insert({
+          id: newId,
+          profile_id: capProfileId,
+          name: anyProfile.name,
+          phone: anyProfile.phone,
+          role: 'captain',
+          batch_id: batchId,
+          team_id: teamId,
+          director_id: directorId ?? null,
+          score: 0,
+          status: 'active',
+          created_at: new Date().toISOString()
+        });
+      }
+    }
+  };
+
   const handleUpdateTeamSettings = async (teamId: string, settings: Partial<Team>) => {
     setIsSyncing(true);
     if (gmMode) {
@@ -124,39 +175,11 @@ export function useAdminPeople({ setIsSyncing, fetchData, teams, profiles, gmMod
     try {
       await supabase.from('teams').update(settings).eq('id', teamId);
 
-      // 指派小隊長時：確保該隊長在「這個梯次」有一筆 captain 報名（支援跨期小隊長）。
+      // 指派小隊長時：確保該隊長在「這個梯次」有唯一一筆 captain 報名(沿用現有、絕不重建),支援跨期。
       // 否則只設了 teams.captain_id，本人沒有該期報名 → 登入後看不到也管不了這一隊。
       if ('captain_id' in settings && settings.captain_id) {
         const team = teams.find(t => t.id === teamId);
-        const batchId = team?.batch_id || null;
-        const capProfileId = settings.captain_id;
-        if (batchId) {
-          const existing = profiles.find(p => p.profile_id === capProfileId && p.batch_id === batchId);
-          if (existing) {
-            // 已有該期報名 → 設為小隊長並綁到此隊
-            await supabase.from('profiles').update({ role: 'captain', team_id: teamId }).eq('id', existing.id);
-          } else {
-            // 該期還沒有報名 → 用同一人(其他期)的資料，新增一筆「隊長報名」(同 profile_id)
-            const anyProfile = profiles.find(p => p.profile_id === capProfileId);
-            if (anyProfile) {
-              const newId = (typeof crypto !== 'undefined' && crypto.randomUUID)
-                ? crypto.randomUUID()
-                : `usr-${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
-              await supabase.from('profiles').insert({
-                id: newId,
-                profile_id: capProfileId,
-                name: anyProfile.name,
-                phone: anyProfile.phone,
-                role: 'captain',
-                batch_id: batchId,
-                team_id: teamId,
-                score: 0,
-                status: 'active',
-                created_at: new Date().toISOString()
-              });
-            }
-          }
-        }
+        await ensureCaptainEnrollment(teamId, settings.captain_id, team?.batch_id || null, (settings as any).director_id);
       }
 
       await fetchData();
@@ -206,15 +229,8 @@ export function useAdminPeople({ setIsSyncing, fetchData, teams, profiles, gmMod
       const { error } = await supabase.from('teams').update({ captain_id: captainProfileId }).eq('id', teamId);
       if (error) throw new Error(error.message);
 
-      const { data: profilesList } = await supabase.from('profiles').select('*');
-      const capEnrollment = profilesList?.find((p: any) => p.profile_id === captainProfileId && p.batch_id === batchId);
-      if (capEnrollment) {
-        const { error: assignErr } = await supabase
-          .from('profiles')
-          .update({ director_id: directorId })
-          .eq('id', capEnrollment.id);
-        if (assignErr) throw new Error(assignErr.message);
-      }
+      // 與小隊卡片完全同一條路徑:確保唯一一筆隊長報名(沿用現有、不重建)+ 設 role=captain + 綁大隊長
+      await ensureCaptainEnrollment(teamId, captainProfileId, batchId, directorId);
 
       await fetchData();
       alert('⚡ 小隊長指派與大隊長綁定設定成功！');
