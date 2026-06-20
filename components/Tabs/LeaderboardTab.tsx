@@ -495,8 +495,8 @@ export function LeaderboardTab({
                           <span className="text-[10px] text-slate-500 font-bold flex items-center flex-wrap gap-1 mt-0.5 select-none truncate">
                             <span className="truncate">{getRoleLabel(p.role)} • {getTeamName(p.team_id)}</span>
                             {studentStreaks[p.id] && (
-                              <span className="text-[9px] font-extrabold text-orange-400 bg-orange-500/10 border border-orange-500/20 px-1 py-0.2 rounded flex items-center gap-0.5 shrink-0" title={`連續打卡 ${studentStreaks[p.id]} 天`}>
-                                🔥連續 {studentStreaks[p.id]}天
+                              <span className="text-[10px] font-extrabold text-orange-400 bg-orange-500/10 border border-orange-500/20 px-1.5 py-0.5 rounded-md inline-flex items-center gap-0.5 shrink-0 whitespace-nowrap leading-none" title={`連續打卡 ${studentStreaks[p.id]} 天`}>
+                                🔥 {studentStreaks[p.id]}天
                               </span>
                             )}
                           </span>
@@ -560,8 +560,8 @@ export function LeaderboardTab({
                       <span className="text-xs font-black text-amber-500 animate-pulse mt-0.5 whitespace-nowrap">
                         {topTeams[1].averageScore.toLocaleString()} 人均
                       </span>
-                      <span className="text-[11px] text-slate-300 font-bold whitespace-nowrap">
-                        總分：{topTeams[1].total_score.toLocaleString()} XP
+                      <span className="text-[10px] text-slate-300 font-bold whitespace-nowrap">
+                        總 {topTeams[1].total_score.toLocaleString()} XP
                       </span>
                       
                       {/* Pedestal with Team Total Level inside */}
@@ -599,8 +599,8 @@ export function LeaderboardTab({
                       <span className="text-sm font-black text-amber-400 animate-pulse mt-0.5 whitespace-nowrap">
                         {topTeams[0].averageScore.toLocaleString()} 人均
                       </span>
-                      <span className="text-[11px] text-amber-400/80 font-bold whitespace-nowrap">
-                        總分：{topTeams[0].total_score.toLocaleString()} XP
+                      <span className="text-[10px] text-amber-400/80 font-bold whitespace-nowrap">
+                        總 {topTeams[0].total_score.toLocaleString()} XP
                       </span>
                       
                       {/* Pedestal with Team Total Level inside */}
@@ -638,8 +638,8 @@ export function LeaderboardTab({
                       <span className="text-xs font-black text-amber-500 animate-pulse mt-0.5 whitespace-nowrap">
                         {topTeams[2].averageScore.toLocaleString()} 人均
                       </span>
-                      <span className="text-[11px] text-slate-300 font-bold whitespace-nowrap">
-                        總分：{topTeams[2].total_score.toLocaleString()} XP
+                      <span className="text-[10px] text-slate-300 font-bold whitespace-nowrap">
+                        總 {topTeams[2].total_score.toLocaleString()} XP
                       </span>
                       
                       {/* Pedestal with Team Total Level inside */}
@@ -759,7 +759,7 @@ export function LeaderboardTab({
                               </span>
                             )}
                           </td>
-                          <td className="p-3 font-bold text-slate-300 light:text-slate-700">{getBatchName(p.batch_id)}</td>
+                          <td className="p-3 font-bold text-slate-300 light:text-slate-700 whitespace-nowrap">{getBatchName(p.batch_id)}</td>
                           <td className="p-3 font-bold text-left">
                             <div className="flex flex-col gap-0.5 select-none">
                               <div className="flex items-center gap-1 text-white light:text-slate-900">
@@ -767,8 +767,8 @@ export function LeaderboardTab({
                                 {isSelf && <span className="text-[8px] bg-amber-500/10 text-amber-500 border border-amber-500/20 px-1 py-0.2 rounded">您</span>}
                               </div>
                               {studentStreaks[p.id] && (
-                                <span className="w-fit text-[9px] font-extrabold text-orange-400 bg-orange-500/10 border border-orange-500/20 px-1.5 py-0.2 rounded flex items-center gap-0.5 shrink-0" title={`連續打卡 ${studentStreaks[p.id]} 天`}>
-                                  🔥 連續 {studentStreaks[p.id]} 天
+                                <span className="w-fit text-[10px] font-extrabold text-orange-400 bg-orange-500/10 border border-orange-500/20 px-1.5 py-0.5 rounded-md inline-flex items-center gap-0.5 shrink-0 whitespace-nowrap leading-none" title={`連續打卡 ${studentStreaks[p.id]} 天`}>
+                                  🔥 {studentStreaks[p.id]}天
                                 </span>
                               )}
                             </div>
@@ -847,9 +847,9 @@ export function LeaderboardTab({
                               </span>
                             )}
                           </td>
-                          <td className="p-3 font-bold text-slate-300 light:text-slate-700">{getBatchName(team.batch_id)}</td>
-                          <td className="p-3 font-bold text-white light:text-slate-900">{getSubTeamNameOnly(team.name, getBatchName(team.batch_id))}</td>
-                          <td className="p-3 text-slate-400 font-bold">{captainName}</td>
+                          <td className="p-3 font-bold text-slate-300 light:text-slate-700 whitespace-nowrap">{getBatchName(team.batch_id)}</td>
+                          <td className="p-3 font-bold text-white light:text-slate-900 whitespace-nowrap">{getSubTeamNameOnly(team.name, getBatchName(team.batch_id))}</td>
+                          <td className="p-3 text-slate-400 font-bold whitespace-nowrap">{captainName}</td>
                           <td className="p-3 text-center font-bold text-indigo-400">LV.{team.totalLevel}</td>
                           <td className="p-3 text-right font-black text-amber-500 font-mono">
                             {team.averageScore.toLocaleString()} <span className="text-[9px] text-slate-500 font-bold">人均</span>
@@ -924,7 +924,7 @@ export function LeaderboardTab({
                               </span>
                             )}
                           </td>
-                          <td className="p-3 font-bold text-slate-300 light:text-slate-700">{getBatchName(x.p.batch_id)}</td>
+                          <td className="p-3 font-bold text-slate-300 light:text-slate-700 whitespace-nowrap">{getBatchName(x.p.batch_id)}</td>
                           <td className="p-3 font-bold text-white light:text-slate-900 flex items-center gap-1">
                             {x.p.name}
                             {isSelf && <span className="text-[8px] bg-amber-500/10 text-amber-500 border border-amber-500/20 px-1 py-0.2 rounded">您</span>}
