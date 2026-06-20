@@ -101,6 +101,7 @@ export function DailyQuestsTab({
   const [dailyDraw, setDailyDraw] = useState<{ word: string; drawnDate: string } | null>(null);
   const [isFlipping, setIsFlipping] = useState(false);
   const [isLoadingDraw, setIsLoadingDraw] = useState(true);
+  const [isDrawingAnimation, setIsDrawingAnimation] = useState(false);
 
   // Cohort resolving logic
   const activeProfile = profile;
@@ -187,39 +188,46 @@ export function DailyQuestsTab({
       showToast?.('今天已經抽過卡片囉！', 'info');
       return;
     }
-    if (isFlipping) return;
+    if (isFlipping || isDrawingAnimation) return;
 
-    // 隨機抽選 59 個單字之一
+    // 1. 開始抽出卡片動畫 (向外滑出/浮起)
+    setIsDrawingAnimation(true);
+
     const randomIndex = Math.floor(Math.random() * DAILY_WORD_POOL.length);
     const selectedWord = DAILY_WORD_POOL[randomIndex];
     const newDraw = { word: selectedWord, drawnDate: todayStr };
 
-    setIsFlipping(true);
+    // 延遲 450ms 讓卡片滑出後，再設定資料並開始 3D 翻轉
+    setTimeout(async () => {
+      try {
+        // 寫入 Supabase (採用 upsert 以便每日覆蓋，保持一人僅一筆)
+        const { error } = await supabase
+          .from('daily_draws')
+          .upsert({
+            student_id: profile.id,
+            card_word: selectedWord,
+            drawn_date: todayStr
+          }, { onConflict: 'student_id' });
+          
+        if (error) throw error;
+      } catch (err: any) {
+        console.warn('Failed to save daily draw to database, saving to localStorage fallback:', err.message);
+      }
 
-    try {
-      // 1. 寫入 Supabase (採用 upsert 以便每日覆蓋，保持一人僅一筆)
-      const { error } = await supabase
-        .from('daily_draws')
-        .upsert({
-          student_id: profile.id,
-          card_word: selectedWord,
-          drawn_date: todayStr
-        }, { onConflict: 'student_id' });
-        
-      if (error) throw error;
-    } catch (err: any) {
-      console.warn('Failed to save daily draw to database, saving to localStorage fallback:', err.message);
-    }
+      // 同步更新 LocalStorage 作為備用與雙重保險
+      localStorage.setItem(`nlp_daily_draw_${profile.id}`, JSON.stringify(newDraw));
 
-    // 同步更新 LocalStorage 作為備用與雙重保險
-    localStorage.setItem(`nlp_daily_draw_${profile.id}`, JSON.stringify(newDraw));
-
-    // 800ms 翻面特效動畫完成後更新 State
-    setTimeout(() => {
+      // 設定抽卡資料，觸發正面渲染
       setDailyDraw(newDraw);
-      setIsFlipping(false);
-      showToast?.(`🔮 成功抽取今日修行詞彙：【${selectedWord}】`, 'success');
-    }, 800);
+      setIsFlipping(true);
+
+      // 延遲 800ms 等待翻牌特效完成
+      setTimeout(() => {
+        setIsFlipping(false);
+        setIsDrawingAnimation(false);
+        showToast?.(`🔮 成功抽取今日修行詞彙：【${selectedWord}】`, 'success');
+      }, 800);
+    }, 450);
   };
 
   // --- Pet Dialogue Bubble States & Functions ---
@@ -1583,7 +1591,7 @@ export function DailyQuestsTab({
             </span>
             
             {/* Main Title */}
-            <h2 className="text-lg sm:text-xl font-black tracking-[0.2em] bg-gradient-to-r from-yellow-250 via-amber-400 to-orange-500 bg-clip-text text-transparent drop-shadow-[0_2px_8px_rgba(245,158,11,0.2)] flex items-center gap-2 mt-0.5 light:from-amber-600 light:to-orange-700">
+            <h2 className="text-lg sm:text-xl font-black tracking-[0.2em] bg-gradient-to-r from-yellow-300 via-amber-400 to-orange-500 bg-clip-text text-transparent drop-shadow-[0_2px_8px_rgba(245,158,11,0.2)] flex items-center gap-2 mt-0.5 light:from-amber-600 light:to-orange-700">
               接取任務中心
             </h2>
           </div>
@@ -2010,7 +2018,7 @@ export function DailyQuestsTab({
             <span className="text-[10px] font-black tracking-widest text-amber-500 bg-amber-500/10 px-3 py-1 rounded-full uppercase inline-block">
               Beginner Character Panel
             </span>
-            <h2 className="text-xl font-black bg-gradient-to-r from-yellow-250 via-amber-400 to-orange-500 bg-clip-text text-transparent light:from-amber-600 light:to-orange-700">
+            <h2 className="text-xl font-black bg-gradient-to-r from-yellow-300 via-amber-400 to-orange-500 bg-clip-text text-transparent light:from-amber-600 light:to-orange-700">
               初階人物面板：以終為始每日抽卡
             </h2>
             <p className="text-xs text-slate-400 leading-relaxed font-bold max-w-md light:text-slate-600">
@@ -2040,62 +2048,120 @@ export function DailyQuestsTab({
                 const hasDrawnToday = dailyDraw && dailyDraw.drawnDate === todayStr;
                 
                 return (
-                  <div 
-                    onClick={!hasDrawnToday ? handleDrawCard : undefined}
-                    className={`daily-card-container ${hasDrawnToday || isFlipping ? 'is-flipped' : ''}`}
-                    title={hasDrawnToday ? '今日修煉中' : '點擊抽取今日以終為始卡片'}
-                  >
-                    <div className="daily-card-inner">
-                      {/* 背面 (卡背) */}
-                      <div className="daily-card-back flex flex-col justify-between items-center text-center">
-                        {/* Decorative Gold Header Icon */}
-                        <div className="w-12 h-12 rounded-full border border-amber-500/20 bg-amber-500/5 flex items-center justify-center text-amber-500">
-                          <Sparkles size={20} className="animate-pulse" />
-                        </div>
-                        
-                        {/* Prompt Text */}
-                        <div className="space-y-2">
-                          <p className="text-sm font-black tracking-widest text-amber-400 uppercase">
-                            以終為始
-                          </p>
-                          <p className="text-[11px] text-slate-400 font-bold px-2 leading-relaxed">
-                            🔮 點擊抽取今日修行卡
-                          </p>
-                        </div>
-                        
-                        {/* Bottom Plaque */}
-                        <span className="text-[9px] font-black text-slate-500 bg-slate-950/60 px-3 py-1 rounded-full border border-white/5 uppercase tracking-widest">
-                          NLP CULTIVATION
-                        </span>
-                      </div>
-                      
-                      {/* 正面 (卡面) */}
-                      <div className="daily-card-front flex flex-col justify-between items-center text-center">
-                        {/* Calligraphy word display */}
-                        <div className="text-[10px] font-black tracking-wider text-amber-400/80 uppercase">
-                          ★ 今日以終為始修行 ★
-                        </div>
-                        
-                        <div className="my-auto py-4 flex flex-col items-center">
-                          <span className="gold-calligraphy text-4xl font-extrabold tracking-widest block mb-2 select-text">
-                            {dailyDraw?.word}
+                  <div className="relative w-60 h-[340px] flex items-center justify-center select-none">
+                    
+                    {/* 🃏 卡片堆疊效果 (僅在未抽卡或正在抽出時顯示，營造卡組厚度) */}
+                    {(!hasDrawnToday || isDrawingAnimation) && (
+                      <>
+                        {/* 最底層卡片 (疊卡 3) */}
+                        <div 
+                          className="absolute inset-0 rounded-[24px] border-2 border-amber-500/10 bg-gradient-to-br from-[#0c0920] to-[#04030a] opacity-35 shadow-lg pointer-events-none transition-transform duration-500"
+                          style={{
+                            transform: 'translate(-12px, 12px) rotate(-8deg)',
+                          }}
+                        />
+                        {/* 中間層卡片 (疊卡 2) */}
+                        <div 
+                          className="absolute inset-0 rounded-[24px] border-2 border-amber-500/20 bg-gradient-to-br from-[#100c28] to-[#06050e] opacity-60 shadow-xl pointer-events-none transition-transform duration-500"
+                          style={{
+                            transform: 'translate(6px, 6px) rotate(4deg)',
+                          }}
+                        />
+                      </>
+                    )}
+
+                    {/* 🔮 作用卡片 (3D 旋轉與抽卡主體，藉由 inline styles 確保絕對定位不跑版) */}
+                    <div 
+                      onClick={!hasDrawnToday ? handleDrawCard : undefined}
+                      className="relative w-full h-full"
+                      style={{
+                        perspective: '1200px',
+                      }}
+                    >
+                      <div 
+                        className="relative w-full h-full"
+                        style={{
+                          transformStyle: 'preserve-3d',
+                          transform: (() => {
+                            if (isDrawingAnimation && !dailyDraw) {
+                              return 'translateY(-120px) rotate(-12deg) scale(0.85) rotateY(0deg)';
+                            }
+                            if (hasDrawnToday || isFlipping) {
+                              return 'rotateY(180deg)';
+                            }
+                            return 'rotateY(0deg)';
+                          })(),
+                          transition: 'transform 0.8s cubic-bezier(0.4, 0, 0.2, 1)',
+                        }}
+                      >
+                        {/* 🔒 卡片背面 (使用 absolute 與 backface-visibility) */}
+                        <div 
+                          className="absolute inset-0 w-full h-full rounded-[24px] border-2 border-amber-500/35 bg-gradient-to-br from-[#120e2e] via-[#08071a] to-[#1c0b30] flex flex-col justify-between items-center p-6 shadow-2xl transition-all duration-300 hover:border-amber-400/70 hover:shadow-[0_15px_40px_rgba(0,0,0,0.5),0_0_25px_rgba(245,158,11,0.2)]"
+                          style={{
+                            backfaceVisibility: 'hidden',
+                            WebkitBackfaceVisibility: 'hidden',
+                            zIndex: 2,
+                          }}
+                        >
+                          {/* Decorative Gold Header Icon */}
+                          <div className="w-12 h-12 rounded-full border border-amber-500/20 bg-amber-500/5 flex items-center justify-center text-amber-500 shrink-0">
+                            <Sparkles size={20} className="animate-pulse" />
+                          </div>
+                          
+                          {/* Prompt Text */}
+                          <div className="space-y-2 text-center">
+                            <p className="text-sm font-black tracking-widest text-amber-400 uppercase">
+                              以終為始
+                            </p>
+                            <p className="text-[11px] text-slate-400 font-bold px-2 leading-relaxed animate-pulse">
+                              🔮 點擊抽取今日修行卡
+                            </p>
+                          </div>
+                          
+                          {/* Bottom Plaque */}
+                          <span className="text-[9px] font-black text-slate-500 bg-slate-950/60 px-3 py-1 rounded-full border border-white/5 uppercase tracking-widest shrink-0">
+                            NLP CULTIVATION
                           </span>
-                          <span className="text-[11px] text-slate-400 font-bold block mt-1">
-                            今日修煉詞
-                          </span>
                         </div>
                         
-                        <div className="w-full space-y-2.5">
-                          <p className="text-[10px] text-amber-500/90 bg-amber-500/5 border border-amber-500/20 px-2 py-2 rounded-xl leading-relaxed font-bold">
-                            🎯 引導他人說出這個詞彙以完成今日修行
-                          </p>
-                          <div className="flex items-center justify-center gap-1 text-[9px] text-slate-500 font-black">
-                            <CheckCircle2 size={10} className="text-emerald-500" />
-                            已記錄至個人面板
+                        {/* 🔓 卡片正面 (使用 absolute 與 backface-visibility，翻轉 180 度) */}
+                        <div 
+                          className="absolute inset-0 w-full h-full rounded-[24px] border-2 border-amber-500/50 bg-gradient-to-br from-[#020617] via-[#0f172a] to-[#1e1b4b] flex flex-col justify-between items-center p-6 shadow-2xl"
+                          style={{
+                            backfaceVisibility: 'hidden',
+                            WebkitBackfaceVisibility: 'hidden',
+                            transform: 'rotateY(180deg)',
+                          }}
+                        >
+                          {/* Dashed border inlay */}
+                          <div className="absolute inset-2 border border-dashed border-amber-500/20 rounded-[18px] pointer-events-none" />
+                          
+                          <div className="text-[10px] font-black tracking-wider text-amber-400/80 uppercase z-10">
+                            ★ 今日以終為始修行 ★
+                          </div>
+                          
+                          <div className="my-auto py-4 flex flex-col items-center z-10">
+                            <span className="gold-calligraphy text-4xl font-extrabold tracking-widest block mb-2 select-text">
+                              {dailyDraw?.word}
+                            </span>
+                            <span className="text-[11px] text-slate-400 font-bold block mt-1">
+                              今日修煉詞
+                            </span>
+                          </div>
+                          
+                          <div className="w-full space-y-2.5 z-10">
+                            <p className="text-[10px] text-amber-500/90 bg-amber-500/5 border border-amber-500/20 px-2 py-2 rounded-xl leading-relaxed font-bold text-center">
+                              🎯 引導他人說出這個詞彙以完成今日修行
+                            </p>
+                            <div className="flex items-center justify-center gap-1 text-[9px] text-slate-500 font-black">
+                              <CheckCircle2 size={10} className="text-emerald-500" />
+                              已記錄至個人面板
+                            </div>
                           </div>
                         </div>
                       </div>
                     </div>
+
                   </div>
                 );
               })()

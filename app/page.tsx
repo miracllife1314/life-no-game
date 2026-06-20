@@ -1251,7 +1251,7 @@ export default function Home() {
               <h4 className="text-[10px] font-black tracking-widest text-amber-500/80 uppercase">
                 🎉 恭喜解鎖全新成就 🎉
               </h4>
-              <h2 className="text-2xl font-black bg-gradient-to-r from-yellow-250 via-amber-400 to-orange-500 bg-clip-text text-transparent drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
+              <h2 className="text-2xl font-black bg-gradient-to-r from-yellow-300 via-amber-400 to-orange-500 bg-clip-text text-transparent drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
                 {pendingAchievements[0].achievement?.title}
               </h2>
             </div>
