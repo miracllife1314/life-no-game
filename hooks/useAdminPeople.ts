@@ -121,11 +121,14 @@ export function useAdminPeople({ setIsSyncing, fetchData, teams, profiles, gmMod
     directorId?: string | null
   ) => {
     if (!batchId) return;
+    // 人的識別 = profile_id(可能為空,此時等於 id)。比對一律涵蓋 profile_id 或 id,
+    // 與 app 端 (p.profile_id || p.id) 的判定一致,避免 profile_id 欄位為空時漏判。
+    const idOr = `profile_id.eq.${capProfileId},id.eq.${capProfileId}`;
     const { data: rows } = await supabase
       .from('profiles')
       .select('id')
-      .eq('profile_id', capProfileId)
-      .eq('batch_id', batchId);
+      .eq('batch_id', batchId)
+      .or(idOr);
 
     const update: any = { role: 'captain', team_id: teamId };
     if (directorId !== undefined) update.director_id = directorId;
@@ -138,7 +141,7 @@ export function useAdminPeople({ setIsSyncing, fetchData, teams, profiles, gmMod
       const { data: anyRows } = await supabase
         .from('profiles')
         .select('name, phone')
-        .eq('profile_id', capProfileId)
+        .or(idOr)
         .limit(1);
       const anyProfile: any = anyRows?.[0];
       if (anyProfile) {
