@@ -103,9 +103,10 @@ async function fetchScoped(batchId: string): Promise<AllTables> {
     .map((p) => p.id);
   const hasIds = batchStudentIds.length > 0;
 
-  // 第二批：大表，只撈本期學員的
-  const [subs, scoreLogs, userPets, userAchs, attendance, notes] = await Promise.all([
+  // 第二批：大表，只撈本期學員的，以及所有入選見證牆的提交
+  const [subsCurrentBatch, subsWitness, scoreLogs, userPets, userAchs, attendance, notes] = await Promise.all([
     hasIds ? supabase.from('submissions').select('*').in('student_id', batchStudentIds) : EMPTY,
+    supabase.from('submissions').select('*').eq('status', 'approved').or('share_to_witness.eq.true,mission_id.eq.task-custom-post'),
     hasIds ? supabase.from('score_logs').select('*').in('student_id', batchStudentIds) : EMPTY,
     hasIds ? supabase.from('user_pets').select('*').in('student_id', batchStudentIds) : EMPTY,
     hasIds ? supabase.from('user_achievements').select('*').in('student_id', batchStudentIds) : EMPTY,
@@ -113,12 +114,18 @@ async function fetchScoped(batchId: string): Promise<AllTables> {
     hasIds ? supabase.from('student_notes').select('*').in('student_id', batchStudentIds) : EMPTY,
   ]);
 
+  // 合併並去重 submissions
+  const mergedSubsMap = new Map<string, any>();
+  d(subsCurrentBatch).forEach((s: any) => mergedSubsMap.set(s.id, s));
+  d(subsWitness).forEach((s: any) => mergedSubsMap.set(s.id, s));
+  const subsList = Array.from(mergedSubsMap.values());
+
   return {
     batchesList: d(batches), teamsList: d(teams), profilesList: d(profiles),
     petsList: d(pets), petLinesList: d(petLines), petStagesList: d(petStages),
     achsList: d(achs), templatesList: d(templates), squadRolesList: d(squadRoles),
     missionsList: d(missions), tasksList: d(tasks), coursesList: d(courses), annsList: d(anns),
-    subsList: d(subs), scoreLogsList: d(scoreLogs), userPetsList: d(userPets),
+    subsList, scoreLogsList: d(scoreLogs), userPetsList: d(userPets),
     userAchsList: d(userAchs), attendanceList: d(attendance), notesList: d(notes),
     // 純後台表：學員/隊長不需要 → 跳過
     rulesList: [], cardsList: [], decksList: [], deckCardsList: [], userDecksList: [], candidatesList: [],
