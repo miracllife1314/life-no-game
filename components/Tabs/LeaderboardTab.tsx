@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Profile, Team, Batch } from '@/types';
 import { Trophy, Users, Award, Zap, Lock, Unlock, Eye, EyeOff, ShieldAlert } from 'lucide-react';
 import { nowTaipei, parseTaipei } from '@/lib/time';
@@ -40,6 +40,12 @@ export function LeaderboardTab({
   const [selectedBatchId, setSelectedBatchId] = useState<string>(() => {
     return currentUser.batch_id || (batches.find(b => b.status === 'active')?.id) || batches[0]?.id || '';
   });
+
+  // 從 Header 切換期數時(currentUser 會換成該期帳號),排行榜立即跟著切到該期,
+  // 不必重新整理或切到別的分頁再回來。(管理員用下方查詢選單時 currentUser 不變,不受影響)
+  useEffect(() => {
+    if (currentUser.batch_id) setSelectedBatchId(currentUser.batch_id);
+  }, [currentUser.batch_id]);
 
   const activeBatch = batches.find(b => b.id === selectedBatchId);
   const activeBatchName = activeBatch ? activeBatch.name : '當期';
@@ -377,8 +383,8 @@ export function LeaderboardTab({
                         第二名
                       </span>
                       <span className="text-[10px] font-bold text-slate-400 flex flex-col items-center leading-tight">
-                        <span className="font-mono text-[11px] font-extrabold">{topIndividual[1].score.toLocaleString()}</span>
-                        <span className="text-[8px] opacity-80 mt-0.5 select-none">XP</span>
+                        <span className="font-mono text-sm font-extrabold">{topIndividual[1].score.toLocaleString()}</span>
+                        <span className="text-[10px] opacity-80 mt-0.5 select-none tracking-wider">XP</span>
                       </span>
                       
                       {/* Pedestal with Level inside */}
@@ -410,8 +416,8 @@ export function LeaderboardTab({
                         第一名
                       </span>
                       <span className="text-[10px] font-bold text-amber-400 flex flex-col items-center leading-tight">
-                        <span className="font-mono text-xs font-black">{topIndividual[0].score.toLocaleString()}</span>
-                        <span className="text-[8px] opacity-80 mt-0.5 select-none">XP</span>
+                        <span className="font-mono text-base font-black">{topIndividual[0].score.toLocaleString()}</span>
+                        <span className="text-[10px] opacity-80 mt-0.5 select-none tracking-wider">XP</span>
                       </span>
                       
                       {/* Pedestal with Level inside */}
@@ -443,8 +449,8 @@ export function LeaderboardTab({
                         第三名
                       </span>
                       <span className="text-[10px] font-bold text-slate-400 flex flex-col items-center leading-tight">
-                        <span className="font-mono text-[11px] font-extrabold">{topIndividual[2].score.toLocaleString()}</span>
-                        <span className="text-[8px] opacity-80 mt-0.5 select-none">XP</span>
+                        <span className="font-mono text-sm font-extrabold">{topIndividual[2].score.toLocaleString()}</span>
+                        <span className="text-[10px] opacity-80 mt-0.5 select-none tracking-wider">XP</span>
                       </span>
                       
                       {/* Pedestal with Level inside */}
@@ -554,7 +560,7 @@ export function LeaderboardTab({
                       <span className="text-xs font-black text-amber-500 animate-pulse mt-0.5 whitespace-nowrap">
                         {topTeams[1].averageScore.toLocaleString()} 人均
                       </span>
-                      <span className="text-[9px] text-slate-400 font-bold whitespace-nowrap">
+                      <span className="text-[11px] text-slate-300 font-bold whitespace-nowrap">
                         總分：{topTeams[1].total_score.toLocaleString()} XP
                       </span>
                       
@@ -593,7 +599,7 @@ export function LeaderboardTab({
                       <span className="text-sm font-black text-amber-400 animate-pulse mt-0.5 whitespace-nowrap">
                         {topTeams[0].averageScore.toLocaleString()} 人均
                       </span>
-                      <span className="text-[9px] text-amber-500/60 font-bold whitespace-nowrap">
+                      <span className="text-[11px] text-amber-400/80 font-bold whitespace-nowrap">
                         總分：{topTeams[0].total_score.toLocaleString()} XP
                       </span>
                       
@@ -632,7 +638,7 @@ export function LeaderboardTab({
                       <span className="text-xs font-black text-amber-500 animate-pulse mt-0.5 whitespace-nowrap">
                         {topTeams[2].averageScore.toLocaleString()} 人均
                       </span>
-                      <span className="text-[9px] text-slate-400 font-bold whitespace-nowrap">
+                      <span className="text-[11px] text-slate-300 font-bold whitespace-nowrap">
                         總分：{topTeams[2].total_score.toLocaleString()} XP
                       </span>
                       
