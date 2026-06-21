@@ -119,13 +119,14 @@ export async function POST(req: Request) {
     const authUserId: string | undefined = link.id;
 
     // 5. 綁定：同一人（同手機）所有期別 profiles 綁同一 auth 身分。
-    //    容錯：若 auth_user_id 欄位尚未建立（階段0 SQL 未跑），此步會被資料庫拒絕，
-    //    但不影響登入與換 session —— 故僅嘗試、不阻斷流程。
+    //    ⚠️ 一律「重新綁成本次登入產生的正確身分」（不再只綁 auth_user_id 為空的）——
+    //    否則一旦某帳號綁到舊的/失效的 auth_user_id，登入永遠不會修正它，
+    //    打卡會被 RLS 擋下而被踢回登入頁。改成每次登入都自我修正(authUserId 即該手機的正確 auth 身分)。
+    //    容錯：若 auth_user_id 欄位尚未建立，此步會被拒絕但不阻斷登入。
     if (authUserId) {
       await fetch(
         `${SUPA_URL}/rest/v1/profiles` +
-          `?phone=eq.${encodeURIComponent(safePhone)}` +
-          `&auth_user_id=is.null`,
+          `?phone=eq.${encodeURIComponent(safePhone)}`,
         {
           method: 'PATCH',
           headers: { ...srHeaders, Prefer: 'return=minimal' },
@@ -135,6 +136,8 @@ export async function POST(req: Request) {
     }
 
     // 6. 回傳票 + 該學員 profile 給前端 → 前端免再查一次 profiles(省一趟往返)
+    //    回傳前先把 profile 的 auth_user_id 補成本次綁定的正確值,讓前端 state 與 DB 一致。
+    if (authUserId) profiles[0].auth_user_id = authUserId;
     return NextResponse.json({ token_hash: link.hashed_token, profile: profiles[0] });
   } catch (e: any) {
     return NextResponse.json({ error: 'server_error', detail: String(e?.message || e) }, { status: 500 });
