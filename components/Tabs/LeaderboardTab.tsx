@@ -500,42 +500,40 @@ export function LeaderboardTab({
                         isSelf ? 'bg-amber-500/5 -mx-4 px-4 rounded-xl' : ''
                       }`}
                     >
-                      {/* Left: Rank & Name (col-span-6) */}
+                      {/* 左:名次 + 姓名 + 角色·小隊 (col-span-6) */}
                       <div className="col-span-6 flex items-center gap-3 min-w-0">
                         <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs shrink-0 ${getRankBadge(rank)}`}>
                           {rank}
                         </div>
                         <div className="flex flex-col min-w-0">
                           <span className="font-black text-white text-base sm:text-lg flex items-center flex-wrap gap-1.5 light:text-slate-950">
-                            <span>{p.name}</span>
+                            <span className="truncate">{p.name}</span>
                             {isSelf && (
                               <span className="text-[11px] font-black bg-amber-500/10 text-amber-500 border border-amber-500/20 px-2 py-0.5 rounded-md shrink-0">
                                 本人
                               </span>
                             )}
                           </span>
-                          <span className="text-[10px] text-slate-500 font-bold flex items-center flex-wrap gap-1 mt-0.5 select-none truncate">
-                            <span className="truncate">{getRoleLabel(p.role)} • {getTeamName(p.team_id)}</span>
-                            {studentStreaks[p.id] && (
-                              <span className="text-[10px] font-extrabold text-orange-400 bg-orange-500/10 border border-orange-500/20 px-1.5 py-0.5 rounded-md inline-flex items-center gap-0.5 shrink-0 whitespace-nowrap leading-none" title={`連續打卡 ${studentStreaks[p.id]} 天`}>
-                                🔥 {studentStreaks[p.id]}天
-                              </span>
-                            )}
+                          <span className="text-[10px] text-slate-500 font-bold mt-0.5 select-none truncate">
+                            {getRoleLabel(p.role)} • {getTeamName(p.team_id)}
                           </span>
                         </div>
                       </div>
 
-                      {/* Middle: Level (col-span-3 text-center) */}
-                      <div className="col-span-3 text-center">
-                        <span className="text-base sm:text-lg font-black text-slate-300 light:text-slate-800 tracking-wide">LV.{level}</span>
+                      {/* 中:經驗 XP(主分數,放中間醒目) col-span-3 */}
+                      <div className="col-span-3 text-center leading-tight select-none">
+                        <span className="font-black text-amber-500 text-base font-mono whitespace-nowrap">{p.score.toLocaleString()}</span>
+                        <span className="block text-[9px] text-slate-500 font-bold tracking-wider">XP</span>
                       </div>
 
-                      {/* Right: Score (col-span-3 text-right) */}
-                      <div className="col-span-3 text-right flex flex-col items-end leading-tight select-none">
-                        <span className="font-black text-amber-500 text-sm font-mono">
-                          {p.score.toLocaleString()}
-                        </span>
-                        <span className="text-[9px] text-slate-500 font-bold mt-0.5">XP</span>
+                      {/* 右:等級(上) + 連勝火焰(下);等級顏色統一 indigo col-span-3 */}
+                      <div className="col-span-3 flex flex-col items-end gap-1 leading-none select-none">
+                        <span className="text-sm font-black text-indigo-400 tracking-wide whitespace-nowrap">LV.{level}</span>
+                        {studentStreaks[p.id] && (
+                          <span className="text-[10px] font-extrabold text-orange-400 bg-orange-500/10 border border-orange-500/20 px-1.5 py-0.5 rounded-md inline-flex items-center gap-0.5 shrink-0 whitespace-nowrap leading-none" title={`連續打卡 ${studentStreaks[p.id]} 天`}>
+                            🔥 {studentStreaks[p.id]}天
+                          </span>
+                        )}
                       </div>
                     </div>
                   );
