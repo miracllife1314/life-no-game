@@ -22,6 +22,8 @@ export function CourseTab({
   onRegisterCourse,
   isSyncing = false
 }: CourseTabProps) {
+  // 🔕 隱藏 App 內「登記複訊 / 已預約複訊」功能,只保留官方報名連結。想開回來改 true 即可。
+  const SHOW_RETRAIN_RESERVE = false;
   // Sort courses by class_date if available
   const sortedCourses = [...courses].sort((a, b) => {
     if (a.sort_order !== null && b.sort_order !== null && a.sort_order !== undefined && b.sort_order !== undefined) {
@@ -87,7 +89,7 @@ export function CourseTab({
                         已出席
                       </span>
                     )}
-                    {isRegistered && (
+                    {SHOW_RETRAIN_RESERVE && isRegistered && (
                       <span className="flex items-center gap-1 text-[9px] font-black text-sky-400 bg-sky-500/10 px-2 py-0.5 rounded border border-sky-500/20">
                         <Clock size={10} />
                         已預約複訊
@@ -103,7 +105,7 @@ export function CourseTab({
                 {/* Right side: Action Buttons */}
                 <div className="shrink-0 flex sm:flex-col justify-end sm:justify-center items-stretch gap-2 border-t border-white/5 pt-4 sm:border-t-0 sm:pt-0 light:border-slate-200 select-none">
                   {/* Register action inside game database */}
-                  {!isRegistered && !isAttended && onRegisterCourse && currentUserId && (
+                  {SHOW_RETRAIN_RESERVE && !isRegistered && !isAttended && onRegisterCourse && currentUserId && (
                     <button
                       disabled={isSyncing}
                       onClick={() => onRegisterCourse(course.id)}
