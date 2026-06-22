@@ -284,7 +284,9 @@ export function WitnessTab({ profiles, tasks, submissions, currentUserId, onRefr
     });
     const taskOpts = Array.from(names).sort((a, b) => a.localeCompare(b, 'zh-Hant'));
     const batchOpts = Array.from(batchIds)
-      .map(id => ({ id, name: batches.find(b => b.id === id)?.name || id }))
+      .filter(id => id !== 'batch-50')                                  // 隱藏預設期數 batch-50
+      .map(id => ({ id, name: batches.find(b => b.id === id)?.name || '' }))
+      .filter(o => o.name && o.name !== 'batch-50')                     // 只列有正式名稱的期數
       .sort((a, b) => a.name.localeCompare(b.name, 'zh-Hant'));
     return { taskOpts, batchOpts };
   }, [baseItems, hiddenIds, profiles, tasks, batches, teams]);
@@ -715,7 +717,9 @@ export function WitnessTab({ profiles, tasks, submissions, currentUserId, onRefr
             const timeStr = new Date(s.created_at).toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' });
 
             const studentBatch = batches.find(b => b.id === profile?.batch_id);
-            const studentBatchName = studentBatch ? studentBatch.name : '';
+            // 隱藏預設期數 batch-50(無正式名稱),不顯示醜 id
+            const studentBatchName = (studentBatch && studentBatch.name && studentBatch.name !== 'batch-50' && profile?.batch_id !== 'batch-50')
+              ? studentBatch.name : '';
             const studentTeamName = teamNameOfStudent(s.student_id);
 
             return (
