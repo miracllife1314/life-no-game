@@ -931,7 +931,7 @@ export function CaptainDashboard({
                 )}
 
                 {/* Toggle to show/hide in witness section */}
-                {(app.proof_text || app.proof_image_url) && (
+                {currentUserRole === 'admin' && (app.proof_text || app.proof_image_url) && (
                   <div className="flex items-center gap-2 pt-1">
                     <input
                       type="checkbox"
@@ -962,19 +962,30 @@ export function CaptainDashboard({
                   >
                     ❌ 駁回
                   </button>
-                  <button
-                    onClick={() => handleReviewSubmissionLocal(app.id, true, false)}
-                    className="flex-1 py-2 bg-amber-500 text-slate-950 font-black rounded-xl text-xs active:scale-95 transition-all shadow-md shadow-amber-500/10"
-                  >
-                    ✅ 初審通過
-                  </button>
-                  <button
-                    onClick={() => handleReviewSubmissionLocal(app.id, true, true)}
-                    title="通過並分享到見證牆"
-                    className="flex-1 py-2 bg-purple-500 text-white font-black rounded-xl text-xs active:scale-95 transition-all shadow-md shadow-purple-500/10"
-                  >
-                    ✅ 上見證牆
-                  </button>
+                  {currentUserRole === 'admin' ? (
+                    <>
+                      <button
+                        onClick={() => handleReviewSubmissionLocal(app.id, true, false)}
+                        className="flex-1 py-2 bg-amber-500 text-slate-950 font-black rounded-xl text-xs active:scale-95 transition-all shadow-md shadow-amber-500/10"
+                      >
+                        ✅ 初審通過
+                      </button>
+                      <button
+                        onClick={() => handleReviewSubmissionLocal(app.id, true, true)}
+                        title="通過並分享到見證牆"
+                        className="flex-1 py-2 bg-purple-500 text-white font-black rounded-xl text-xs active:scale-95 transition-all shadow-md shadow-purple-500/10"
+                      >
+                        ✅ 上見證牆
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      onClick={() => handleReviewSubmissionLocal(app.id, true, false)}
+                      className="flex-1 py-2 bg-emerald-500 text-slate-950 font-black rounded-xl text-xs active:scale-95 transition-all shadow-md shadow-emerald-500/10"
+                    >
+                      ✅ 審核通過
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
