@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Profile, Task, Submission, Batch } from '@/types';
+import { Profile, Task, Submission, Batch, Team } from '@/types';
 import {
   BookOpen, ImageIcon, Quote, Search,
   CheckCircle2, Calendar, Heart,
@@ -26,6 +26,7 @@ interface WitnessTabProps {
   currentUserId: string;
   onRefresh?: () => Promise<void>;
   batches: Batch[];
+  teams?: Team[];
   onHideWitness?: (subId: string) => Promise<void>;
   onDeleteWitness?: (subId: string) => Promise<void>;
 }
@@ -70,7 +71,7 @@ const compressImage = (file: File): Promise<string> => {
   });
 };
 
-export function WitnessTab({ profiles, tasks, submissions, currentUserId, onRefresh, batches, onHideWitness, onDeleteWitness }: WitnessTabProps) {
+export function WitnessTab({ profiles, tasks, submissions, currentUserId, onRefresh, batches, teams, onHideWitness, onDeleteWitness }: WitnessTabProps) {
   const [category,     setCategory]     = useState<'all' | 'current' | 'mission' | 'sharing' | 'hidden'>('all');
   const [searchQuery,  setSearchQuery]  = useState('');
   const [likes,        setLikes]        = useState<Record<string, string[]>>({});
@@ -129,6 +130,27 @@ export function WitnessTab({ profiles, tasks, submissions, currentUserId, onRefr
 
   const currentUser = profiles.find(p => p.id === currentUserId);
 
+  // 取一筆見證所屬的「任務名稱」：批次任務用 join 進來的 mission.title，
+  // 舊任務 fallback 到 tasks 表，自由分享貼文另計。用名稱當分組鍵 → 同任務跨天/跨期會併在一起。
+  const taskNameOfSub = (s: any) =>
+    s.mission_id === 'task-custom-post'
+      ? '自由分享貼文'
+      : (s.mission?.title || tasks.find(t => t.id === s.mission_id)?.name || '（其他／未知任務）');
+
+  // 取該見證作者所屬「小隊名稱」（優先自訂名）
+  const teamNameOfStudent = (studentId: string) => {
+    const p = profiles.find(pp => pp.id === studentId);
+    if (!p?.team_id) return '';
+    const tm = (teams || []).find(t => t.id === p.team_id);
+    return tm ? (tm.custom_name || tm.name) : '';
+  };
+
+  // 取該見證所屬任務的審核方式：auto=免審核（不進管理區）。自由分享貼文視為非 auto。
+  const reviewTypeOfSub = (s: any): string =>
+    s.mission_id === 'task-custom-post'
+      ? 'leader'
+      : (s.mission?.review_type || (tasks.find(t => t.id === s.mission_id) as any)?.review_type || 'leader');
+
   const currentBatchId = useMemo(() => {
     return currentUser?.batch_id || (batches.find(b => b.status === 'active')?.id) || batches[0]?.id || '';
   }, [currentUser, batches]);
@@ -158,7 +180,8 @@ export function WitnessTab({ profiles, tasks, submissions, currentUserId, onRefr
       // 放寬：只要有心得文字或照片就列出（排除無內容的純簽到）。
       sourceItems = sourceItems.filter(s =>
         (s.share_to_witness === false || hiddenIds.includes(s.id)) &&
-        (!!s.proof_image_url || (!!s.proof_text && s.proof_text.trim() !== '') || s.mission_id === 'task-custom-post')
+        (!!s.proof_image_url || (!!s.proof_text && s.proof_text.trim() !== '') || s.mission_id === 'task-custom-post') &&
+        (s.mission_id === 'task-custom-post' || reviewTypeOfSub(s) !== 'auto') // 免審核(auto)的不進管理區
       );
     } else {
       // Normal witness wall logic
@@ -188,7 +211,7 @@ export function WitnessTab({ profiles, tasks, submissions, currentUserId, onRefr
     if (category === 'hidden') {
       result = result.filter(s => {
         const profile = profiles.find(p => p.id === s.student_id);
-        const matchTask  = taskFilter  === 'all' || s.mission_id === taskFilter;
+        const matchTask  = taskFilter  === 'all' || taskNameOfSub(s) === taskFilter;
         const matchBatch = batchFilter === 'all' || (profile?.batch_id || '') === batchFilter;
         return matchTask && matchBatch;
       });
@@ -231,25 +254,22 @@ export function WitnessTab({ profiles, tasks, submissions, currentUserId, onRefr
   const hiddenFilterOptions = useMemo(() => {
     const notOnWall = baseItems.filter(s =>
       (s.share_to_witness === false || hiddenIds.includes(s.id)) &&
-      (!!s.proof_image_url || (!!s.proof_text && s.proof_text.trim() !== '') || s.mission_id === 'task-custom-post')
+      (!!s.proof_image_url || (!!s.proof_text && s.proof_text.trim() !== '') || s.mission_id === 'task-custom-post') &&
+      (s.mission_id === 'task-custom-post' || reviewTypeOfSub(s) !== 'auto')
     );
-    const taskIds = new Set<string>();
+    const names = new Set<string>();
     const batchIds = new Set<string>();
     notOnWall.forEach(s => {
-      taskIds.add(s.mission_id || '');
+      names.add(taskNameOfSub(s));
       const p = profiles.find(pp => pp.id === s.student_id);
       if (p?.batch_id) batchIds.add(p.batch_id);
     });
-    const taskOpts = Array.from(taskIds).map(id =>
-      id === 'task-custom-post'
-        ? { id, name: '自由分享貼文' }
-        : { id, name: tasks.find(t => t.id === id)?.name || '（其他／未知任務）' }
-    ).sort((a, b) => a.name.localeCompare(b.name, 'zh-Hant'));
+    const taskOpts = Array.from(names).sort((a, b) => a.localeCompare(b, 'zh-Hant'));
     const batchOpts = Array.from(batchIds)
       .map(id => ({ id, name: batches.find(b => b.id === id)?.name || id }))
       .sort((a, b) => a.name.localeCompare(b.name, 'zh-Hant'));
     return { taskOpts, batchOpts };
-  }, [baseItems, hiddenIds, profiles, tasks, batches]);
+  }, [baseItems, hiddenIds, profiles, tasks, batches, teams]);
 
   // 切換分類/搜尋/排序/篩選時，回到第一頁
   useEffect(() => { setVisibleCount(PAGE_SIZE); }, [category, searchQuery, scopeFilter, sortBy, taskFilter, batchFilter]);
@@ -539,8 +559,8 @@ export function WitnessTab({ profiles, tasks, submissions, currentUserId, onRefr
             className="bg-slate-900 border border-white/10 rounded-xl px-2.5 py-1.5 text-[11px] font-bold text-slate-100 outline-none focus:border-purple-500/50 cursor-pointer max-w-[200px] light:bg-white light:border-slate-300 light:text-slate-900"
           >
             <option value="all">全部任務</option>
-            {hiddenFilterOptions.taskOpts.map(t => (
-              <option key={t.id} value={t.id}>{t.name}</option>
+            {hiddenFilterOptions.taskOpts.map(name => (
+              <option key={name} value={name}>{name}</option>
             ))}
           </select>
           {(taskFilter !== 'all' || batchFilter !== 'all') && (
@@ -678,6 +698,7 @@ export function WitnessTab({ profiles, tasks, submissions, currentUserId, onRefr
 
             const studentBatch = batches.find(b => b.id === profile?.batch_id);
             const studentBatchName = studentBatch ? studentBatch.name : '';
+            const studentTeamName = teamNameOfStudent(s.student_id);
 
             return (
               <div
@@ -710,16 +731,19 @@ export function WitnessTab({ profiles, tasks, submissions, currentUserId, onRefr
                               我
                             </span>
                           )}
-                          {(category === 'all' || category === 'hidden') && studentBatchName && (
+                          {studentBatchName && (
                             <span className="text-[9px] font-black bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-1.5 py-0.5 rounded-md">
                               {studentBatchName}
                             </span>
                           )}
+                          {studentTeamName && (
+                            <span className="text-[9px] font-black bg-sky-500/10 text-sky-400 border border-sky-500/20 px-1.5 py-0.5 rounded-md">
+                              {studentTeamName}
+                            </span>
+                          )}
                           {category === 'hidden' && (
                             <span className="text-[9px] font-black bg-amber-500/10 text-amber-400 border border-amber-500/20 px-1.5 py-0.5 rounded-md">
-                              {s.mission_id === 'task-custom-post'
-                                ? '自由分享'
-                                : (tasks.find(t => t.id === s.mission_id)?.name || '任務')}
+                              {taskNameOfSub(s)}
                             </span>
                           )}
                         </div>

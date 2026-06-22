@@ -995,6 +995,7 @@ export default function Home() {
             currentUserId={currentUser.id}
             onRefresh={async () => { await fetchData(); }}
             batches={batches}
+            teams={teams}
             onHideWitness={handleHideWitness}
             onDeleteWitness={handleDeleteWitness}
           />
