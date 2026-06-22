@@ -78,7 +78,7 @@ export function useMissionGen({ setIsSyncing, fetchData, batches, missionTemplat
               mission_type: type,
               points,
               publish_at: `${dayStr} 00:00:00`,
-              deadline_at: `${dayStr} 12:00:00`,
+              deadline_at: `${dayStr} 23:59:59`,  // 每日任務維持整天可做(中午到期只套用在限時/週/特殊)
               status: 'scheduled',
               review_type: reviewType,
               category: category,
