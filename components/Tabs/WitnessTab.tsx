@@ -83,6 +83,8 @@ export function WitnessTab({ profiles, tasks, submissions, currentUserId, onRefr
   const [lightboxIndex, setLightboxIndex] = useState<number>(0);
   const [expandedText, setExpandedText] = useState<Set<string>>(new Set());
   const [hiddenIds,    setHiddenIds]    = useState<string[]>([]);
+  const [taskFilter,   setTaskFilter]   = useState<string>('all'); // 隱藏(管理)區：依任務篩選
+  const [batchFilter,  setBatchFilter]  = useState<string>('all'); // 隱藏(管理)區：依期數篩選
   // 每次只渲染前 N 筆見證卡片（資料仍全載，僅畫面分頁，避免一次塞太多 DOM）
   const PAGE_SIZE = 20;
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
@@ -151,11 +153,12 @@ export function WitnessTab({ profiles, tasks, submissions, currentUserId, onRefr
     let sourceItems = baseItems;
 
     if (category === 'hidden') {
-      // 管理/清理區：顯示「未在牆上、且還有照片可清理」的項目，
-      // 或學員分享貼文。刪除照片後該項目會自動從這裡消失（任務與經驗保留）。
+      // 管理/上架區：顯示「目前不在牆上」的所有已通過見證（含純文字、無照片），
+      // 供管理員審閱後上架（復原顯示＝+200 入選見證牆獎勵）或清理照片。
+      // 放寬：只要有心得文字或照片就列出（排除無內容的純簽到）。
       sourceItems = sourceItems.filter(s =>
         (s.share_to_witness === false || hiddenIds.includes(s.id)) &&
-        (!!s.proof_image_url || s.mission_id === 'task-custom-post')
+        (!!s.proof_image_url || (!!s.proof_text && s.proof_text.trim() !== '') || s.mission_id === 'task-custom-post')
       );
     } else {
       // Normal witness wall logic
@@ -180,6 +183,16 @@ export function WitnessTab({ profiles, tasks, submissions, currentUserId, onRefr
       }
       return true; // 'all' or 'hidden'
     });
+
+    // 1b. 隱藏(管理)區專屬：依任務 / 期數 篩選
+    if (category === 'hidden') {
+      result = result.filter(s => {
+        const profile = profiles.find(p => p.id === s.student_id);
+        const matchTask  = taskFilter  === 'all' || s.mission_id === taskFilter;
+        const matchBatch = batchFilter === 'all' || (profile?.batch_id || '') === batchFilter;
+        return matchTask && matchBatch;
+      });
+    }
 
     // 2. Filter by search & team scope
     result = result.filter(s => {
@@ -212,10 +225,36 @@ export function WitnessTab({ profiles, tasks, submissions, currentUserId, onRefr
     }
 
     return result;
-  }, [baseItems, category, currentBatchId, searchQuery, scopeFilter, sortBy, profiles, tasks, currentUser, likes, hiddenIds]);
+  }, [baseItems, category, currentBatchId, searchQuery, scopeFilter, sortBy, profiles, tasks, currentUser, likes, hiddenIds, taskFilter, batchFilter]);
 
-  // 切換分類/搜尋/排序時，回到第一頁
-  useEffect(() => { setVisibleCount(PAGE_SIZE); }, [category, searchQuery, scopeFilter, sortBy]);
+  // 隱藏(管理)區可篩選的「任務 / 期數」選項（只列實際有資料的，避免下拉爆滿）
+  const hiddenFilterOptions = useMemo(() => {
+    const notOnWall = baseItems.filter(s =>
+      (s.share_to_witness === false || hiddenIds.includes(s.id)) &&
+      (!!s.proof_image_url || (!!s.proof_text && s.proof_text.trim() !== '') || s.mission_id === 'task-custom-post')
+    );
+    const taskIds = new Set<string>();
+    const batchIds = new Set<string>();
+    notOnWall.forEach(s => {
+      taskIds.add(s.mission_id || '');
+      const p = profiles.find(pp => pp.id === s.student_id);
+      if (p?.batch_id) batchIds.add(p.batch_id);
+    });
+    const taskOpts = Array.from(taskIds).map(id =>
+      id === 'task-custom-post'
+        ? { id, name: '自由分享貼文' }
+        : { id, name: tasks.find(t => t.id === id)?.name || '（其他／未知任務）' }
+    ).sort((a, b) => a.name.localeCompare(b.name, 'zh-Hant'));
+    const batchOpts = Array.from(batchIds)
+      .map(id => ({ id, name: batches.find(b => b.id === id)?.name || id }))
+      .sort((a, b) => a.name.localeCompare(b.name, 'zh-Hant'));
+    return { taskOpts, batchOpts };
+  }, [baseItems, hiddenIds, profiles, tasks, batches]);
+
+  // 切換分類/搜尋/排序/篩選時，回到第一頁
+  useEffect(() => { setVisibleCount(PAGE_SIZE); }, [category, searchQuery, scopeFilter, sortBy, taskFilter, batchFilter]);
+  // 離開/切換分頁時重置隱藏區的任務/期數篩選
+  useEffect(() => { setTaskFilter('all'); setBatchFilter('all'); }, [category]);
 
   // ── like toggle ───────────────────────────────────────────────────
   const handleToggleLike = async (subId: string) => {
@@ -480,6 +519,42 @@ export function WitnessTab({ profiles, tasks, submissions, currentUserId, onRefr
         </div>
       </div>
 
+      {/* 🗂️ 隱藏(管理)區專屬：依期數 / 任務 篩選 */}
+      {category === 'hidden' && (
+        <div className="flex flex-wrap items-center gap-2 p-1">
+          <span className="text-[10px] font-black text-slate-400 light:text-slate-500">篩選</span>
+          <select
+            value={batchFilter}
+            onChange={e => setBatchFilter(e.target.value)}
+            className="bg-slate-900 border border-white/10 rounded-xl px-2.5 py-1.5 text-[11px] font-bold text-slate-100 outline-none focus:border-purple-500/50 cursor-pointer light:bg-white light:border-slate-300 light:text-slate-900"
+          >
+            <option value="all">全部期數</option>
+            {hiddenFilterOptions.batchOpts.map(b => (
+              <option key={b.id} value={b.id}>{b.name}</option>
+            ))}
+          </select>
+          <select
+            value={taskFilter}
+            onChange={e => setTaskFilter(e.target.value)}
+            className="bg-slate-900 border border-white/10 rounded-xl px-2.5 py-1.5 text-[11px] font-bold text-slate-100 outline-none focus:border-purple-500/50 cursor-pointer max-w-[200px] light:bg-white light:border-slate-300 light:text-slate-900"
+          >
+            <option value="all">全部任務</option>
+            {hiddenFilterOptions.taskOpts.map(t => (
+              <option key={t.id} value={t.id}>{t.name}</option>
+            ))}
+          </select>
+          {(taskFilter !== 'all' || batchFilter !== 'all') && (
+            <button
+              onClick={() => { setTaskFilter('all'); setBatchFilter('all'); }}
+              className="text-[10px] font-black text-slate-400 hover:text-white bg-slate-800/60 hover:bg-slate-800 px-2.5 py-1.5 rounded-xl cursor-pointer transition-colors light:bg-slate-100 light:hover:bg-slate-200 light:text-slate-600"
+            >
+              清除
+            </button>
+          )}
+          <span className="text-[10px] font-black text-purple-400 ml-auto">共 {filtered.length} 筆</span>
+        </div>
+      )}
+
       {/* 📝 FB/IG-style Post Form */}
       {currentUser && (
         <div className="glass-panel p-4 rounded-3xl border border-purple-500/10 space-y-4 text-left light:bg-white light:border-slate-200 shadow-sm">
@@ -635,9 +710,16 @@ export function WitnessTab({ profiles, tasks, submissions, currentUserId, onRefr
                               我
                             </span>
                           )}
-                          {category === 'all' && studentBatchName && (
+                          {(category === 'all' || category === 'hidden') && studentBatchName && (
                             <span className="text-[9px] font-black bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-1.5 py-0.5 rounded-md">
                               {studentBatchName}
+                            </span>
+                          )}
+                          {category === 'hidden' && (
+                            <span className="text-[9px] font-black bg-amber-500/10 text-amber-400 border border-amber-500/20 px-1.5 py-0.5 rounded-md">
+                              {s.mission_id === 'task-custom-post'
+                                ? '自由分享'
+                                : (tasks.find(t => t.id === s.mission_id)?.name || '任務')}
                             </span>
                           )}
                         </div>
