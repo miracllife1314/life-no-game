@@ -1657,7 +1657,8 @@ export function DailyQuestsTab({
                   const { isDone, approvedCount, limit } = getTaskProgress(mission.id);
                   const status = getTaskStatus(mission.id);
 
-                  const isExpired = nowTime > deadTime;
+                  // 每日任務不看 deadline 過期(其有效範圍由「中午換日界線」決定),永不顯示逾期/已截止。
+                  const isExpired = mission.mission_type !== 'daily' && nowTime > deadTime;
                   const isFuture = nowTime < pubTime;
 
                   return (
@@ -1750,7 +1751,7 @@ export function DailyQuestsTab({
 
                       {/* 倒數時間 + 日期：獨立一行，避免與狀態徽章重疊 */}
                       <div className="flex gap-1.5 items-center flex-wrap mt-2">
-                        {!isExpired && !isFuture && (() => {
+                        {mission.mission_type !== 'daily' && !isExpired && !isFuture && (() => {
                           const countdown = getCountdownText(mission.deadline_at);
                           if (!countdown) return null;
                           return (
