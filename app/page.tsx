@@ -720,6 +720,12 @@ export default function Home() {
   const isViewingStudent = !!viewedProfile;
   const panelUser = viewedProfile || currentUser;
   const panelBatchId = panelUser.batch_id;
+  // GM 模擬模式:傳給個人面板的使用者角色換成「模擬角色」,讓面板真的等於該角色
+  // (例如模擬學員時 role=student → 顯示該期的每日/每週/特殊/限時任務、隱藏管理鈕)。
+  // 注意:Header 仍用 panelUser(大隊長)以保留模擬切換鈕。
+  const effectivePanelUser = (gmMode && currentUser.role === 'admin' && !viewedProfile)
+    ? { ...panelUser, role: selectedGmRole }
+    : panelUser;
   // 檢視學員時：預設唯讀；按「開啟操作」後才可代該學員打卡/進化/課程（handler 內部自動對 actingUser 操作）
   const readOnlyView = isViewingStudent && !viewCanOperate;
   const blockedAction: any = async () => { showToast('🔒 目前為唯讀檢視。要操作此帳號，請先按上方「開啟操作」。', 'info'); };
@@ -917,7 +923,7 @@ export default function Home() {
       <main className="flex-1 w-full max-w-7xl mx-auto px-4 pt-8 pb-24 md:pb-8 overflow-y-auto overflow-x-hidden">
         {activeTab === 'daily' && (
           <DailyQuestsTab
-            profile={panelUser}
+            profile={effectivePanelUser}
             tasks={filteredTasks}
             submissions={filteredSubmissions}
             announcements={filteredAnnouncements}
