@@ -883,15 +883,15 @@ export function LeaderboardTab({
                           {/* 總等級(上) / 小隊長(下) */}
                           <td className="px-1.5 py-3">
                             <div className="flex flex-col gap-0.5 leading-tight select-none">
-                              <span className="text-lg font-black text-indigo-400 light:text-indigo-600 whitespace-nowrap">總LV.{team.totalLevel}</span>
-                              <span className="text-sm sm:text-base font-bold text-slate-300 light:text-slate-600 break-words">{captainName}</span>
+                              <span className="text-base sm:text-lg font-black text-indigo-400 light:text-indigo-600 whitespace-nowrap">總LV.{team.totalLevel}</span>
+                              <span className="text-base sm:text-lg font-bold text-slate-300 light:text-slate-600 break-words">{captainName}</span>
                             </div>
                           </td>
                           {/* 人均(上) / 總分(下) */}
                           <td className="px-1.5 py-3 text-right">
                             <div className="flex flex-col items-end leading-tight select-none">
                               <span className="font-black text-amber-500 font-mono text-sm whitespace-nowrap">{team.averageScore.toLocaleString()}</span>
-                              <span className="font-bold text-slate-400 light:text-slate-500 font-mono text-[11px] whitespace-nowrap mt-0.5">總 {team.total_score.toLocaleString()}</span>
+                              <span className="font-bold text-slate-400 light:text-slate-500 font-mono text-sm whitespace-nowrap mt-0.5">總 {team.total_score.toLocaleString()}</span>
                             </div>
                           </td>
                         </tr>
