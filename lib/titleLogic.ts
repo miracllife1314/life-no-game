@@ -19,14 +19,15 @@ const STARTER: RankTitle = {
 };
 
 function classForValue(v: number): string {
-  if (v >= 30000) return 'text-amber-100 bg-gradient-to-r from-amber-500/25 to-yellow-400/25 border-amber-300/50 shadow-[0_0_12px_rgba(251,191,36,0.35)]';
-  if (v >= 20000) return 'text-fuchsia-100 bg-gradient-to-r from-fuchsia-500/20 to-purple-500/20 border-fuchsia-300/45 shadow-[0_0_10px_rgba(217,70,239,0.25)]';
-  if (v >= 15000) return 'text-pink-200 bg-pink-500/15 border-pink-400/40';
-  if (v >= 10000) return 'text-purple-200 bg-purple-500/15 border-purple-400/35';
-  if (v >= 7500)  return 'text-violet-200 bg-violet-500/15 border-violet-400/30';
-  if (v >= 5000)  return 'text-indigo-200 bg-indigo-500/15 border-indigo-400/30';
-  if (v >= 2500)  return 'text-cyan-200 bg-cyan-500/12 border-cyan-400/30';
-  return 'text-sky-200 bg-sky-500/12 border-sky-400/30'; // 1,000 見習魔法師
+  // 每階都附 light: 深色字,確保淺色底也清楚可讀。
+  if (v >= 30000) return 'text-amber-100 bg-gradient-to-r from-amber-500/25 to-yellow-400/25 border-amber-300/50 shadow-[0_0_12px_rgba(251,191,36,0.35)] light:text-amber-900 light:border-amber-500/60';
+  if (v >= 20000) return 'text-fuchsia-100 bg-gradient-to-r from-fuchsia-500/20 to-purple-500/20 border-fuchsia-300/45 shadow-[0_0_10px_rgba(217,70,239,0.25)] light:text-fuchsia-900 light:border-fuchsia-500/60';
+  if (v >= 15000) return 'text-pink-200 bg-pink-500/15 border-pink-400/40 light:text-pink-800 light:bg-pink-100 light:border-pink-500/60';
+  if (v >= 10000) return 'text-purple-200 bg-purple-500/15 border-purple-400/35 light:text-purple-800 light:bg-purple-100 light:border-purple-500/60';
+  if (v >= 7500)  return 'text-violet-200 bg-violet-500/15 border-violet-400/30 light:text-violet-800 light:bg-violet-100 light:border-violet-500/60';
+  if (v >= 5000)  return 'text-indigo-200 bg-indigo-500/15 border-indigo-400/30 light:text-indigo-800 light:bg-indigo-100 light:border-indigo-500/60';
+  if (v >= 2500)  return 'text-cyan-200 bg-cyan-500/12 border-cyan-400/30 light:text-cyan-800 light:bg-cyan-100 light:border-cyan-500/60';
+  return 'text-sky-200 bg-sky-500/12 border-sky-400/30 light:text-sky-800 light:bg-sky-100 light:border-sky-500/60'; // 1,000 見習魔法師
 }
 
 // 取目前稱號:已達到的最高 total_score 成就;都沒達到則回起始稱號。
