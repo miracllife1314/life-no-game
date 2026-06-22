@@ -775,7 +775,7 @@ export function WitnessTab({ profiles, tasks, submissions, currentUserId, onRefr
                       <div className="text-[10px] font-black text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/15">
                         +{s.score_awarded} 經驗
                       </div>
-                      {currentUser?.role === 'admin' && (
+                      {(currentUser?.role === 'admin' || (isMine && s.mission_id === 'task-custom-post')) && (
                         <div className="flex gap-1">
                           {onHideWitness && category !== 'hidden' && (
                             <button
@@ -798,7 +798,7 @@ export function WitnessTab({ profiles, tasks, submissions, currentUserId, onRefr
                               隱藏
                             </button>
                           )}
-                          {category === 'hidden' && (
+                          {currentUser?.role === 'admin' && category === 'hidden' && (
                             <button
                               onClick={async () => {
                                 if (window.confirm('確定要復原並重新顯示這筆資料嗎？')) {
@@ -822,7 +822,7 @@ export function WitnessTab({ profiles, tasks, submissions, currentUserId, onRefr
                               復原顯示
                             </button>
                           )}
-                          {onDeleteWitness && (
+                          {currentUser?.role === 'admin' && onDeleteWitness && (
                             <button
                               onClick={() => {
                                 const isPost = s.mission_id === 'task-custom-post';
