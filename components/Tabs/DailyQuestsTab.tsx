@@ -645,6 +645,13 @@ export function DailyQuestsTab({
   const attrReshaping = Math.min(100, Math.floor(activeProfile.score / 420));   // 100% ≈ 42000 分
 
   const now = nowTaipei();
+  // 每日任務以「中午12點」為換日界線:午前(<12)算前一天、午後(>=12)算當天。
+  // 顯示哪一天的每日任務、以及連勝/斷連的「今天」都用這個界線。
+  const dailyAnchor = (() => {
+    const d = new Date(now);
+    if (now.getHours() < 12) d.setDate(d.getDate() - 1);
+    return d;
+  })();
   const isUsingMissions = profile.role !== 'admin' && !!profile.batch_id;
 
   // 🔥 連續修行天數：該學員「每日定課」連續有打卡(approved/pending)的台灣日期天數。
@@ -662,9 +669,10 @@ export function DailyQuestsTab({
       if (!pub) continue;
       done.add(dayKey(parseLocalTime(pub)));
     }
-    const todayKey = dayKey(new Date(now.getFullYear(), now.getMonth(), now.getDate()));
+    // 「今天」以中午換日界線為準(午前算前一天),與每日任務顯示一致
+    const todayKey = dayKey(new Date(dailyAnchor.getFullYear(), dailyAnchor.getMonth(), dailyAnchor.getDate()));
     const isTodayDone = done.has(todayKey);
-    const cursor = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const cursor = new Date(dailyAnchor.getFullYear(), dailyAnchor.getMonth(), dailyAnchor.getDate());
     if (!isTodayDone) cursor.setDate(cursor.getDate() - 1); // 今天還沒打 → 從昨天起算
     let streak = 0;
     while (done.has(dayKey(cursor))) { streak++; cursor.setDate(cursor.getDate() - 1); }
@@ -757,11 +765,13 @@ export function DailyQuestsTab({
         if (now.getTime() < publishTime.getTime()) return false;
 
         // 3. 超過 end_at：前台不要顯示在進行中任務 (若已完成則保留顯示)
-        if (now.getTime() > deadlineTime.getTime() && !isCompleted) return false;
+        //    每日任務改由「中午換日界線(dailyAnchor)」決定可見範圍,不受 deadline 過期影響。
+        if (m.mission_type !== 'daily' && now.getTime() > deadlineTime.getTime() && !isCompleted) return false;
 
-        // 5. 每日任務：只顯示 publish_at 在今天的每日任務
+        // 5. 每日任務:以中午12點為界 —— 只顯示 publish_at 屬於「目前換日週期」那天的每日任務
+        //    (午前算前一天、午後算當天)
         if (m.mission_type === 'daily') {
-          if (!isTodayLocal(publishTime, now)) return false;
+          if (!isTodayLocal(publishTime, dailyAnchor)) return false;
         } else if (m.mission_type === 'weekly' || m.mission_type === 'special') {
           // 6. 每週與特殊任務：只顯示今天日期落在 publish_at ~ end_at 區間內的任務
           if (!isTodayInRangeLocal(publishTime, deadlineTime, now)) return false;
