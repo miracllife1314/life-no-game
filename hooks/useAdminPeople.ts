@@ -57,8 +57,10 @@ export function useAdminPeople({ setIsSyncing, fetchData, teams, profiles, gmMod
   const handleUpdateProfile = async (profileId: string, updates: Partial<Profile>) => {
     setIsSyncing(true);
     try {
+      // ⚠️ 不允許直接寫 score 絕對值:會覆蓋並發加分、不同步隊伍/神獸、且不留紀錄。
+      //    所有分數變動一律走 adjust_score(差額制,原子安全且會記 score_logs)。
       const allowedUpdates = [
-        'name', 'phone', 'role', 'team_id', 'batch_id', 'score',
+        'name', 'phone', 'role', 'team_id', 'batch_id',
         'division_name', 'director_id', 'status', 'squad_role'
       ];
       const cleanUpdates: any = {};
