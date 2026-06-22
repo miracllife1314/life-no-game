@@ -62,24 +62,26 @@ export function Header({
   return (
     <header className="w-full z-20 flex flex-col border-b border-white/5 bg-slate-950/80 backdrop-blur-md transition-colors duration-300 light:bg-white/90 light:border-slate-200">
       {/* Main header row */}
-      <div className="max-w-7xl w-full mx-auto px-4 py-4 flex items-center justify-between gap-4">
+      <div className="max-w-7xl w-full mx-auto px-3 sm:px-4 py-3 sm:py-4 flex items-center justify-between gap-2 sm:gap-4">
         {/* User Card info (Left) */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2.5 sm:gap-4 min-w-0">
           <div className="relative shrink-0">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 flex flex-col items-center justify-center text-white font-black shadow-lg border border-white/10 select-none">
-              <span className="text-[10px] opacity-90 leading-tight">LEVEL</span>
-              <span className="text-xl leading-none tracking-tighter">{userLevel}</span>
+            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 flex flex-col items-center justify-center text-white font-black shadow-lg border border-white/10 select-none">
+              <span className="text-[9px] sm:text-[10px] opacity-90 leading-tight">LEVEL</span>
+              <span className="text-lg sm:text-xl leading-none tracking-tighter">{userLevel}</span>
             </div>
           </div>
 
-          <div className="flex flex-col">
-            <div className="flex items-center flex-wrap gap-2">
-              <span className="font-black text-lg text-white">{profile.name}</span>
-              <span className={`text-[10px] font-black px-2 py-0.5 rounded-full border ${getRoleBadgeStyle(profile.role)}`}>
-                {getRoleLabel(profile.role)}
+          <div className="flex flex-col min-w-0">
+            <div className="flex items-center flex-wrap gap-x-1.5 gap-y-1 sm:gap-2">
+              <span className="font-black text-base sm:text-lg text-white light:text-slate-900 truncate max-w-[8rem] sm:max-w-none">{profile.name}</span>
+              <span className={`text-[10px] font-black px-1.5 sm:px-2 py-0.5 rounded-full border whitespace-nowrap ${getRoleBadgeStyle(profile.role)}`}>
+                {/* 手機顯示精簡角色(去掉「指揮部・」),sm 以上顯示完整 */}
+                <span className="sm:hidden">{getRoleLabel(profile.role).replace('指揮部・', '')}</span>
+                <span className="hidden sm:inline">{getRoleLabel(profile.role)}</span>
               </span>
               {/* 🪄 成就稱號:取自 total_score 成就的目前最高階,越高越華麗 */}
-              <span className={`text-[10px] sm:text-xs font-black px-2 py-0.5 rounded-full border whitespace-nowrap ${rankTitle.className}`}>
+              <span className={`text-[10px] sm:text-xs font-black px-1.5 sm:px-2 py-0.5 rounded-full border whitespace-nowrap ${rankTitle.className}`}>
                 {rankTitle.title}
               </span>
             </div>
@@ -113,19 +115,19 @@ export function Header({
         </div>
 
         {/* Global actions (Right) */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           <button
             onClick={toggleTheme}
             title={theme === 'dark' ? '切換為亮色模式' : '切換為深色模式'}
-            className="btn-action w-10 h-10 rounded-xl bg-slate-900 border border-white/5 flex items-center justify-center text-slate-400 hover:text-white"
+            className="btn-action w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-slate-900 border border-white/5 flex items-center justify-center text-slate-400 hover:text-white light:bg-white light:border-slate-200 light:text-slate-600"
           >
             {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
           </button>
-          
+
           <button
             onClick={onLogout}
             title="登出系統"
-            className="btn-action w-10 h-10 rounded-xl bg-slate-900 border border-white/5 flex items-center justify-center text-red-400 hover:text-red-300 hover:border-red-500/20"
+            className="btn-action w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-slate-900 border border-white/5 flex items-center justify-center text-red-400 hover:text-red-300 hover:border-red-500/20 light:bg-white light:border-slate-200"
           >
             <LogOut size={18} />
           </button>
