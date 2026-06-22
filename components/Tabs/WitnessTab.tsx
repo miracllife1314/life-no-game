@@ -130,6 +130,17 @@ export function WitnessTab({ profiles, tasks, submissions, currentUserId, onRefr
 
   const currentUser = profiles.find(p => p.id === currentUserId);
 
+  // 取一筆見證所屬的「任務名稱」：批次任務用 mission.title，舊任務 fallback 到 tasks 表（task_id / mission_id）。
+  // 用名稱當分組鍵 → 同一個任務跨天/跨期會併成一項，方便管理員挑單一任務看「誰上傳」。
+  const taskNameOfSub = (s: any): string =>
+    s.mission_id === 'task-custom-post'
+      ? '自由分享貼文'
+      : (s.mission?.title
+          || tasks.find(t => t.id === s.task_id)?.name
+          || tasks.find(t => t.id === s.mission_id)?.name
+          || s.mission?.template?.title
+          || '（其他／未知任務）');
+
   // 取一筆見證所屬的「任務種類（分類）」：批次任務優先用 mission.category，
   // 沒有就退回任務型態的中文（每日／每週／特殊／限時），自由分享另計。用種類當分組鍵。
   const taskCategoryOfSub = (s: any): string => {
@@ -229,7 +240,7 @@ export function WitnessTab({ profiles, tasks, submissions, currentUserId, onRefr
     if (category === 'hidden') {
       result = result.filter(s => {
         const profile = profiles.find(p => p.id === s.student_id);
-        const matchTask  = taskFilter  === 'all' || taskCategoryOfSub(s) === taskFilter;
+        const matchTask  = taskFilter  === 'all' || taskNameOfSub(s) === taskFilter;
         const matchBatch = batchFilter === 'all' || (profile?.batch_id || '') === batchFilter;
         return matchTask && matchBatch;
       });
@@ -278,7 +289,7 @@ export function WitnessTab({ profiles, tasks, submissions, currentUserId, onRefr
     const names = new Set<string>();
     const batchIds = new Set<string>();
     notOnWall.forEach(s => {
-      names.add(taskCategoryOfSub(s));
+      names.add(taskNameOfSub(s));
       const p = profiles.find(pp => pp.id === s.student_id);
       if (p?.batch_id) batchIds.add(p.batch_id);
     });
@@ -578,7 +589,7 @@ export function WitnessTab({ profiles, tasks, submissions, currentUserId, onRefr
             onChange={e => setTaskFilter(e.target.value)}
             className="bg-slate-900 border border-white/10 rounded-xl px-2.5 py-1.5 text-[11px] font-bold text-slate-100 outline-none focus:border-purple-500/50 cursor-pointer max-w-[200px] light:bg-white light:border-slate-300 light:text-slate-900"
           >
-            <option value="all">全部種類</option>
+            <option value="all">全部任務</option>
             {hiddenFilterOptions.taskOpts.map(name => (
               <option key={name} value={name}>{name}</option>
             ))}
@@ -765,7 +776,7 @@ export function WitnessTab({ profiles, tasks, submissions, currentUserId, onRefr
                           )}
                           {category === 'hidden' && (
                             <span className="text-[9px] font-black bg-amber-500/10 text-amber-400 border border-amber-500/20 px-1.5 py-0.5 rounded-md">
-                              {taskCategoryOfSub(s)}
+                              {taskNameOfSub(s)}
                             </span>
                           )}
                         </div>
