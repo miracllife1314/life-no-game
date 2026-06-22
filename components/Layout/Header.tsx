@@ -71,37 +71,12 @@ export function Header({
           <div className="flex flex-col">
             <div className="flex items-center flex-wrap gap-2">
               <span className="font-black text-lg text-white">{profile.name}</span>
-              {userEnrollments.length > 1 && onSwitchCohort && (
-                <select
-                  value={profile.batch_id || ''}
-                  onChange={(e) => onSwitchCohort(e.target.value)}
-                  className="bg-slate-900 border border-white/10 text-white text-xs font-bold rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-amber-500 cursor-pointer"
-                >
-                  {userEnrollments.map((enroll) => {
-                    const batch = batches.find(b => b.id === enroll.batch_id);
-                    const batchName = batch ? batch.name : `期數: ${enroll.batch_id || '未設定'}`;
-                    const statusText = enroll.status === 'ended' ? ' (已結束)' : enroll.status === 'inactive' ? ' (已停用)' : '';
-                    return (
-                      <option key={enroll.id} value={enroll.batch_id || ''}>
-                        {batchName}{statusText}
-                      </option>
-                    );
-                  })}
-                </select>
-              )}
               <span className={`text-[10px] font-black px-2 py-0.5 rounded-full border ${getRoleBadgeStyle(profile.role)}`}>
                 {getRoleLabel(profile.role)}
               </span>
             </div>
             <div className="flex flex-col gap-1 text-xs mt-1.5 text-slate-400 select-none">
               <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                {userBatch && (
-                  <span className="flex items-center gap-0.5 whitespace-nowrap text-slate-300">
-                    <Bookmark size={12} className="text-amber-500" />
-                    {userBatch.name}
-                  </span>
-                )}
-                {userBatch && <span className="w-1 h-1 bg-slate-700 rounded-full hidden sm:inline" />}
                 <span className="flex items-center gap-0.5 whitespace-nowrap">
                   <Award size={12} className="text-amber-500" />
                   {(() => {

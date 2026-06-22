@@ -942,6 +942,8 @@ export default function Home() {
             missionTemplates={missionTemplates}
             onSelectEvolutionLine={vSelectLine}
             onModalActiveChange={setQuestModalActive}
+            userEnrollments={userEnrollments}
+            onSwitchCohort={handleSwitchCohort}
           />
         )}
 

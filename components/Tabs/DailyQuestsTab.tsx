@@ -51,6 +51,8 @@ interface DailyQuestsTabProps {
   missionTemplates: MissionTemplate[];
   onSelectEvolutionLine: (studentId: string, lineKey: string) => Promise<void>;
   onModalActiveChange?: (active: boolean) => void;
+  userEnrollments?: Profile[];
+  onSwitchCohort?: (batchId: string) => void;
 }
 
 
@@ -73,7 +75,9 @@ export function DailyQuestsTab({
   petLines = [],
   missionTemplates = [],
   onSelectEvolutionLine,
-  onModalActiveChange
+  onModalActiveChange,
+  userEnrollments = [],
+  onSwitchCohort
 }: DailyQuestsTabProps) {
   const [activeCategory, setActiveCategory] = useState<'daily' | 'weekly' | 'special' | 'temporary'>('daily');
   const [selectedTask, setSelectedTask] = useState<any | null>(null);
@@ -925,8 +929,28 @@ export function DailyQuestsTab({
             )}
           </div>
           
-          <div className="text-[11px] text-slate-400 font-bold light:text-slate-600">
-            修行期數：<span className="text-amber-500">{activeBatch ? activeBatch.name : '未指派'}</span>
+          <div className="text-[11px] text-slate-400 font-bold light:text-slate-600 flex items-center gap-1.5 flex-wrap">
+            修行期數：
+            {userEnrollments.length > 1 && onSwitchCohort ? (
+              <select
+                value={profile.batch_id || ''}
+                onChange={(e) => onSwitchCohort(e.target.value)}
+                className="bg-slate-900 border border-amber-500/30 text-amber-500 text-[11px] font-black rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-amber-500 cursor-pointer light:bg-white light:border-amber-400"
+              >
+                {userEnrollments.map((enroll) => {
+                  const batch = batches.find(b => b.id === enroll.batch_id);
+                  const batchName = batch ? batch.name : `期數: ${enroll.batch_id || '未設定'}`;
+                  const statusText = enroll.status === 'ended' ? ' (已結束)' : enroll.status === 'inactive' ? ' (已停用)' : '';
+                  return (
+                    <option key={enroll.id} value={enroll.batch_id || ''}>
+                      {batchName}{statusText}
+                    </option>
+                  );
+                })}
+              </select>
+            ) : (
+              <span className="text-amber-500">{activeBatch ? activeBatch.name : '未指派'}</span>
+            )}
           </div>
         </div>
 
