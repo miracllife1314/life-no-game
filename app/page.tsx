@@ -734,11 +734,14 @@ export default function Home() {
   const filteredProfiles = currentUser.role === 'admin' ? profiles : profiles.filter(p => p.batch_id === batchFilterId);
   const now = new Date();
   // 以下為「個人分頁」用，依 panelUser（被檢視學員或自己）
-  const filteredTasks = (panelUser.role === 'admin' && !isViewingStudent) ? tasks : tasks.filter(t => t.batch_id === panelBatchId);
-  const filteredAnnouncements = (panelUser.role === 'admin' && !isViewingStudent)
+  // 「大隊長全看」只在:真的是 admin、不是在檢視某學員、且不是在模擬其他角色(GM 模式)時。
+  // → 模擬學員/小隊長時改套用「該角色+該期」過濾,讓預覽真的等於該角色看到的畫面。
+  const isAdminFullView = panelUser.role === 'admin' && !isViewingStudent && !gmMode;
+  const filteredTasks = isAdminFullView ? tasks : tasks.filter(t => t.batch_id === panelBatchId);
+  const filteredAnnouncements = isAdminFullView
     ? announcements
     : announcements.filter(ann => (!ann.batch_id || ann.batch_id === panelBatchId) && new Date(ann.created_at) <= now);
-  const filteredCourses = (panelUser.role === 'admin' && !isViewingStudent) ? courses : courses.filter(c => !c.batch_id || c.batch_id === panelBatchId);
+  const filteredCourses = isAdminFullView ? courses : courses.filter(c => !c.batch_id || c.batch_id === panelBatchId);
 
   // Filter submissions / logs for the active tab context
   const filteredSubmissions = submissions.filter(s => s.student_id === panelUser.id);
