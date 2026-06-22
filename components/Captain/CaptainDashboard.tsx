@@ -1599,15 +1599,16 @@ export function CaptainDashboard({
                                           「{sub.proof_text}」
                                         </div>
                                       )}
-                                      {sub && sub.proof_image_url && (
+                                      {sub && sub.proof_image_url && String(sub.proof_image_url).split('|').filter(Boolean).map((url: string, i: number, arr: string[]) => (
                                         <button
-                                          onClick={e => { e.stopPropagation(); setLightboxSrc(sub.proof_image_url!); }}
+                                          key={i}
+                                          onClick={e => { e.stopPropagation(); setLightboxSrc(url); }}
                                           className="inline-flex items-center gap-1 text-[10px] text-sky-400 hover:text-sky-300 font-bold mt-1 cursor-pointer"
                                         >
                                           <ImageIcon size={11} />
-                                          查看截圖證明
+                                          查看截圖證明{arr.length > 1 ? ` ${i + 1}` : ''}
                                         </button>
-                                      )}
+                                      ))}
                                     </div>
                                     <div className="text-[10px] text-purple-400 bg-purple-500/10 px-2.5 py-1.5 rounded-xl border border-purple-500/20 font-black shrink-0 sm:self-center select-none text-right">
                                       ⏳ 請於下方審核區審批

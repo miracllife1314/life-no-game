@@ -318,16 +318,17 @@ export function ReviewsTab({
                           🔗 查看參考連結
                         </a>
                       )}
-                      {sub.proof_image_url && (
+                      {sub.proof_image_url && String(sub.proof_image_url).split('|').filter(Boolean).map((url: string, i: number, arr: string[]) => (
                         <a
-                          href={sub.proof_image_url}
+                          key={i}
+                          href={url}
                           target="_blank"
                           rel="noreferrer"
                           className="text-[10px] text-amber-500 hover:underline"
                         >
-                          🖼️ 查看佐證圖片
+                          🖼️ 查看佐證圖片{arr.length > 1 ? ` ${i + 1}` : ''}
                         </a>
-                      )}
+                      ))}
                     </div>
                   )}
                 </div>

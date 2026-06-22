@@ -432,17 +432,23 @@ export function DailyQuestsTab({
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
 
     setCompressing(true);
     try {
-      const base64 = await compressImage(file);
-      setProofImg(base64);
+      // proofImg 以 '|' 串接最多 3 張(與見證牆/自由分享同格式);可分次累加
+      const existing = proofImg ? proofImg.split('|').filter(Boolean) : [];
+      const room = 3 - existing.length;
+      if (room > 0) {
+        const compressed = await Promise.all(files.slice(0, room).map(f => compressImage(f)));
+        setProofImg([...existing, ...compressed].slice(0, 3).join('|'));
+      }
     } catch (err) {
       console.error('圖片壓縮失敗:', err);
     } finally {
       setCompressing(false);
+      e.target.value = ''; // 清空 input,讓同一張可再次被選
     }
   };
 
