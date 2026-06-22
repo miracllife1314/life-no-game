@@ -83,31 +83,31 @@ export function Header({
                 {rankTitle.title}
               </span>
             </div>
-            <div className="flex flex-col gap-1 text-xs mt-1.5 text-slate-400 light:text-slate-700 select-none">
-              <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                <span className="flex items-center gap-0.5 whitespace-nowrap font-bold text-slate-300 light:text-slate-700">
-                  <Award size={12} className="text-amber-500" />
-                  {(() => {
-                    if (!team) return '獨立修行者';
-                    let displayName = team.name;
-                    if (userBatch && displayName.startsWith(userBatch.name)) {
-                      displayName = displayName.substring(userBatch.name.length);
+            {/* 第二行:小隊名 ・ 經驗值(同一行) */}
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs mt-1.5 text-slate-400 light:text-slate-700 font-bold select-none">
+              <span className="flex items-center gap-0.5 whitespace-nowrap text-slate-300 light:text-slate-700">
+                <Award size={12} className="text-amber-500" />
+                {(() => {
+                  if (!team) return '獨立修行者';
+                  let displayName = team.name;
+                  if (userBatch && displayName.startsWith(userBatch.name)) {
+                    displayName = displayName.substring(userBatch.name.length);
+                  }
+                  const prefixes = ['NLP初階', 'NLP台中', 'NLP'];
+                  for (const prefix of prefixes) {
+                    if (displayName.startsWith(prefix)) {
+                      displayName = displayName.substring(prefix.length);
                     }
-                    const prefixes = ['NLP初階', 'NLP台中', 'NLP'];
-                    for (const prefix of prefixes) {
-                      if (displayName.startsWith(prefix)) {
-                        displayName = displayName.substring(prefix.length);
-                      }
-                    }
-                    displayName = displayName.replace(/^[\s·\-\#\s]+/, '');
-                    return displayName;
-                  })()}
-                </span>
-              </div>
-              <div className="flex items-center gap-1 mt-0.5 font-bold">
+                  }
+                  displayName = displayName.replace(/^[\s·\-\#\s]+/, '');
+                  return displayName;
+                })()}
+              </span>
+              <span className="w-1 h-1 rounded-full bg-slate-600 light:bg-slate-300" />
+              <span className="flex items-center gap-1 whitespace-nowrap">
                 <TrendingUp size={12} className="text-amber-500" />
                 <span className="font-black text-amber-500 light:text-amber-600">{profile.score.toLocaleString()}</span> 經驗
-              </div>
+              </span>
             </div>
           </div>
         </div>
