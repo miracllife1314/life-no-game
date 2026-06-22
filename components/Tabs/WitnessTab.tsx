@@ -130,23 +130,34 @@ export function WitnessTab({ profiles, tasks, submissions, currentUserId, onRefr
 
   const currentUser = profiles.find(p => p.id === currentUserId);
 
-  // 取一筆見證所屬的「任務名稱」：批次任務用 join 進來的 mission.title，
-  // 舊任務 fallback 到 tasks 表，自由分享貼文另計。用名稱當分組鍵 → 同任務跨天/跨期會併在一起。
-  const taskNameOfSub = (s: any) =>
-    s.mission_id === 'task-custom-post'
-      ? '自由分享貼文'
-      : (s.mission?.title
-          || tasks.find(t => t.id === s.task_id)?.name      // 舊任務用 task_id
-          || tasks.find(t => t.id === s.mission_id)?.name
-          || s.mission?.template?.title
-          || '（其他／未知任務）');
+  // 取一筆見證所屬的「任務種類（分類）」：批次任務優先用 mission.category，
+  // 沒有就退回任務型態的中文（每日／每週／特殊／限時），自由分享另計。用種類當分組鍵。
+  const taskCategoryOfSub = (s: any): string => {
+    if (s.mission_id === 'task-custom-post') return '自由分享';
+    const cat = s.mission?.category
+      || (tasks.find(t => t.id === s.task_id) as any)?.category
+      || (tasks.find(t => t.id === s.mission_id) as any)?.category;
+    if (cat && String(cat).trim()) return String(cat).trim();
+    const type = s.mission?.mission_type
+      || (tasks.find(t => t.id === s.task_id) as any)?.type
+      || (tasks.find(t => t.id === s.mission_id) as any)?.type;
+    const map: Record<string, string> = { daily: '每日任務', weekly: '每週任務', special: '特殊加碼', limited: '限時挑戰' };
+    return map[type as string] || '其他';
+  };
 
-  // 取該見證作者所屬「小隊名稱」（優先自訂名）
+  // 取該見證作者所屬「小隊名稱」（優先自訂名）。若小隊名含完整期數前綴則去掉，避免與期數徽章重複。
   const teamNameOfStudent = (studentId: string) => {
     const p = profiles.find(pp => pp.id === studentId);
     if (!p?.team_id) return '';
     const tm = (teams || []).find(t => t.id === p.team_id);
-    return tm ? (tm.custom_name || tm.name) : '';
+    if (!tm) return '';
+    let nm = (tm.custom_name || tm.name || '').trim();
+    const batchName = batches.find(b => b.id === p.batch_id)?.name?.trim();
+    if (batchName && nm.startsWith(batchName)) {
+      const stripped = nm.slice(batchName.length).trim();
+      if (stripped) nm = stripped;
+    }
+    return nm;
   };
 
   // 取該見證所屬任務的審核方式：auto=免審核（不進管理區）。自由分享貼文視為非 auto。
@@ -218,7 +229,7 @@ export function WitnessTab({ profiles, tasks, submissions, currentUserId, onRefr
     if (category === 'hidden') {
       result = result.filter(s => {
         const profile = profiles.find(p => p.id === s.student_id);
-        const matchTask  = taskFilter  === 'all' || taskNameOfSub(s) === taskFilter;
+        const matchTask  = taskFilter  === 'all' || taskCategoryOfSub(s) === taskFilter;
         const matchBatch = batchFilter === 'all' || (profile?.batch_id || '') === batchFilter;
         return matchTask && matchBatch;
       });
@@ -267,7 +278,7 @@ export function WitnessTab({ profiles, tasks, submissions, currentUserId, onRefr
     const names = new Set<string>();
     const batchIds = new Set<string>();
     notOnWall.forEach(s => {
-      names.add(taskNameOfSub(s));
+      names.add(taskCategoryOfSub(s));
       const p = profiles.find(pp => pp.id === s.student_id);
       if (p?.batch_id) batchIds.add(p.batch_id);
     });
@@ -565,7 +576,7 @@ export function WitnessTab({ profiles, tasks, submissions, currentUserId, onRefr
             onChange={e => setTaskFilter(e.target.value)}
             className="bg-slate-900 border border-white/10 rounded-xl px-2.5 py-1.5 text-[11px] font-bold text-slate-100 outline-none focus:border-purple-500/50 cursor-pointer max-w-[200px] light:bg-white light:border-slate-300 light:text-slate-900"
           >
-            <option value="all">全部任務</option>
+            <option value="all">全部種類</option>
             {hiddenFilterOptions.taskOpts.map(name => (
               <option key={name} value={name}>{name}</option>
             ))}
@@ -750,7 +761,7 @@ export function WitnessTab({ profiles, tasks, submissions, currentUserId, onRefr
                           )}
                           {category === 'hidden' && (
                             <span className="text-[9px] font-black bg-amber-500/10 text-amber-400 border border-amber-500/20 px-1.5 py-0.5 rounded-md">
-                              {taskNameOfSub(s)}
+                              {taskCategoryOfSub(s)}
                             </span>
                           )}
                         </div>
@@ -927,7 +938,7 @@ export function WitnessTab({ profiles, tasks, submissions, currentUserId, onRefr
                   <div className="flex items-center justify-between text-[10px] text-slate-500 font-bold border-t border-white/5 pt-2 light:border-slate-100">
                     <span className="flex items-center gap-1 text-purple-400/80">
                       <Sparkles size={11} />
-                      {task?.name || '未知任務'}
+                      {taskCategoryOfSub(s)}
                     </span>
                     <span className="flex items-center gap-1 text-emerald-500/80">
                       <CheckCircle2 size={11} />
