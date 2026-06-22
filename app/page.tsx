@@ -795,6 +795,7 @@ export default function Home() {
         profile={panelUser}
         team={currentTeam}
         batches={batches}
+        achievements={achievements}
         theme={theme}
         toggleTheme={toggleTheme}
         onLogout={handleLogout}

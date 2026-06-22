@@ -2,14 +2,16 @@
 
 import React from 'react';
 import { Sun, Moon, LogOut, ShieldAlert, Award, TrendingUp, Bookmark } from 'lucide-react';
-import { Profile, Team, Batch } from '@/types';
+import { Profile, Team, Batch, Achievement } from '@/types';
 
 import { calculateLevelFromExp } from '@/lib/levelLogic';
+import { getRankTitle } from '@/lib/titleLogic';
 
 interface HeaderProps {
   profile: Profile;
   team: Team | null;
   batches: Batch[];
+  achievements?: Achievement[];
   theme: 'dark' | 'light';
   toggleTheme: () => void;
   onLogout: () => void;
@@ -25,6 +27,7 @@ export function Header({
   profile,
   team,
   batches,
+  achievements = [],
   theme,
   toggleTheme,
   onLogout,
@@ -38,6 +41,7 @@ export function Header({
   // Use unified level formula
   const userLevel = calculateLevelFromExp(profile.score);
   const userBatch = batches?.find(b => b.id === profile.batch_id);
+  const rankTitle = getRankTitle(profile.score, achievements);
 
   const getRoleLabel = (role: string) => {
     switch (role) {
@@ -73,6 +77,10 @@ export function Header({
               <span className="font-black text-lg text-white">{profile.name}</span>
               <span className={`text-[10px] font-black px-2 py-0.5 rounded-full border ${getRoleBadgeStyle(profile.role)}`}>
                 {getRoleLabel(profile.role)}
+              </span>
+              {/* 🪄 成就稱號:取自 total_score 成就的目前最高階,越高越華麗 */}
+              <span className={`text-[10px] sm:text-xs font-black px-2 py-0.5 rounded-full border whitespace-nowrap ${rankTitle.className}`}>
+                {rankTitle.title}
               </span>
             </div>
             <div className="flex flex-col gap-1 text-xs mt-1.5 text-slate-400 select-none">
