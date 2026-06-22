@@ -135,7 +135,11 @@ export function WitnessTab({ profiles, tasks, submissions, currentUserId, onRefr
   const taskNameOfSub = (s: any) =>
     s.mission_id === 'task-custom-post'
       ? '自由分享貼文'
-      : (s.mission?.title || tasks.find(t => t.id === s.mission_id)?.name || '（其他／未知任務）');
+      : (s.mission?.title
+          || tasks.find(t => t.id === s.task_id)?.name      // 舊任務用 task_id
+          || tasks.find(t => t.id === s.mission_id)?.name
+          || s.mission?.template?.title
+          || '（其他／未知任務）');
 
   // 取該見證作者所屬「小隊名稱」（優先自訂名）
   const teamNameOfStudent = (studentId: string) => {
@@ -149,7 +153,10 @@ export function WitnessTab({ profiles, tasks, submissions, currentUserId, onRefr
   const reviewTypeOfSub = (s: any): string =>
     s.mission_id === 'task-custom-post'
       ? 'leader'
-      : (s.mission?.review_type || (tasks.find(t => t.id === s.mission_id) as any)?.review_type || 'leader');
+      : (s.mission?.review_type
+          || (tasks.find(t => t.id === s.task_id) as any)?.review_type
+          || (tasks.find(t => t.id === s.mission_id) as any)?.review_type
+          || 'leader');
 
   const currentBatchId = useMemo(() => {
     return currentUser?.batch_id || (batches.find(b => b.status === 'active')?.id) || batches[0]?.id || '';
