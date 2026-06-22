@@ -47,7 +47,7 @@ export function Header({
     switch (role) {
       case 'admin': return '指揮部・大隊長';
       case 'captain': return '小隊長';
-      default: return '一般修行者';
+      default: return '學員';
     }
   };
 
