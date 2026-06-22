@@ -274,6 +274,26 @@ export function ReviewsTab({
                     <span className="font-bold text-white text-xs bg-slate-900 px-2 py-0.5 rounded border border-white/5 light:bg-slate-200 light:text-slate-900 light:border-slate-300">
                       學員：{sub.profile?.name}
                     </span>
+                    {(() => {
+                      const b = batches.find(bb => bb.id === sub.profile?.batch_id);
+                      return b ? (
+                        <span className="text-[10px] font-bold text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-2 py-0.5 rounded light:text-indigo-700 light:bg-indigo-100 light:border-indigo-300">
+                          {b.name}
+                        </span>
+                      ) : null;
+                    })()}
+                    {(() => {
+                      const tm = teams.find(t => t.id === sub.profile?.team_id);
+                      if (!tm) return null;
+                      let nm = (tm.custom_name || tm.name || '').trim();
+                      const bn = batches.find(bb => bb.id === sub.profile?.batch_id)?.name?.trim();
+                      if (bn && nm.startsWith(bn)) { const s = nm.slice(bn.length).trim(); if (s) nm = s; }
+                      return (
+                        <span className="text-[10px] font-bold text-sky-400 bg-sky-500/10 border border-sky-500/20 px-2 py-0.5 rounded light:text-sky-700 light:bg-sky-100 light:border-sky-300">
+                          {nm}
+                        </span>
+                      );
+                    })()}
                     <span className="text-[10px] font-bold text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded">
                       任務：{sub.mission?.title || tasks.find(t => t.id === sub.mission_id)?.name || '未知任務'}
                     </span>
