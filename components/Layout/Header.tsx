@@ -83,9 +83,9 @@ export function Header({
                 {rankTitle.title}
               </span>
             </div>
-            <div className="flex flex-col gap-1 text-xs mt-1.5 text-slate-400 select-none">
+            <div className="flex flex-col gap-1 text-xs mt-1.5 text-slate-400 light:text-slate-700 select-none">
               <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                <span className="flex items-center gap-0.5 whitespace-nowrap">
+                <span className="flex items-center gap-0.5 whitespace-nowrap font-bold text-slate-300 light:text-slate-700">
                   <Award size={12} className="text-amber-500" />
                   {(() => {
                     if (!team) return '獨立修行者';
@@ -104,9 +104,9 @@ export function Header({
                   })()}
                 </span>
               </div>
-              <div className="flex items-center gap-1 mt-0.5">
+              <div className="flex items-center gap-1 mt-0.5 font-bold">
                 <TrendingUp size={12} className="text-amber-500" />
-                <span className="font-black text-amber-500/90">{profile.score.toLocaleString()}</span> 經驗
+                <span className="font-black text-amber-500 light:text-amber-600">{profile.score.toLocaleString()}</span> 經驗
               </div>
             </div>
           </div>
