@@ -231,11 +231,13 @@ export default function Home() {
 
         const activeProfile = loadedProfile || currentUser;
         if (activeProfile) {
-          // 以 profile_id 比對同一人的各期報名（profile_id 在公開視圖裡也有；
-          // 不可用 phone — batch① 後非管理員讀的視圖沒有 phone，會比不到而漏掉期數）。
+          // 同一人各期報名：profile_id 或 phone 任一相符即算（兩者都試）。
+          //  - 管理員 fetchFull 的名單有 phone → 用 phone 比對。
+          //  - batch① 後非管理員讀的視圖無 phone，但有 profile_id → 用 profile_id 比對。
+          //  - 最後才退回姓名（避免同名誤併，僅在前兩者皆無時）。
           const enrolls = mappedProfiles.filter((p: any) =>
-            (activeProfile.profile_id && p.profile_id === activeProfile.profile_id) ||
-            (!activeProfile.profile_id && activeProfile.phone && p.phone === activeProfile.phone) ||
+            (activeProfile.profile_id && p.profile_id && p.profile_id === activeProfile.profile_id) ||
+            (activeProfile.phone && p.phone && p.phone === activeProfile.phone) ||
             (!activeProfile.profile_id && !activeProfile.phone && p.name === activeProfile.name)
           );
           setUserEnrollments(enrolls);
