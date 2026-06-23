@@ -500,7 +500,7 @@ export default function Home() {
         } else if (!team.invite_enabled) {
           setInviteError('此邀請通道已關閉');
         } else {
-          const { data: profilesList } = await supabase.from('profiles').select('*');
+          const { data: profilesList } = await supabase.from('v_public_profiles').select('*');
           const currentMembersCount = profilesList?.filter((p: any) => p.team_id === team.id && p.role === 'student').length || 0;
           if (currentMembersCount >= (team.max_members || 10)) {
             setInviteError(`此小隊成員已滿（上限 ${team.max_members || 10} 人）`);

@@ -101,13 +101,25 @@ export function useAuth({
 
     const safeName = (regData.name || '').trim();
     const safePhone = (regData.phone || '').trim();
-    const { data: existingPerson } = await supabase
-      .from('profiles')
-      .select('id')
-      .eq('name', safeName)
-      .eq('phone', safePhone)
-      .limit(1);
-    if (existingPerson && existingPerson.length > 0) {
+    // 重複檢查：優先走伺服器(service role，profiles 收緊 RLS 後仍可查)；API 失敗才退回前端查。
+    let alreadyExists = false;
+    try {
+      const res = await fetch('/api/auth/check-exists', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: safeName, phone: safePhone }),
+      });
+      if (res.ok) {
+        alreadyExists = !!(await res.json()).exists;
+      } else {
+        const { data } = await supabase.from('profiles').select('id').eq('name', safeName).eq('phone', safePhone).limit(1);
+        alreadyExists = !!(data && data.length > 0);
+      }
+    } catch {
+      const { data } = await supabase.from('profiles').select('id').eq('name', safeName).eq('phone', safePhone).limit(1);
+      alreadyExists = !!(data && data.length > 0);
+    }
+    if (alreadyExists) {
       setIsSyncing(false);
       throw new Error('此姓名與手機已經註冊過了。若要加入新的一期，請改用「登入」，登入後再點一次邀請連結即可加入。');
     }

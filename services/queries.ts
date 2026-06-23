@@ -84,7 +84,7 @@ async function fetchScoped(batchId: string): Promise<AllTables> {
   ] = await Promise.all([
     supabase.from('batches').select('*'),
     supabase.from('teams').select('*'),
-    supabase.from('profiles').select('*'),                                   // 全撈：神人榜/姓名
+    supabase.from('v_public_profiles').select('*'),                          // 全撈：神人榜/姓名（無手機敏感欄位）
     supabase.from('pets').select('*'),
     supabase.from('pet_lines').select('*'),
     supabase.from('pet_stages').select('*'),
