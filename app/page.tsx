@@ -231,9 +231,12 @@ export default function Home() {
 
         const activeProfile = loadedProfile || currentUser;
         if (activeProfile) {
+          // 以 profile_id 比對同一人的各期報名（profile_id 在公開視圖裡也有；
+          // 不可用 phone — batch① 後非管理員讀的視圖沒有 phone，會比不到而漏掉期數）。
           const enrolls = mappedProfiles.filter((p: any) =>
-            (activeProfile.phone && p.phone === activeProfile.phone) ||
-            (!activeProfile.phone && p.name === activeProfile.name)
+            (activeProfile.profile_id && p.profile_id === activeProfile.profile_id) ||
+            (!activeProfile.profile_id && activeProfile.phone && p.phone === activeProfile.phone) ||
+            (!activeProfile.profile_id && !activeProfile.phone && p.name === activeProfile.name)
           );
           setUserEnrollments(enrolls);
         } else {
