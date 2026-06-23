@@ -460,6 +460,8 @@ export function DailyQuestsTab({
   const [showSuccessModal, setShowSuccessModal] = useState<any | null>(null);
   const [showLevelUpModal, setShowLevelUpModal] = useState<any | null>(null);
   const [selectedMilestone, setSelectedMilestone] = useState<any | null>(null);
+  // 點擊「已達成」的連勝禮物時播放的慶祝特效(純視覺,不重複發分——分數已於達成時自動發放)
+  const [celebrateNode, setCelebrateNode] = useState<{ d: number; bonus: number } | null>(null);
 
   // 通知父層:升級/進化彈窗是否正在顯示 → 成就彈窗要等這些關掉後才跳(一次只跳一個、不重疊)
   React.useEffect(() => {
@@ -1102,8 +1104,16 @@ export function DailyQuestsTab({
                   return (
                     <div key={node.d} className="relative z-10 flex flex-col items-center group">
                       {/* Node Circle */}
-                      <div 
-                        onClick={() => setSelectedMilestone(node)}
+                      <div
+                        onClick={() => {
+                          if (isUnlocked && node.bonus > 0) {
+                            // 已達成的禮物 → 播放慶祝特效 +「+X EXP」動畫(純視覺)
+                            setCelebrateNode({ d: node.d, bonus: node.bonus });
+                            setTimeout(() => setCelebrateNode(null), 1800);
+                          } else {
+                            setSelectedMilestone(node);
+                          }
+                        }}
                         className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black border transition-all duration-300 relative cursor-pointer hover:scale-110 active:scale-95 ${
                           isUnlocked 
                             ? 'bg-gradient-to-br from-amber-400 to-orange-500 border-amber-300 text-slate-950 shadow-[0_0_8px_rgba(245,158,11,0.4)]'
@@ -2560,11 +2570,48 @@ export function DailyQuestsTab({
 
       {/* 🏆 連勝里程碑詳細資訊彈窗 */}
       {selectedMilestone && (
-        <MilestoneModal 
-          milestone={selectedMilestone} 
-          dailyStreak={dailyStreak} 
-          onClose={() => setSelectedMilestone(null)} 
+        <MilestoneModal
+          milestone={selectedMilestone}
+          dailyStreak={dailyStreak}
+          onClose={() => setSelectedMilestone(null)}
         />
+      )}
+
+      {/* ✨ 連勝禮物「已達成」慶祝特效（純視覺，分數已於達成時自動發放，不重複加分） */}
+      {celebrateNode && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center pointer-events-none select-none">
+          {/* 中央光暈 */}
+          <div className="absolute w-56 h-56 rounded-full bg-amber-400/20 blur-2xl" style={{ animation: 'msGlow 1.8s ease-out forwards' }} />
+          <div className="relative flex flex-col items-center">
+            {/* 四射星星：外層固定旋轉決定方向，內層做位移動畫 */}
+            {Array.from({ length: 10 }).map((_, i) => (
+              <span key={i} className="absolute top-6" style={{ transform: `rotate(${i * 36}deg)` }}>
+                <span className="block text-lg" style={{ animation: 'msSpark 0.9s ease-out forwards' }}>✨</span>
+              </span>
+            ))}
+            {/* 禮物彈跳 */}
+            <div className="text-6xl" style={{ animation: 'msPop 0.6s cubic-bezier(.18,1.4,.4,1) both' }}>🎁</div>
+            {/* +X EXP 上升淡出 */}
+            <div
+              className="mt-3 text-3xl font-black text-amber-400 drop-shadow-[0_2px_8px_rgba(245,158,11,0.6)] light:text-amber-600"
+              style={{ animation: 'msRise 1.6s ease-out forwards' }}
+            >
+              +{celebrateNode.bonus} EXP
+            </div>
+            <div
+              className="text-xs font-black text-amber-300 mt-1 light:text-amber-700"
+              style={{ animation: 'msRise 1.6s ease-out 0.1s forwards', opacity: 0 }}
+            >
+              🔥 連勝 {celebrateNode.d} 天獎勵
+            </div>
+          </div>
+          <style>{`
+            @keyframes msPop { 0%{transform:scale(0) rotate(-15deg)} 70%{transform:scale(1.25) rotate(6deg)} 100%{transform:scale(1) rotate(0)} }
+            @keyframes msRise { 0%{opacity:0;transform:translateY(14px) scale(.8)} 25%{opacity:1;transform:translateY(0) scale(1.1)} 70%{opacity:1;transform:translateY(-14px) scale(1)} 100%{opacity:0;transform:translateY(-46px) scale(.95)} }
+            @keyframes msSpark { 0%{opacity:1;transform:translateY(0) scale(.2)} 100%{opacity:0;transform:translateY(-70px) scale(1.4)} }
+            @keyframes msGlow { 0%{opacity:0;transform:scale(.4)} 30%{opacity:1} 100%{opacity:0;transform:scale(1.3)} }
+          `}</style>
+        </div>
       )}
     </div>
   );
