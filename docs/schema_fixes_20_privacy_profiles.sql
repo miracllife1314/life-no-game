@@ -43,14 +43,16 @@ grant select on public.v_public_profiles to anon, authenticated;
 
 -- ===================================================================
 -- PART 2 —— 等前端都改好、上線後，才跑這段（這段才會真正收緊）
--- 收緊 profiles 的 SELECT：只有 管理員 / 本人 / 該隊隊長 能讀整列
+-- 收緊 profiles 的 SELECT：只有 管理員 / 本人 能讀整列（含手機）。
+-- 註：小隊長不需要看手機，故不放 is_captain_of —— 小隊長一律只能讀自己那列，
+--     其餘人的資料只能透過 v_public_profiles（無手機）取得。
 -- ===================================================================
--- drop policy if exists "p_profiles_select" on public.profiles;
--- create policy "p_profiles_select" on public.profiles
---   for select to anon, authenticated
---   using ( public.is_admin()
---           or auth.uid() = auth_user_id
---           or public.is_captain_of(id) );
+-- 效能優化：把函式包進 (select ...)，讓 Postgres「整批只算一次」而非每列重算
+-- （Supabase 官方建議；功能/權限完全相同，只是更快，解決大隊長載入名單變慢）
+drop policy if exists "p_profiles_select" on public.profiles;
+create policy "p_profiles_select" on public.profiles
+  for select to anon, authenticated
+  using ( (select public.is_admin()) or (select auth.uid()) = auth_user_id );
 
 
 -- ===================================================================
