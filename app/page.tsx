@@ -231,16 +231,28 @@ export default function Home() {
 
         const activeProfile = loadedProfile || currentUser;
         if (activeProfile) {
-          // 同一人各期報名：profile_id 或 phone 任一相符即算（兩者都試）。
-          //  - 管理員 fetchFull 的名單有 phone → 用 phone 比對。
-          //  - batch① 後非管理員讀的視圖無 phone，但有 profile_id → 用 profile_id 比對。
-          //  - 最後才退回姓名（避免同名誤併，僅在前兩者皆無時）。
-          const enrolls = mappedProfiles.filter((p: any) =>
+          // 前端比對（退路）：profile_id 或 phone 任一相符。
+          // ⚠️ batch① 後非管理員讀的視圖無 phone、且各期 profile_id/角色不一定相同，
+          //    前端常湊不齊 → 優先改用伺服器權威查詢（用自己的 id 反查手機再撈各期）。
+          const clientEnrolls = mappedProfiles.filter((p: any) =>
             (activeProfile.profile_id && p.profile_id && p.profile_id === activeProfile.profile_id) ||
             (activeProfile.phone && p.phone && p.phone === activeProfile.phone) ||
             (!activeProfile.profile_id && !activeProfile.phone && p.name === activeProfile.name)
           );
-          setUserEnrollments(enrolls);
+          // 先用前端比對結果（即時顯示），再用伺服器權威結果覆蓋（回來才更新）。
+          setUserEnrollments(clientEnrolls);
+          fetch('/api/auth/my-enrollments', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: activeProfile.id }),
+          })
+            .then((res) => (res.ok ? res.json() : null))
+            .then((j) => {
+              if (j && Array.isArray(j.enrollments) && j.enrollments.length > 0) {
+                setUserEnrollments(j.enrollments);
+              }
+            })
+            .catch(() => { /* API 失敗則保留前端比對結果 */ });
         } else {
           setUserEnrollments([]);
         }
