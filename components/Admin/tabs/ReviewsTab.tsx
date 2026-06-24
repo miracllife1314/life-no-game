@@ -154,6 +154,11 @@ export function ReviewsTab({
   const [reviewTeamFilter, setReviewTeamFilter] = useState('all');
   const [reviewSearch, setReviewSearch] = useState('');
   const [reviewSortKey, setReviewSortKey] = useState('time_asc'); // 'time_desc' (最新優先), 'time_asc' (最舊優先)
+  const [reviewView, setReviewView] = useState<'pending' | 'approved'>('pending'); // 待審核 / 已通過(可退回)
+  const approvedSubmissions = useMemo(
+    () => (submissions || []).filter(s => s.status === 'approved'),
+    [submissions]
+  );
 
   // 依選取的 batch 過濾小隊選單
   const reviewTeams = useMemo(() => {
@@ -164,19 +169,22 @@ export function ReviewsTab({
 
   // 待處理打卡篩選與排序
   const filteredSubmissions = useMemo(() => {
-    let list = pendingSubmissions.filter(sub => {
+    const source = reviewView === 'pending' ? pendingSubmissions : approvedSubmissions;
+    let list = source.filter(sub => {
       const matchBatch = reviewBatchFilter === 'all' || sub.profile?.batch_id === reviewBatchFilter;
       const matchTeam = reviewTeamFilter === 'all' || sub.profile?.team_id === reviewTeamFilter;
       const matchSearch = !reviewSearch || (sub.profile?.name && sub.profile.name.includes(reviewSearch));
       return matchBatch && matchTeam && matchSearch;
     });
 
-    return [...list].sort((a, b) => {
+    const sorted = [...list].sort((a, b) => {
       const timeA = new Date(a.created_at).getTime();
       const timeB = new Date(b.created_at).getTime();
       return reviewSortKey === 'time_asc' ? timeA - timeB : timeB - timeA;
     });
-  }, [pendingSubmissions, reviewBatchFilter, reviewTeamFilter, reviewSearch, reviewSortKey]);
+    // 已通過清單可能很大 → 最多顯示 100 筆(請用搜尋/期數縮小範圍)
+    return reviewView === 'approved' ? sorted.slice(0, 100) : sorted;
+  }, [pendingSubmissions, approvedSubmissions, reviewView, reviewBatchFilter, reviewTeamFilter, reviewSearch, reviewSortKey]);
 
   // Find batches that have teams
   const activeBatches = batches.filter(b => teams.some(t => t.batch_id === b.id));
@@ -208,10 +216,30 @@ export function ReviewsTab({
       {/* 待處理簽到打卡證明 */}
       <section className="glass-panel p-6 rounded-3xl border border-white/5 space-y-4 light:bg-white light:border-slate-200">
         <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 select-none pb-2 border-b border-white/5 light:border-slate-100">
-          <h3 className="font-black text-white text-base select-none light:text-slate-900 shrink-0">
-            待處理簽到打卡證明 ({filteredSubmissions.length} / {pendingSubmissions.length})
-          </h3>
-          
+          <div className="flex flex-col gap-2 shrink-0">
+            <h3 className="font-black text-white text-base select-none light:text-slate-900">
+              {reviewView === 'pending'
+                ? `待處理簽到打卡證明 (${filteredSubmissions.length} / ${pendingSubmissions.length})`
+                : `已通過紀錄・可退回 (顯示 ${filteredSubmissions.length} / 共 ${approvedSubmissions.length})`}
+            </h3>
+            {/* 待審核 / 已通過 切換 */}
+            <div className="flex bg-slate-950 p-0.5 rounded-xl border border-white/5 self-start light:bg-slate-200">
+              {([['pending', '待審核'], ['approved', '已通過(可退回)']] as const).map(([key, label]) => (
+                <button
+                  key={key}
+                  onClick={() => setReviewView(key)}
+                  className={`py-1 px-3 rounded-lg text-[11px] font-black transition-all cursor-pointer ${
+                    reviewView === key
+                      ? 'bg-amber-500 text-slate-950 shadow-md'
+                      : 'text-slate-400 hover:text-white light:text-slate-500 light:hover:text-slate-900'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <div className="flex flex-wrap items-center gap-2 w-full xl:w-auto">
             {/* 篩選期數 */}
             <select
@@ -263,7 +291,9 @@ export function ReviewsTab({
 
         {filteredSubmissions.length === 0 ? (
           <div className="text-center py-12 text-slate-500 font-bold text-sm select-none">
-            🎉 目前沒有符合篩選條件的待審核證明！
+            {reviewView === 'pending'
+              ? '🎉 目前沒有符合篩選條件的待審核證明！'
+              : '查無符合條件的已通過紀錄。可用上方「搜尋姓名／期數」縮小範圍。'}
           </div>
         ) : (
           <div className="space-y-4">
@@ -333,33 +363,51 @@ export function ReviewsTab({
                   )}
                 </div>
 
-                {/* Actions (Approve / Reject) */}
+                {/* Actions */}
                 <div className="shrink-0 flex gap-2 select-none">
-                  <button
-                    onClick={() => onReviewSubmission(sub.id, 'rejected')}
-                    disabled={isSyncing}
-                    className="btn-action bg-slate-900 border border-red-500/30 hover:bg-red-500/10 text-red-400 p-2.5 rounded-xl text-xs font-black flex items-center gap-1 light:bg-slate-100"
-                  >
-                    <X size={14} />
-                    退回
-                  </button>
-                  <button
-                    onClick={() => onReviewSubmission(sub.id, 'approved', false)}
-                    disabled={isSyncing}
-                    className="btn-action bg-emerald-500 hover:bg-emerald-600 text-slate-950 p-2.5 rounded-xl text-xs font-black flex items-center gap-1"
-                  >
-                    <Check size={14} />
-                    同意加分
-                  </button>
-                  <button
-                    onClick={() => onReviewSubmission(sub.id, 'approved', true)}
-                    disabled={isSyncing}
-                    title="通過並分享到見證牆"
-                    className="btn-action bg-purple-500 hover:bg-purple-600 text-white p-2.5 rounded-xl text-xs font-black flex items-center gap-1"
-                  >
-                    <Check size={14} />
-                    上見證牆
-                  </button>
+                  {reviewView === 'approved' ? (
+                    // 已通過檢視:撤銷通過(退回)→ 觸發器自動扣回分數
+                    <button
+                      onClick={() => {
+                        if (window.confirm(`確定退回「${sub.profile?.name}」這筆已通過的紀錄嗎？\n\n系統會自動扣回先前給的分數(學員、隊伍、神獸經驗一併更新),此筆改為「已退回」。`)) {
+                          onReviewSubmission(sub.id, 'rejected');
+                        }
+                      }}
+                      disabled={isSyncing}
+                      className="btn-action bg-slate-900 border border-rose-500/40 hover:bg-rose-500/10 text-rose-400 px-3 py-2.5 rounded-xl text-xs font-black flex items-center gap-1 light:bg-slate-100"
+                    >
+                      <X size={14} />
+                      退回(撤銷通過)
+                    </button>
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => onReviewSubmission(sub.id, 'rejected')}
+                        disabled={isSyncing}
+                        className="btn-action bg-slate-900 border border-red-500/30 hover:bg-red-500/10 text-red-400 p-2.5 rounded-xl text-xs font-black flex items-center gap-1 light:bg-slate-100"
+                      >
+                        <X size={14} />
+                        退回
+                      </button>
+                      <button
+                        onClick={() => onReviewSubmission(sub.id, 'approved', false)}
+                        disabled={isSyncing}
+                        className="btn-action bg-emerald-500 hover:bg-emerald-600 text-slate-950 p-2.5 rounded-xl text-xs font-black flex items-center gap-1"
+                      >
+                        <Check size={14} />
+                        同意加分
+                      </button>
+                      <button
+                        onClick={() => onReviewSubmission(sub.id, 'approved', true)}
+                        disabled={isSyncing}
+                        title="通過並分享到見證牆"
+                        className="btn-action bg-purple-500 hover:bg-purple-600 text-white p-2.5 rounded-xl text-xs font-black flex items-center gap-1"
+                      >
+                        <Check size={14} />
+                        上見證牆
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
             ))}
