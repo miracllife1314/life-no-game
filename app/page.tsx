@@ -127,6 +127,26 @@ export default function Home() {
 
   // --- UI States ---
   const [activeTab, setActiveTab] = useState<TabKey>('daily');
+
+  // ⚡ score_logs 延後載入:大隊長登入「不載」歷程(它是最慢的查詢之一),
+  //    改成切到「歷程 / 神隊管理」分頁時才載一次。學員/隊長走 fetchScoped 已自帶歷程,不受影響。
+  const scoreLogsLoadedRef = useRef(false);
+  const loadScoreLogs = useCallback(async () => {
+    if (scoreLogsLoadedRef.current) return;
+    scoreLogsLoadedRef.current = true;
+    const { data } = await supabase
+      .from('score_logs')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(1200);
+    if (data && data.length > 0) setScoreLogs(data);
+  }, []);
+  useEffect(() => {
+    if (currentUser?.role === 'admin' && (activeTab === 'history' || activeTab === 'captain')) {
+      loadScoreLogs();
+    }
+  }, [activeTab, currentUser?.role, loadScoreLogs]);
+
   // 切換分頁時自動捲回頂端，避免新分頁停在上一頁的捲動位置（例如修行明細看不到上方標頭）
   useEffect(() => {
     if (typeof window !== 'undefined') window.scrollTo(0, 0);
@@ -290,7 +310,8 @@ export default function Home() {
       if (coursesList) setCourses([...coursesList].sort((a: any, b: any) => (a.sort_order ?? 0) - (b.sort_order ?? 0)));
       if (achsList) setAchievements(achsList);
       if (annsList) setAnnouncements(annsList);
-      if (scoreLogsList) setScoreLogs(scoreLogsList);
+      // 只在「有資料」時覆蓋:大隊長走延後載入(回空陣列),不可用空陣列把已載入的歷程蓋掉。
+      if (scoreLogsList && scoreLogsList.length > 0) setScoreLogs(scoreLogsList);
       if (petsList) setPets(petsList);
       if (cardsList) setCards(cardsList);
       if (decksList) setDecks(decksList);

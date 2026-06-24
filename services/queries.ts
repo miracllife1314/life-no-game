@@ -51,9 +51,10 @@ async function fetchFull(): Promise<AllTables> {
     supabase.from('user_achievements').select('*'),
     supabase.from('announcements').select('*'),
     supabase.from('student_notes').select('*'),
-    // score_logs 僅用於「顯示歷史」（不參與計分，分數真相在 profiles.score）→ 初次只撈最近 1200 筆，
-    // 明細顯示綽綽有餘；要看更舊的可日後加「載入更多」。大幅減少登入下載量。
-    supabase.from('score_logs').select('*').order('created_at', { ascending: false }).limit(1200),
+    // score_logs 僅用於「顯示歷史」（不參與計分，分數真相在 profiles.score）。
+    // ⚡ 大隊長登入「不載」score_logs（它是最慢的查詢之一，1200筆+排序）；
+    //    改為切到「歷程 / 神隊管理」分頁時才載一次（見 app/page.tsx 的 loadScoreLogs）。
+    Promise.resolve(EMPTY),
     supabase.from('pets').select('*'),
     supabase.from('user_pets').select('*'),
     supabase.from('cards').select('*'),
