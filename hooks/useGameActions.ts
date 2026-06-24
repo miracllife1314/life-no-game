@@ -439,7 +439,34 @@ export function useGameActions(d: Deps) {
       .from('submissions')
       .update(updatePayload)
       .eq('id', submissionId);
-    await fetchData();
+
+    // ⚡ 樂觀更新本地狀態，取代「每審一筆就 fetchData() 全撈」——
+    //    大隊長全撈資料量大，每筆重載會明顯變慢。改為直接在畫面套用結果。
+    //    真正的分數由資料庫觸發器負責；這裡只是同步畫面，與觸發器邏輯一致。
+    if (sub) {
+      setSubmissions(prev => prev.map(s => s.id === submissionId ? { ...s, ...updatePayload } : s));
+      const nonCustom = sub.mission_id !== 'task-custom-post';
+      // 待審→通過：加分（基礎分 + 上見證牆 200）；已核准→退回：扣回；其餘 0
+      const bonus =
+        (sub.status !== 'approved' && status === 'approved')
+          ? points + ((shareToWitness && nonCustom) ? 200 : 0)
+          : (sub.status === 'approved' && status !== 'approved')
+            ? -((sub.score_awarded || 0) + ((sub.share_to_witness && nonCustom) ? 200 : 0))
+            : 0;
+      if (bonus !== 0) {
+        setProfiles(prev => prev.map(p => {
+          if (p.id === sub.student_id) {
+            const nextScore = p.score + bonus;
+            if (currentUser && p.id === currentUser.id) setCurrentUser(u => u ? { ...u, score: nextScore } : null);
+            return { ...p, score: nextScore };
+          }
+          return p;
+        }));
+        setUserPets(prev => prev.map(up => up.student_id === sub.student_id
+          ? { ...up, total_exp: up.total_exp + bonus, level: calculateLevelFromExp(up.total_exp + bonus), updated_at: new Date().toISOString() }
+          : up));
+      }
+    }
   };
 
   const handleToggleCell = async (studentId: string, taskId: string) => {
