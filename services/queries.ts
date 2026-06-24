@@ -35,6 +35,7 @@ async function fetchFull(): Promise<AllTables> {
     batches, templates, rules, profiles, teams, tasks, subs, courses, attendance,
     achs, userAchs, anns, notes, scoreLogs, pets, userPets, cards, decks,
     deckCards, userDecks, missions, petLines, petStages, candidates, squadRoles,
+    subsImg,
   ] = await Promise.all([
     supabase.from('batches').select('*'),
     supabase.from('mission_templates').select('*'),
@@ -64,15 +65,16 @@ async function fetchFull(): Promise<AllTables> {
     supabase.from('pet_stages').select('*'),
     supabase.from('captain_candidates').select('*'),
     supabase.from('squad_roles').select('*').order('created_at', { ascending: true }),
+    // proof_image_url 另撈,排除 base64 肥圖(data:開頭，曾把 DB 撐到 10MB);
+    // 正常 URL 圖很小(全部才 ~40KB)。⚡ 併進這個 Promise.all 一起並行,
+    // 避免變成「撈完 25 表後再多等一次圖片」的序列等待(原本白白多花 ~0.8s)。
+    supabase.from('submissions')
+      .select('id,proof_image_url')
+      .not('proof_image_url', 'is', null)
+      .not('proof_image_url', 'like', 'data:%'),
   ]);
 
-  // 補回 proof_image_url，但「排除 base64 肥圖」(data:開頭，曾把 DB 撐到 10MB)。
-  // 正常 URL 圖其實很小(全部才 ~21KB)，全載沒問題，且能讓所有畫面(含已隱藏管理區)正常顯示圖。
-  // base64 那少數幾筆不載圖(避免肥)，可日後搬到 Storage 修復。
-  const subsImg = await supabase.from('submissions')
-    .select('id,proof_image_url')
-    .not('proof_image_url', 'is', null)
-    .not('proof_image_url', 'like', 'data:%');
+  // base64 那少數幾筆不載圖(避免肥)，可日後搬到 Storage 修復。畫面其餘列圖正常顯示。
   const imgMap = new Map((d(subsImg) as any[]).map((r: any) => [r.id, r.proof_image_url]));
   const subsList = (d(subs) as any[]).map((s: any) => ({ ...s, proof_image_url: imgMap.get(s.id) ?? null }));
 
