@@ -84,7 +84,7 @@ export function useGameActions(d: Deps) {
            s.status !== 'rejected' &&
            (s.proof_text || '').trim() === newProof
     )) {
-      showToast('這筆心得內容跟之前送過的一模一樣喔，請勿重複上傳。若是不同的記錄，請改寫內容再送 😊', 'info');
+      showToast('這筆心得內容跟之前送過的一樣，請勿重複上傳', 'info');
       return;
     }
 
