@@ -155,10 +155,23 @@ export function ReviewsTab({
   const [reviewSearch, setReviewSearch] = useState('');
   const [reviewSortKey, setReviewSortKey] = useState('time_asc'); // 'time_desc' (最新優先), 'time_asc' (最舊優先)
   const [reviewView, setReviewView] = useState<'pending' | 'approved'>('pending'); // 待審核 / 已通過(可退回)
+  const [reviewTaskFilter, setReviewTaskFilter] = useState('all'); // 依任務篩選
   const approvedSubmissions = useMemo(
     () => (submissions || []).filter(s => s.status === 'approved'),
     [submissions]
   );
+  // 取一筆提交的任務名稱(批次任務用 mission.title,舊任務查 tasks)
+  const taskNameOfSub = (s: any) =>
+    s.mission_id === 'task-custom-post'
+      ? '自由分享貼文'
+      : (s.mission?.title || tasks.find(t => t.id === s.mission_id)?.name || '（其他／未知任務）');
+  // 目前檢視下可篩選的「任務」清單(只列實際有的)
+  const reviewTaskOptions = useMemo(() => {
+    const src = reviewView === 'pending' ? pendingSubmissions : approvedSubmissions;
+    const names = new Set<string>();
+    src.forEach(s => names.add(taskNameOfSub(s)));
+    return Array.from(names).sort((a, b) => a.localeCompare(b, 'zh-Hant'));
+  }, [pendingSubmissions, approvedSubmissions, reviewView, tasks]);
 
   // 依選取的 batch 過濾小隊選單
   const reviewTeams = useMemo(() => {
@@ -174,7 +187,8 @@ export function ReviewsTab({
       const matchBatch = reviewBatchFilter === 'all' || sub.profile?.batch_id === reviewBatchFilter;
       const matchTeam = reviewTeamFilter === 'all' || sub.profile?.team_id === reviewTeamFilter;
       const matchSearch = !reviewSearch || (sub.profile?.name && sub.profile.name.includes(reviewSearch));
-      return matchBatch && matchTeam && matchSearch;
+      const matchTask = reviewTaskFilter === 'all' || taskNameOfSub(sub) === reviewTaskFilter;
+      return matchBatch && matchTeam && matchSearch && matchTask;
     });
 
     const sorted = [...list].sort((a, b) => {
@@ -184,7 +198,7 @@ export function ReviewsTab({
     });
     // 已通過清單可能很大 → 最多顯示 100 筆(請用搜尋/期數縮小範圍)
     return reviewView === 'approved' ? sorted.slice(0, 100) : sorted;
-  }, [pendingSubmissions, approvedSubmissions, reviewView, reviewBatchFilter, reviewTeamFilter, reviewSearch, reviewSortKey]);
+  }, [pendingSubmissions, approvedSubmissions, reviewView, reviewBatchFilter, reviewTeamFilter, reviewSearch, reviewSortKey, reviewTaskFilter]);
 
   // Find batches that have teams
   const activeBatches = batches.filter(b => teams.some(t => t.batch_id === b.id));
@@ -227,7 +241,7 @@ export function ReviewsTab({
               {([['pending', '待審核'], ['approved', '已通過(可退回)']] as const).map(([key, label]) => (
                 <button
                   key={key}
-                  onClick={() => setReviewView(key)}
+                  onClick={() => { setReviewView(key); setReviewTaskFilter('all'); }}
                   className={`py-1 px-3 rounded-lg text-[11px] font-black transition-all cursor-pointer ${
                     reviewView === key
                       ? 'bg-amber-500 text-slate-950 shadow-md'
@@ -265,6 +279,18 @@ export function ReviewsTab({
               <option value="all">所有小隊</option>
               {reviewTeams.map(t => (
                 <option key={t.id} value={t.id}>{t.name}</option>
+              ))}
+            </select>
+
+            {/* 篩選任務 */}
+            <select
+              value={reviewTaskFilter}
+              onChange={(e) => setReviewTaskFilter(e.target.value)}
+              className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-amber-500 max-w-[180px] light:bg-slate-50 light:border-slate-300 light:text-slate-800"
+            >
+              <option value="all">所有任務</option>
+              {reviewTaskOptions.map(name => (
+                <option key={name} value={name}>{name}</option>
               ))}
             </select>
 
