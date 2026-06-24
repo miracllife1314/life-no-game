@@ -66,11 +66,13 @@ async function fetchFull(): Promise<AllTables> {
     supabase.from('squad_roles').select('*').order('created_at', { ascending: true }),
   ]);
 
-  // 只為「要顯示圖」的列補回 proof_image_url：待審核 / 已上見證牆 / 自由貼文。其餘列圖留空（畫面不需要）。
+  // 補回 proof_image_url，但「排除 base64 肥圖」(data:開頭，曾把 DB 撐到 10MB)。
+  // 正常 URL 圖其實很小(全部才 ~21KB)，全載沒問題，且能讓所有畫面(含已隱藏管理區)正常顯示圖。
+  // base64 那少數幾筆不載圖(避免肥)，可日後搬到 Storage 修復。
   const subsImg = await supabase.from('submissions')
     .select('id,proof_image_url')
-    .or('status.eq.pending,share_to_witness.eq.true,mission_id.eq.task-custom-post')
-    .not('proof_image_url', 'is', null);
+    .not('proof_image_url', 'is', null)
+    .not('proof_image_url', 'like', 'data:%');
   const imgMap = new Map((d(subsImg) as any[]).map((r: any) => [r.id, r.proof_image_url]));
   const subsList = (d(subs) as any[]).map((s: any) => ({ ...s, proof_image_url: imgMap.get(s.id) ?? null }));
 
