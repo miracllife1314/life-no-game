@@ -330,7 +330,7 @@ export function TeamsTab({ profiles, teams, batches, captainCandidates, notes, c
                     {profiles
                       .filter(p => p.role === 'admin')
                       .map(p => (
-                        <option key={p.id} value={p.profile_id}>
+                        <option key={p.id} value={p.id}>
                           👑 {p.name} {p.division_name ? `(${p.division_name})` : ''}
                         </option>
                       ))}
@@ -835,7 +835,7 @@ export function TeamsTab({ profiles, teams, batches, captainCandidates, notes, c
                                   {profiles
                                     .filter(p => p.role === 'admin')
                                     .map(p => (
-                                      <option key={p.id} value={p.profile_id}>
+                                      <option key={p.id} value={p.id}>
                                         👑 {p.name} {p.division_name ? `(${p.division_name})` : ''}
                                       </option>
                                     ))}
