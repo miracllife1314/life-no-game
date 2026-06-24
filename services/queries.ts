@@ -50,9 +50,9 @@ async function fetchFull(): Promise<AllTables> {
     supabase.from('user_achievements').select('*'),
     supabase.from('announcements').select('*'),
     supabase.from('student_notes').select('*'),
-    // score_logs 僅用於「顯示歷史」（不參與計分，分數真相在 profiles.score）→ 只撈最近 5000 筆，
-    // 避免大量學員時撈回十萬筆拖慢載入與 JS 拼接。時間倒序取最近。
-    supabase.from('score_logs').select('*').order('created_at', { ascending: false }).limit(5000),
+    // score_logs 僅用於「顯示歷史」（不參與計分，分數真相在 profiles.score）→ 初次只撈最近 1200 筆，
+    // 明細顯示綽綽有餘；要看更舊的可日後加「載入更多」。大幅減少登入下載量。
+    supabase.from('score_logs').select('*').order('created_at', { ascending: false }).limit(1200),
     supabase.from('pets').select('*'),
     supabase.from('user_pets').select('*'),
     supabase.from('cards').select('*'),

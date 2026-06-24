@@ -39,24 +39,31 @@ export async function uploadProofImage(
 ): Promise<string | null> {
   if (!input) return null;
   if (!isRealSupabase || !realSupabase || !input.startsWith('data:')) return input;
-  try {
-    const res = await fetch(input);
+
+  // 上傳到 Storage（失敗會重試一次）。
+  // ⚠️ 一律不退回 base64：以前失敗會把整張圖（base64）塞進 DB，造成資料表暴肥、登入變慢。
+  //    改為兩次都失敗就回 null（此筆沒圖、文字證明仍保留），DB 永遠不會再被圖片撐肥。
+  const tryUpload = async (): Promise<string> => {
+    const res = await fetch(input as string);
     const blob = await res.blob();
     const ext = (blob.type.split('/')[1] || 'webp').replace('+xml', '');
     const path = `proof-${Date.now()}-${Math.random().toString(36).slice(2, 10)}.${ext}`;
-    const { error } = await realSupabase.storage
+    const { error } = await realSupabase!.storage
       .from('proof-images')
       .upload(path, blob, { contentType: blob.type || 'image/webp', upsert: true });
-    if (error) {
-      console.error('[uploadProofImage] upload failed, fallback to base64:', error);
-      return input;
+    if (error) throw error;
+    return realSupabase!.storage.from('proof-images').getPublicUrl(path).data.publicUrl;
+  };
+
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    try {
+      return await tryUpload();
+    } catch (e) {
+      console.error(`[uploadProofImage] 上傳失敗（第 ${attempt} 次）：`, e);
     }
-    const { data } = realSupabase.storage.from('proof-images').getPublicUrl(path);
-    return data.publicUrl;
-  } catch (e) {
-    console.error('[uploadProofImage] error, fallback to base64:', e);
-    return input;
   }
+  console.error('[uploadProofImage] 多次上傳失敗，放棄存圖（不退回 base64，避免撐肥 DB）');
+  return null;
 }
 
 export function getRequiredStageByLevel(level: number): number {
