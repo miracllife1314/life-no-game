@@ -2,6 +2,10 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+> 🔎 **檢查或修改程式前,請先讀 [`docs/開發脈絡與變更紀錄.md`](docs/開發脈絡與變更紀錄.md)。**
+> 它記了「容易誤判的脈絡/陷阱」(例如 profile_id 會被補成 id、captain_id 用 profile_id 比對但 director_id 用 id 比對、score_logs 是延後載入…)與「近期變更紀錄」。
+> **每次做重要改動,請在該文件 Part 2 最上面補一條(日期 + 改了什麼 + 為什麼)。**
+
 ## Commands
 
 ```bash
