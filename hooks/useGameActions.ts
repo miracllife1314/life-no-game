@@ -75,6 +75,15 @@ export function useGameActions(d: Deps) {
     // 操作對象：檢視某學員時 = 該學員；平常 = 登入者自己
     const actingUser = (viewAsUserId ? profiles.find(p => p.id === viewAsUserId) : null) || currentUser;
 
+    // 🛡️ 防呆：同一任務已有一筆「待審核」時，不允許再送 —— 避免不小心重複送、塞一堆重複待審件。
+    //    審核通過或退回後才能再送下一筆（不影響「可多次完成」任務的正常流程：每筆審完才送下一筆）。
+    if (requiresApproval && submissions.some(
+      s => s.mission_id === taskId && s.student_id === actingUser.id && s.status === 'pending'
+    )) {
+      showToast('這個任務已經有一筆在等待審核囉，審核完才能再送下一筆 😊', 'info');
+      return;
+    }
+
     // 防連點：同一任務正在送出時，忽略重複觸發
     if (checkInLock.current.has(taskId)) return;
     // 防重複打卡：已達可完成次數就擋下（避免重複加分）。
