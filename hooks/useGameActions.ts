@@ -75,12 +75,16 @@ export function useGameActions(d: Deps) {
     // 操作對象：檢視某學員時 = 該學員；平常 = 登入者自己
     const actingUser = (viewAsUserId ? profiles.find(p => p.id === viewAsUserId) : null) || currentUser;
 
-    // 🛡️ 防呆：同一任務已有一筆「待審核」時，不允許再送 —— 避免不小心重複送、塞一堆重複待審件。
-    //    審核通過或退回後才能再送下一筆（不影響「可多次完成」任務的正常流程：每筆審完才送下一筆）。
-    if (requiresApproval && submissions.some(
-      s => s.mission_id === taskId && s.student_id === actingUser.id && s.status === 'pending'
+    // 🛡️ 防呆：同一任務、心得內容「一模一樣」時不允許再送 —— 擋掉不小心重複上傳的同一筆。
+    //    內容不同（真的是不同人/不同貼文）照樣能送，不影響「可多次完成」任務的正常使用。
+    const newProof = (proofText || '').trim();
+    if (newProof && submissions.some(
+      s => s.mission_id === taskId &&
+           s.student_id === actingUser.id &&
+           s.status !== 'rejected' &&
+           (s.proof_text || '').trim() === newProof
     )) {
-      showToast('這個任務已經有一筆在等待審核囉，審核完才能再送下一筆 😊', 'info');
+      showToast('這筆心得內容跟之前送過的一模一樣喔，請勿重複上傳。若是不同的記錄，請改寫內容再送 😊', 'info');
       return;
     }
 
