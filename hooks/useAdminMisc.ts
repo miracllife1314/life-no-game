@@ -93,6 +93,15 @@ export function useAdminMisc({ currentUser, setIsSyncing, fetchData, userPets }:
         updated_at: new Date().toISOString()
       })
       .eq('id', templateId);
+    // 同步「既有任務本體(missions)」的審核權限,避免後台改了範本、舊任務卻沒跟著變,
+    // 造成「後台寫管理員審核、小隊長卻審得了」之類的不一致。
+    // 只同步 review_type(審核權限);分數 points 等不自動回改,以免影響進行中任務的計分。
+    if (templateData.review_type) {
+      await supabase
+        .from('missions')
+        .update({ review_type: templateData.review_type })
+        .eq('template_id', templateId);
+    }
     await fetchData();
   };
 
