@@ -42,7 +42,8 @@ async function fetchFull(): Promise<AllTables> {
     supabase.from('profiles').select('*'),
     supabase.from('teams').select('*'),
     supabase.from('tasks').select('*'),
-    supabase.from('submissions').select('*'),
+    // ⚡ 不撈 proof_image_url（可能含 base64 整張圖、極肥，曾測到 ~10MB）；圖片另在下方只補「要顯示」的列。
+    supabase.from('submissions').select('id,mission_id,task_id,student_id,proof_text,proof_link,status,score_awarded,reviewed_by,reviewed_at,share_to_witness,created_at'),
     supabase.from('courses').select('*'),
     supabase.from('course_attendance').select('*'),
     supabase.from('achievements').select('*'),
@@ -64,9 +65,18 @@ async function fetchFull(): Promise<AllTables> {
     supabase.from('captain_candidates').select('*'),
     supabase.from('squad_roles').select('*').order('created_at', { ascending: true }),
   ]);
+
+  // 只為「要顯示圖」的列補回 proof_image_url：待審核 / 已上見證牆 / 自由貼文。其餘列圖留空（畫面不需要）。
+  const subsImg = await supabase.from('submissions')
+    .select('id,proof_image_url')
+    .or('status.eq.pending,share_to_witness.eq.true,mission_id.eq.task-custom-post')
+    .not('proof_image_url', 'is', null);
+  const imgMap = new Map((d(subsImg) as any[]).map((r: any) => [r.id, r.proof_image_url]));
+  const subsList = (d(subs) as any[]).map((s: any) => ({ ...s, proof_image_url: imgMap.get(s.id) ?? null }));
+
   return {
     batchesList: d(batches), templatesList: d(templates), rulesList: d(rules), profilesList: d(profiles),
-    teamsList: d(teams), tasksList: d(tasks), subsList: d(subs), coursesList: d(courses),
+    teamsList: d(teams), tasksList: d(tasks), subsList, coursesList: d(courses),
     attendanceList: d(attendance), achsList: d(achs), userAchsList: d(userAchs), annsList: d(anns),
     notesList: d(notes), scoreLogsList: d(scoreLogs), petsList: d(pets), userPetsList: d(userPets),
     cardsList: d(cards), decksList: d(decks), deckCardsList: d(deckCards), userDecksList: d(userDecks),
@@ -106,7 +116,12 @@ async function fetchScoped(batchId: string): Promise<AllTables> {
   // 第二批：大表，只撈本期學員的，以及所有入選見證牆的提交
   const [subsCurrentBatch, subsWitness, scoreLogs, userPets, userAchs, attendance, notes] = await Promise.all([
     hasIds ? supabase.from('submissions').select('*').in('student_id', batchStudentIds) : EMPTY,
-    supabase.from('submissions').select('*').eq('status', 'approved').or('share_to_witness.eq.true,mission_id.eq.task-custom-post'),
+    supabase.from('submissions')
+      .select('*')
+      .eq('status', 'approved')
+      .or('share_to_witness.eq.true,mission_id.eq.task-custom-post')
+      .order('created_at', { ascending: false })
+      .limit(300),
     hasIds ? supabase.from('score_logs').select('*').in('student_id', batchStudentIds) : EMPTY,
     hasIds ? supabase.from('user_pets').select('*').in('student_id', batchStudentIds) : EMPTY,
     hasIds ? supabase.from('user_achievements').select('*').in('student_id', batchStudentIds) : EMPTY,
