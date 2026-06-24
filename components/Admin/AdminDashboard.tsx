@@ -301,6 +301,7 @@ export function AdminDashboard({
           teams={teams}
           submissions={submissions}
           batches={batches}
+          missions={missions}
           showToast={showToast}
         />
       )}

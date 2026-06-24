@@ -15,6 +15,7 @@ interface ReviewsTabProps {
   teams?: Team[];
   submissions?: Submission[];
   batches?: Batch[];
+  missions?: any[];
   showToast?: (message: string, type?: 'success' | 'info' | 'error') => void;
 }
 
@@ -143,6 +144,7 @@ export function ReviewsTab({
   teams = [],
   submissions = [],
   batches = [],
+  missions = [],
   showToast
 }: ReviewsTabProps) {
   const [selectedBatchId, setSelectedBatchId] = useState<string>('');
@@ -160,11 +162,23 @@ export function ReviewsTab({
     () => (submissions || []).filter(s => s.status === 'approved'),
     [submissions]
   );
-  // 取一筆提交的任務名稱(批次任務用 mission.title,舊任務查 tasks)
+  // 不依賴 join：一律用 id 反查 props，確保學員/任務/經驗/審核者都顯示得出來。
+  const profOf = (s: any) => s.profile || profiles.find(p => p.id === s.student_id) || null;
+  // 取一筆提交的任務名稱(批次任務查 missions.title,舊任務查 tasks.name)
   const taskNameOfSub = (s: any) =>
     s.mission_id === 'task-custom-post'
       ? '自由分享貼文'
-      : (s.mission?.title || tasks.find(t => t.id === s.mission_id)?.name || '（其他／未知任務）');
+      : (s.mission?.title || missions.find(m => m.id === s.mission_id)?.title
+         || tasks.find(t => t.id === s.mission_id)?.name || '（其他／未知任務）');
+  // 經驗值:已通過用真實發放的 score_awarded;待審用任務應給的分數
+  const scoreOf = (s: any) =>
+    s.status === 'approved'
+      ? (s.score_awarded ?? 0)
+      : (s.mission?.points ?? missions.find(m => m.id === s.mission_id)?.points
+         ?? tasks.find(t => t.id === s.mission_id)?.score ?? 0);
+  // 審核者:reviewed_by 有值就查姓名;null 代表系統自動通過(免審核任務)
+  const reviewerOf = (s: any) =>
+    s.reviewed_by ? (profiles.find(p => p.id === s.reviewed_by)?.name || '已審核') : null;
   // 目前檢視下可篩選的「任務」清單(只列實際有的)
   const reviewTaskOptions = useMemo(() => {
     const src = reviewView === 'pending' ? pendingSubmissions : approvedSubmissions;
@@ -323,15 +337,18 @@ export function ReviewsTab({
           </div>
         ) : (
           <div className="space-y-4">
-            {filteredSubmissions.map(sub => (
+            {filteredSubmissions.map(sub => {
+              const prof = profOf(sub);
+              const reviewer = reviewerOf(sub);
+              return (
               <div key={sub.id} className="bg-slate-950/60 border border-white/5 p-5 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4 light:bg-slate-50 light:border-slate-300/60">
                 <div className="flex-1 space-y-2">
                   <div className="flex flex-wrap items-center gap-2 select-none">
                     <span className="font-bold text-white text-xs bg-slate-900 px-2 py-0.5 rounded border border-white/5 light:bg-slate-200 light:text-slate-900 light:border-slate-300">
-                      學員：{sub.profile?.name}
+                      學員：{prof?.name || '（未知學員）'}
                     </span>
                     {(() => {
-                      const b = batches.find(bb => bb.id === sub.profile?.batch_id);
+                      const b = batches.find(bb => bb.id === prof?.batch_id);
                       return b ? (
                         <span className="text-[10px] font-bold text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-2 py-0.5 rounded light:text-indigo-700 light:bg-indigo-100 light:border-indigo-300">
                           {b.name}
@@ -339,10 +356,10 @@ export function ReviewsTab({
                       ) : null;
                     })()}
                     {(() => {
-                      const tm = teams.find(t => t.id === sub.profile?.team_id);
+                      const tm = teams.find(t => t.id === prof?.team_id);
                       if (!tm) return null;
                       let nm = (tm.custom_name || tm.name || '').trim();
-                      const bn = batches.find(bb => bb.id === sub.profile?.batch_id)?.name?.trim();
+                      const bn = batches.find(bb => bb.id === prof?.batch_id)?.name?.trim();
                       if (bn && nm.startsWith(bn)) { const s = nm.slice(bn.length).trim(); if (s) nm = s; }
                       return (
                         <span className="text-[10px] font-bold text-sky-400 bg-sky-500/10 border border-sky-500/20 px-2 py-0.5 rounded light:text-sky-700 light:bg-sky-100 light:border-sky-300">
@@ -351,11 +368,23 @@ export function ReviewsTab({
                       );
                     })()}
                     <span className="text-[10px] font-bold text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded">
-                      任務：{sub.mission?.title || tasks.find(t => t.id === sub.mission_id)?.name || '未知任務'}
+                      任務：{taskNameOfSub(sub)}
                     </span>
                     <span className="text-[10px] font-bold text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded">
-                      +{sub.mission?.points || tasks.find(t => t.id === sub.mission_id)?.score || 0} 經驗
+                      +{scoreOf(sub)} 經驗
                     </span>
+                    {/* 審核者:有人審→顯示姓名;免審核任務→系統自動通過 */}
+                    {sub.status === 'approved' && (
+                      reviewer ? (
+                        <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded light:text-emerald-700 light:bg-emerald-100">
+                          審核者：{reviewer}
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-bold text-slate-400 bg-slate-500/10 px-2 py-0.5 rounded light:text-slate-600 light:bg-slate-200">
+                          系統自動通過(免審核)
+                        </span>
+                      )
+                    )}
                   </div>
 
                   <p className="text-xs text-slate-300 font-bold leading-relaxed">
@@ -436,7 +465,8 @@ export function ReviewsTab({
                   )}
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </section>
