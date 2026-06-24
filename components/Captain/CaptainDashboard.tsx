@@ -646,7 +646,15 @@ export function CaptainDashboard({
 
   // Squad submission review (Captain preliminary review)
   const memberIds = sortedMembers.map(m => m.id);
-  const squadPendingReviews = submissions.filter(s => s.status === 'pending' && memberIds.includes(s.student_id));
+  // 取任務的審核方式:admin=管理審查(只大隊長)、leader=小隊長審、auto=免審(不會 pending)
+  const reviewTypeOfSub = (s: any) =>
+    s.mission?.review_type || (tasks.find(t => t.id === s.mission_id) as any)?.review_type || 'leader';
+  const squadPendingReviews = submissions.filter(s =>
+    s.status === 'pending' &&
+    memberIds.includes(s.student_id) &&
+    // 「管理審查(admin)」類只給大隊長審;小隊長看不到、也不能審
+    (currentUserRole === 'admin' || reviewTypeOfSub(s) !== 'admin')
+  );
 
   const handleReviewSubmissionLocal = async (subId: string, approve: boolean, shareToWitness?: boolean) => {
     setSavingMemberId(subId);
