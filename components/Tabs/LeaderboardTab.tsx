@@ -5,6 +5,7 @@ import { Profile, Team, Batch } from '@/types';
 import { Trophy, Users, Award, Zap, Lock, Unlock, Eye, EyeOff, ShieldAlert } from 'lucide-react';
 import { nowTaipei, parseTaipei } from '@/lib/time';
 import { calculateLevelFromExp } from '@/lib/levelLogic';
+import { supabase } from '@/lib/supabase';
 
 interface LeaderboardTabProps {
   profiles: Profile[];
@@ -30,6 +31,26 @@ export function LeaderboardTab({
   // 兩層導覽:範圍(當期/歷屆) × 榜別(神人/神隊/邀約王者/影響力之神)
   const [scope, setScope] = useState<'current' | 'hall'>('current');
   const [rankType, setRankType] = useState<'individual' | 'team' | 'invite' | 'influence'>('individual');
+
+  // 歷屆「邀約王者 / 影響力之神」需跨「所有期數」統計,但學員只載入當期 submissions/missions
+  // → 改用伺服器端 RPC(invite_influence_counts)算全部期數,前端歷屆榜直接用它。
+  const [allTimeCounts, setAllTimeCounts] = useState<{
+    invite: Record<string, number>; influence: Record<string, number>;
+  } | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    supabase.rpc('invite_influence_counts').then(({ data }: any) => {
+      if (cancelled || !Array.isArray(data)) return;
+      const invite: Record<string, number> = {};
+      const influence: Record<string, number> = {};
+      for (const r of data) {
+        invite[r.student_id] = r.invite_count || 0;
+        influence[r.student_id] = r.influence_count || 0;
+      }
+      setAllTimeCounts({ invite, influence });
+    }).catch(() => { /* RPC 未建立時靜默退回前端統計 */ });
+    return () => { cancelled = true; };
+  }, []);
   // 沿用既有渲染:把(範圍×榜別)映射回原本的 subTab 值(個人/小隊用);邀約/影響力另走新區塊
   const subTab = scope === 'current'
     ? (rankType === 'individual' ? 'individual' : rankType === 'team' ? 'team' : '')
@@ -252,8 +273,11 @@ export function LeaderboardTab({
       .filter(x => x.count > 0)
       .sort((a, b) => b.count - a.count)
       .slice(0, 50);
-  const inviteRanking = buildCountRanking(inviteCountByStudent);
-  const influenceRanking = buildCountRanking(influenceCountByStudent);
+  // 歷屆(hall):用 RPC 跨期統計;當期(current):用前端本期統計。RPC 還沒回來時暫退回前端統計。
+  const inviteCounts = (scope === 'hall' && allTimeCounts) ? allTimeCounts.invite : inviteCountByStudent;
+  const influenceCounts = (scope === 'hall' && allTimeCounts) ? allTimeCounts.influence : influenceCountByStudent;
+  const inviteRanking = buildCountRanking(inviteCounts);
+  const influenceRanking = buildCountRanking(influenceCounts);
 
   return (
     <div className="w-full max-w-2xl mx-auto space-y-6 animate-in fade-in duration-300 select-none text-left">
