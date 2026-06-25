@@ -72,8 +72,13 @@ export function useAdminPeople({ setIsSyncing, fetchData, teams, profiles, gmMod
         const newTeam = teams.find(t => t.id === cleanUpdates.team_id);
         cleanUpdates.captain_id = newTeam?.captain_id ?? null;
       }
-      const { error } = await supabase.from('profiles').update(cleanUpdates).eq('id', profileId);
+      // ⚠️ 用 .select() 取回被更新的列:RLS 擋住時不會報 error,但會回 0 筆(靜默失敗)。
+      //    必須檢查筆數,否則畫面會「假成功」(實際一筆都沒改)。
+      const { data, error } = await supabase.from('profiles').update(cleanUpdates).eq('id', profileId).select('id');
       if (error) throw new Error(error.message);
+      if (!data || data.length === 0) {
+        throw new Error('更新了 0 筆——多半是權限不足(非該小隊的小隊長/大隊長)或登入已過期,請重新登入後再試。');
+      }
       await fetchData();
     } catch (err) {
       console.error('Error updating profile:', err);
