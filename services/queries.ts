@@ -35,7 +35,7 @@ async function fetchFull(): Promise<AllTables> {
     batches, templates, rules, profiles, teams, tasks, subs, courses, attendance,
     achs, userAchs, anns, notes, scoreLogs, pets, userPets, cards, decks,
     deckCards, userDecks, missions, petLines, petStages, candidates, squadRoles,
-    subsImg,
+    subsImg, subsPending,
   ] = await Promise.all([
     supabase.from('batches').select('*'),
     supabase.from('mission_templates').select('*'),
@@ -44,7 +44,12 @@ async function fetchFull(): Promise<AllTables> {
     supabase.from('teams').select('*'),
     supabase.from('tasks').select('*'),
     // ⚡ 不撈 proof_image_url（可能含 base64 整張圖、極肥，曾測到 ~10MB）；圖片另在下方只補「要顯示」的列。
-    supabase.from('submissions').select('id,mission_id,task_id,student_id,proof_text,proof_link,status,score_awarded,reviewed_by,reviewed_at,share_to_witness,created_at'),
+    // ⚠️ submissions 已破 1000 筆;PostgREST 預設只回「最舊的 1000 筆」→ 會把最新的待審整批截掉,
+    //    造成「學員提交了、後台卻沒有可審核任務」。改為『最新優先 + 拉高上限』,並在下方另撈「所有待審」保證不漏。
+    supabase.from('submissions')
+      .select('id,mission_id,task_id,student_id,proof_text,proof_link,status,score_awarded,reviewed_by,reviewed_at,share_to_witness,created_at')
+      .order('created_at', { ascending: false })
+      .limit(3000),
     supabase.from('courses').select('*'),
     supabase.from('course_attendance').select('*'),
     supabase.from('achievements').select('*'),
@@ -73,11 +78,19 @@ async function fetchFull(): Promise<AllTables> {
       .select('id,proof_image_url')
       .not('proof_image_url', 'is', null)
       .not('proof_image_url', 'like', 'data:%'),
+    // ⚠️ 單獨撈「所有待審核」(不受上面 3000 上限/排序影響)→ 審核佇列永遠不漏一筆。
+    supabase.from('submissions')
+      .select('id,mission_id,task_id,student_id,proof_text,proof_link,status,score_awarded,reviewed_by,reviewed_at,share_to_witness,created_at')
+      .eq('status', 'pending'),
   ]);
 
   // base64 那少數幾筆不載圖(避免肥)，可日後搬到 Storage 修復。畫面其餘列圖正常顯示。
   const imgMap = new Map((d(subsImg) as any[]).map((r: any) => [r.id, r.proof_image_url]));
-  const subsList = (d(subs) as any[]).map((s: any) => ({ ...s, proof_image_url: imgMap.get(s.id) ?? null }));
+  // 合併「最新提交」+「所有待審」並去重(待審絕不漏),再補回圖片。
+  const mergedSubs = new Map<string, any>();
+  (d(subs) as any[]).forEach((s: any) => mergedSubs.set(s.id, s));
+  (d(subsPending) as any[]).forEach((s: any) => mergedSubs.set(s.id, s));
+  const subsList = Array.from(mergedSubs.values()).map((s: any) => ({ ...s, proof_image_url: imgMap.get(s.id) ?? null }));
 
   return {
     batchesList: d(batches), templatesList: d(templates), rulesList: d(rules), profilesList: d(profiles),
@@ -120,7 +133,8 @@ async function fetchScoped(batchId: string): Promise<AllTables> {
 
   // 第二批：大表，只撈本期學員的，以及所有入選見證牆的提交
   const [subsCurrentBatch, subsWitness, scoreLogs, userPets, userAchs, attendance, notes] = await Promise.all([
-    hasIds ? supabase.from('submissions').select('*').in('student_id', batchStudentIds) : EMPTY,
+    // 最新優先 + 拉高上限:避免某期提交多時被 PostgREST 預設 1000 筆截掉最新待審(隊長也審核)。
+    hasIds ? supabase.from('submissions').select('*').in('student_id', batchStudentIds).order('created_at', { ascending: false }).limit(3000) : EMPTY,
     supabase.from('submissions')
       .select('*')
       .eq('status', 'approved')
