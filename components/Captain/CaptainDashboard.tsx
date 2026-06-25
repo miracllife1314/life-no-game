@@ -450,15 +450,24 @@ export function CaptainDashboard({
   const [selectedSettingMemberId, setSelectedSettingMemberId] = useState<string>('');
 
   useEffect(() => {
-    const map: Record<string, string> = {};
-    const roleMap: Record<string, string> = {};
-    sortedMembers.forEach(member => {
-      const note = notes.find(n => n.student_id === member.id && n.captain_id === currentUserId)?.note || '';
-      map[member.id] = note;
-      roleMap[member.id] = member.squad_role || '';
+    // ⚠️ 只「補上缺的」鍵,不可整包覆蓋 —— 否則背景刷新(profiles 變動)會把使用者
+    //    正在編輯/剛選好的職責、備註清掉,導致按儲存時讀到空值、存成 null。
+    setNotesMap(prev => {
+      const next = { ...prev };
+      sortedMembers.forEach(member => {
+        const note = notes.find(n => n.student_id === member.id && n.captain_id === currentUserId)?.note;
+        if (note !== undefined) next[member.id] = note;        // DB 有備註才覆蓋
+        else if (next[member.id] === undefined) next[member.id] = '';
+      });
+      return next;
     });
-    setNotesMap(map);
-    setLocalRoles(roleMap);
+    setLocalRoles(prev => {
+      const next = { ...prev };
+      sortedMembers.forEach(member => {
+        if (next[member.id] === undefined) next[member.id] = member.squad_role || '';  // 只初始化缺的,保留使用者選擇
+      });
+      return next;
+    });
   }, [notes, profiles, team?.id, currentUserId]);
 
   // Load local mock configs on mount
@@ -630,9 +639,10 @@ export function CaptainDashboard({
   const handleSaveSettings = async (memberId: string) => {
     setSavingMemberId(memberId);
     let failMsg = '';
+    const selectedRoleId = localRoles[memberId] || '';
+    const savedRoleName = selectedRoleId ? (squadRoles.find(r => r.id === selectedRoleId)?.name || '已指派') : '';
     // 1. 先存「小組角色」(獨立 try,避免被備註那步卡住而漏存)
     try {
-      const selectedRoleId = localRoles[memberId] || '';
       if (onUpdateProfile) {
         await onUpdateProfile(memberId, { squad_role: selectedRoleId || null });
       }
@@ -649,9 +659,9 @@ export function CaptainDashboard({
       console.error('儲存備註失敗:', err);
     }
     setSavingMemberId(null);
-    // 一律給提示(原本完全沒提示,會讓人以為「按了沒反應」)
+    // 一律給提示(原本完全沒提示,會讓人以為「按了沒反應」);成功時標明存了什麼職責,方便確認。
     if (failMsg) showToast?.(`❌ 儲存失敗:${failMsg}`, 'error');
-    else showToast?.('✓ 已儲存設定', 'success');
+    else showToast?.(`✓ 已儲存設定${savedRoleName ? `(職責:${savedRoleName})` : '(未指派職責)'}`, 'success');
   };
 
   // Squad submission review (Captain preliminary review)
