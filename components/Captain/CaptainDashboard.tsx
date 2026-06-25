@@ -1743,7 +1743,10 @@ export function CaptainDashboard({
                                           證明：{sub.proof_text}
                                         </div>
                                         
-                                        {/* Captain toggles witness wall visibility */}
+                                        {/* 見證牆顯示/隱藏切換:只給大隊長(admin)。
+                                            小隊長不顯示,因為這顆只寫本機 localStorage(假隱藏),會誤導小隊長;
+                                            真正的見證牆上/下架由大隊長在「見證牆」分頁處理(寫 DB)。 */}
+                                        {currentUserRole === 'admin' && (
                                         <div className="pt-0.5">
                                           <button
                                             onClick={(e) => {
@@ -1759,6 +1762,7 @@ export function CaptainDashboard({
                                             {hiddenWitnessIds.includes(sub.id) ? '🙈 見證牆已隱藏' : '👁️ 見證牆顯示中'}
                                           </button>
                                         </div>
+                                        )}
                                       </div>
                                     )}
                                     {sub && sub.proof_image_url && (
