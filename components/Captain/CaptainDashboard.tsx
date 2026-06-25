@@ -629,22 +629,29 @@ export function CaptainDashboard({
   // Quest Roles and Notes save
   const handleSaveSettings = async (memberId: string) => {
     setSavingMemberId(memberId);
-    
+    let failMsg = '';
+    // 1. 先存「小組角色」(獨立 try,避免被備註那步卡住而漏存)
     try {
-      // 1. Save note
-      const noteText = notesMap[memberId] || '';
-      await onSaveNote(memberId, noteText);
-
-      // 2. Save role
       const selectedRoleId = localRoles[memberId] || '';
       if (onUpdateProfile) {
         await onUpdateProfile(memberId, { squad_role: selectedRoleId || null });
       }
-    } catch (err) {
-      console.error('Error saving settings:', err);
-    } finally {
-      setSavingMemberId(null);
+    } catch (err: any) {
+      failMsg = err?.message || '請稍後再試';
+      console.error('儲存小組角色失敗:', err);
     }
+    // 2. 再存「備註」(獨立 try)
+    try {
+      const noteText = notesMap[memberId] || '';
+      await onSaveNote(memberId, noteText);
+    } catch (err: any) {
+      failMsg = failMsg || err?.message || '請稍後再試';
+      console.error('儲存備註失敗:', err);
+    }
+    setSavingMemberId(null);
+    // 一律給提示(原本完全沒提示,會讓人以為「按了沒反應」)
+    if (failMsg) showToast?.(`❌ 儲存失敗:${failMsg}`, 'error');
+    else showToast?.('✓ 已儲存設定', 'success');
   };
 
   // Squad submission review (Captain preliminary review)
