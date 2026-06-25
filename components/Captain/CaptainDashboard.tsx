@@ -40,6 +40,8 @@ interface CaptainDashboardProps {
   onToggleCell?: (studentId: string, taskId: string) => Promise<void>;
   allTeams?: Team[];
   currentUserRole?: UserRole;
+  // 盯盯隊長唯讀模式:只顯示「小隊成員清單 + 接龍」,其餘區塊全隱藏。
+  observerMode?: boolean;
   onAdminSelectTeam?: (teamId: string) => void;
   squadRoles?: SquadRoleDef[];
   onViewAsStudent?: (studentId: string) => void;
@@ -193,6 +195,7 @@ export function CaptainDashboard({
   onToggleCell,
   allTeams = [],
   currentUserRole,
+  observerMode = false,
   onAdminSelectTeam,
   onUpdateProfile,
   onViewAsStudent,
@@ -764,6 +767,8 @@ export function CaptainDashboard({
         </div>
       )}
 
+      {/* 盯盯隊長唯讀:以下區塊(指揮所抬頭/學習指標/審核/招募/打卡矩陣)全部隱藏 */}
+      {!observerMode && (<>
       {/* 🧭 隊長權限指揮所 (Squad Roster Header) */}
       <div className="glass-panel p-6 rounded-4xl border border-white/10 relative light:bg-white light:border-slate-200">
         <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-6">
@@ -1250,6 +1255,8 @@ export function CaptainDashboard({
           </div>
         )}
       </section>
+      </>)}
+      {/* ── 盯盯隊長唯讀:隱藏區1 結束;以下『接龍 + 成員清單』兩段保留 ── */}
 
       {/* 📋 今日定課與修行任務接龍一鍵複製面板 */}
       {team && (
@@ -1789,7 +1796,8 @@ export function CaptainDashboard({
           })}
         </div>
       </section>
- 
+      {!observerMode && (<>
+
       {/* ⚙️ 小隊成員備註與職責設定 */}
       <section className="glass-panel p-6 rounded-3xl border border-white/10 space-y-4 text-left light:bg-white light:border-slate-200">
         <h3 className="text-sm font-black text-white border-b border-white/5 pb-3 flex items-center gap-2 select-none light:border-slate-200 light:text-slate-900">
@@ -1974,6 +1982,8 @@ export function CaptainDashboard({
           </div>
         )}
       </section>
+      </>)}
+      {/* ── 盯盯隊長唯讀:隱藏區2 結束 ── */}
 
       {/* ⚠️ 補簽確認 Modal */}
       {showConfirmModal && confirmTask && confirmStudentId && (

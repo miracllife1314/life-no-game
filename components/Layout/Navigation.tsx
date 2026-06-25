@@ -24,11 +24,13 @@ interface NavigationProps {
   activeTab: TabKey;
   setActiveTab: (tab: TabKey) => void;
   userRole: UserRole;
+  // 盯盯隊長(學員身分但可唯讀檢視小組):也要顯示「指揮所」分頁
+  canViewSquad?: boolean;
 }
 
-export function Navigation({ activeTab, setActiveTab, userRole }: NavigationProps) {
+export function Navigation({ activeTab, setActiveTab, userRole, canViewSquad }: NavigationProps) {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const showCaptain = userRole === 'captain' || userRole === 'admin';
+  const showCaptain = userRole === 'captain' || userRole === 'admin' || !!canViewSquad;
   const showAdmin = userRole === 'admin';
 
   // Simply scroll the active tab into view if needed

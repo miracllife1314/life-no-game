@@ -747,11 +747,16 @@ export default function Home() {
   // Compute active role for UI (GM override mode)
   const currentUiRole = (gmMode && currentUser.role === 'admin') ? selectedGmRole : currentUser.role;
 
+  // 盯盯隊長:學員身分,但其小組角色(squad_role)定義的 can_view_squad=true → 可「唯讀」檢視自己小組指揮所
+  // (只看成員清單+接龍;不能審核/補簽/改任何東西,資料庫 RLS 也會擋寫入)。
+  const isSquadObserver = currentUser.role === 'student'
+    && !!squadRoles.find(r => r.id === currentUser.squad_role)?.can_view_squad;
+
   // For admin (大隊長) viewing Captain Dashboard, we use their selected team; otherwise use their own team
-  // 隊長若沒有自己的小隊，一律為 null（不可退回 teams[0]，否則會看到/操作別隊資料）
+  // 隊長/盯盯隊長若沒有自己的小隊，一律為 null（不可退回 teams[0]，否則會看到/操作別隊資料）
   const selectedTeamForCaptainView = (currentUser.role === 'admin' || currentUiRole === 'admin')
     ? (teams.find(t => t.id === adminSelectedTeamId) || teams[0])
-    : (currentTeam || null);
+    : (currentTeam || teams.find(t => t.id === currentUser.team_id) || null);
 
   // 大隊長唯讀檢視某學員：個人分頁(個人面板/歷史/成就/課程)的資料來源改為被檢視的學員
   const viewedProfile = viewAsUserId ? profiles.find(p => p.id === viewAsUserId) : null;
@@ -850,6 +855,7 @@ export default function Home() {
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         userRole={isViewingStudent ? 'student' : currentUiRole}
+        canViewSquad={isSquadObserver}
       />
 
       {/* 檢視學員：提示列 + 編輯此帳號 + 返回 */}
@@ -1052,12 +1058,13 @@ export default function Home() {
             </p>
           </div>
         )}
-        {activeTab === 'captain' && currentUiRole !== 'student' && (currentUiRole === 'admin' || selectedTeamForCaptainView) && (
+        {activeTab === 'captain' && (currentUiRole !== 'student' || isSquadObserver) && (currentUiRole === 'admin' || selectedTeamForCaptainView) && (
           <Suspense fallback={<DashboardLoading />}>
           <CaptainDashboard
             team={selectedTeamForCaptainView}
             allTeams={teams}
             currentUserRole={currentUser.role}
+            observerMode={isSquadObserver}
             onAdminSelectTeam={(teamId) => setAdminSelectedTeamId(teamId)}
             profiles={filteredProfiles}
             tasks={[

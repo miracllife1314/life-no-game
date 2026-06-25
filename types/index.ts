@@ -5,6 +5,8 @@ export interface SquadRoleDef {
   name: string;
   duties: string[];
   created_at: string;
+  // 盯盯隊長:設 true 的角色,被指派者可「唯讀檢視」自己小組的指揮所(成員清單+接龍),其餘功能不可用。
+  can_view_squad?: boolean;
 }
 export interface Profile {
   id: string;
