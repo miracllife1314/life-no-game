@@ -1031,6 +1031,9 @@ export default function Home() {
         {activeTab === 'history' && (
           <HistoryTab
             logs={filteredScoreLogs}
+            submissions={filteredSubmissions}
+            tasks={tasks}
+            missions={missions}
           />
         )}
 
