@@ -49,7 +49,7 @@ async function fetchFull(): Promise<AllTables> {
     supabase.from('submissions')
       .select('id,mission_id,task_id,student_id,proof_text,proof_link,status,score_awarded,reviewed_by,reviewed_at,share_to_witness,created_at')
       .order('created_at', { ascending: false })
-      .limit(3000),
+      .limit(5000),
     supabase.from('courses').select('*'),
     supabase.from('course_attendance').select('*'),
     supabase.from('achievements').select('*'),
@@ -134,7 +134,7 @@ async function fetchScoped(batchId: string): Promise<AllTables> {
   // 第二批：大表，只撈本期學員的，以及所有入選見證牆的提交
   const [subsCurrentBatch, subsWitness, scoreLogs, userPets, userAchs, attendance, notes] = await Promise.all([
     // 最新優先 + 拉高上限:避免某期提交多時被 PostgREST 預設 1000 筆截掉最新待審(隊長也審核)。
-    hasIds ? supabase.from('submissions').select('*').in('student_id', batchStudentIds).order('created_at', { ascending: false }).limit(3000) : EMPTY,
+    hasIds ? supabase.from('submissions').select('*').in('student_id', batchStudentIds).order('created_at', { ascending: false }).limit(5000) : EMPTY,
     supabase.from('submissions')
       .select('*')
       .eq('status', 'approved')
