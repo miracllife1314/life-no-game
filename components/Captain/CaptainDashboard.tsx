@@ -635,33 +635,33 @@ export function CaptainDashboard({
     }, 1000);
   };
 
-  // Quest Roles and Notes save
+  // Quest Roles and Notes save —— 改走伺服器(service role + 伺服器端權限驗證),
+  // 不再用前端 RLS 直接 update profiles(會踩 is_captain_of(auth.uid) 脆弱點 → 跨期/無痕常 0 筆失敗)。
   const handleSaveSettings = async (memberId: string) => {
     setSavingMemberId(memberId);
-    let failMsg = '';
     const selectedRoleId = localRoles[memberId] || '';
     const savedRoleName = selectedRoleId ? (squadRoles.find(r => r.id === selectedRoleId)?.name || '已指派') : '';
-    // 1. 先存「小組角色」(獨立 try,避免被備註那步卡住而漏存)
     try {
-      if (onUpdateProfile) {
-        await onUpdateProfile(memberId, { squad_role: selectedRoleId || null });
-      }
+      const res = await fetch('/api/captain/update-member-settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          requesterId: currentUserId,
+          memberId,
+          squadRole: selectedRoleId || null,
+          note: notesMap[memberId] || '',
+        }),
+      });
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok || !j.ok) throw new Error(j.error || '儲存失敗');
+      showToast?.(`✓ 已儲存設定${savedRoleName ? `(職責:${savedRoleName})` : '(未指派職責)'}`, 'success');
+      if (onRefresh) await onRefresh();   // 重新載入,讓徽章/備註即時更新
     } catch (err: any) {
-      failMsg = err?.message || '請稍後再試';
-      console.error('儲存小組角色失敗:', err);
+      console.error('儲存成員設定失敗:', err);
+      showToast?.(`❌ 儲存失敗:${err?.message || '請稍後再試'}`, 'error');
+    } finally {
+      setSavingMemberId(null);
     }
-    // 2. 再存「備註」(獨立 try)
-    try {
-      const noteText = notesMap[memberId] || '';
-      await onSaveNote(memberId, noteText);
-    } catch (err: any) {
-      failMsg = failMsg || err?.message || '請稍後再試';
-      console.error('儲存備註失敗:', err);
-    }
-    setSavingMemberId(null);
-    // 一律給提示(原本完全沒提示,會讓人以為「按了沒反應」);成功時標明存了什麼職責,方便確認。
-    if (failMsg) showToast?.(`❌ 儲存失敗:${failMsg}`, 'error');
-    else showToast?.(`✓ 已儲存設定${savedRoleName ? `(職責:${savedRoleName})` : '(未指派職責)'}`, 'success');
   };
 
   // Squad submission review (Captain preliminary review)
