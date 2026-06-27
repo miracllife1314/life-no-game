@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { ScoreLog } from '@/types';
 import {
   ScrollText, Award, Calendar, Flame, CheckSquare,
@@ -13,11 +13,26 @@ interface HistoryTabProps {
   submissions?: any[];   // 學員自己的提交(含 status / proof_text / created_at / reviewed_at)
   tasks?: any[];
   missions?: any[];
+  userId?: string;       // 用來讀「本機失敗紀錄」(上傳失敗會記在這位使用者的 localStorage)
 }
 
-export function HistoryTab({ logs, submissions = [], tasks = [], missions = [] }: HistoryTabProps) {
+export function HistoryTab({ logs, submissions = [], tasks = [], missions = [], userId }: HistoryTabProps) {
   const [view, setView] = useState<'logs' | 'reviews'>('logs');
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
+
+  // 上傳/送出失敗的紀錄(存在本機,讓學員在明細看得到失敗與原因)。
+  const [failedSubs, setFailedSubs] = useState<any[]>([]);
+  useEffect(() => {
+    if (!userId) { setFailedSubs([]); return; }
+    try { setFailedSubs(JSON.parse(localStorage.getItem(`nlp_failed_subs_${userId}`) || '[]')); }
+    catch { setFailedSubs([]); }
+  }, [userId, submissions]);
+  const dismissFailed = (id: string) => {
+    if (!userId) return;
+    const next = failedSubs.filter(f => f.id !== id);
+    setFailedSubs(next);
+    try { localStorage.setItem(`nlp_failed_subs_${userId}`, JSON.stringify(next)); } catch { /* 忽略 */ }
+  };
 
   // ── 任務審核狀態 ──────────────────────────────────────────────
   const taskNameOf = (s: any) =>
@@ -123,6 +138,33 @@ export function HistoryTab({ logs, submissions = [], tasks = [], missions = [] }
             <ClipboardList size={18} className="text-amber-500" />
             我送出的任務・審核狀態
           </h3>
+
+          {/* 🔴 上傳/送出失敗(本機紀錄)→ 提醒學員重傳 */}
+          {failedSubs.length > 0 && (
+            <div className="space-y-2">
+              {failedSubs.map((f) => (
+                <div key={f.id} className="p-3.5 rounded-2xl bg-rose-500/5 border border-rose-500/25 space-y-1.5 light:bg-rose-50 light:border-rose-300">
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="font-bold text-rose-300 text-sm leading-snug light:text-rose-700 flex items-center gap-1.5">
+                      <XCircle size={14} /> 上傳失敗：{f.task_name || '任務'}
+                    </span>
+                    <button
+                      onClick={() => dismissFailed(f.id)}
+                      className="shrink-0 text-[10px] font-bold text-slate-400 hover:text-white bg-slate-800/50 hover:bg-slate-700 px-2 py-0.5 rounded cursor-pointer light:bg-slate-200 light:text-slate-600 light:hover:text-slate-900"
+                    >
+                      知道了
+                    </button>
+                  </div>
+                  <p className="text-[11px] text-rose-300/90 leading-relaxed light:text-rose-600">
+                    原因：{f.reason || '未知錯誤'}
+                  </p>
+                  <p className="text-[10px] text-slate-500 font-mono light:text-slate-500">
+                    {fmt(f.created_at)} ・ 請回任務頁面重新上傳一次
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
 
           {/* 狀態篩選 */}
           <div className="flex flex-wrap gap-2 select-none">

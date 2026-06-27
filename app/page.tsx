@@ -1034,6 +1034,7 @@ export default function Home() {
             submissions={filteredSubmissions}
             tasks={tasks}
             missions={missions}
+            userId={panelUser.id}
           />
         )}
 

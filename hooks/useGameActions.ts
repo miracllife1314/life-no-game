@@ -184,13 +184,31 @@ export function useGameActions(d: Deps) {
     }
 
     try {
+      // 失敗時記錄到本機 → 讓「明細 → 任務審核」看得到這筆失敗與原因(學員才知道要重傳)。
+      const recordFailed = (reason: string) => {
+        try {
+          const k = `nlp_failed_subs_${actingUser.id}`;
+          const list = JSON.parse(localStorage.getItem(k) || '[]');
+          list.unshift({ id: `fail-${Date.now()}`, mission_id: taskId, task_name: mission?.title || '任務', reason, created_at: new Date().toISOString() });
+          localStorage.setItem(k, JSON.stringify(list.slice(0, 20)));
+        } catch { /* 忽略 */ }
+      };
+
       // 證明圖片若為 base64，先上傳到 Storage 換成公開 URL（避免把大圖塞進 DB 欄位）
       const uploadedImg = await uploadProofImage(submissionData.proof_image_url);
+      // 有給圖片但上傳失敗(回 null)→ 不送出「沒圖的證明」,記錄失敗讓學員重傳。
+      if (typeof submissionData.proof_image_url === 'string' && submissionData.proof_image_url.startsWith('data:') && !uploadedImg) {
+        recordFailed('圖片上傳失敗(可能網路不穩或圖片太大),請重新上傳一次');
+        showToast('圖片上傳失敗,請重新上傳一次 🙏', 'error');
+        checkInLock.current.delete(taskId);
+        return;
+      }
       const { error: insertError } = await supabase
         .from('submissions')
         .insert({ ...submissionData, proof_image_url: uploadedImg });
       if (insertError) {
         console.error('[CheckIn] submissions insert error:', insertError);
+        recordFailed(insertError.message || '送出失敗,請稍後再試');
         // 安全鎖擋下通常代表「登入身分失效/未綁定」→ 引導重新登入，而非顯示嚇人的安全訊息
         if (/\[安全\]|只能為自己|row-level security/i.test(insertError.message || '')) {
           showToast('您的登入似乎已過期，請重新登入後再打卡 🙏', 'error');
@@ -205,6 +223,12 @@ export function useGameActions(d: Deps) {
         }
         return;
       }
+      // 送出成功 → 清掉這個任務先前的失敗紀錄(避免一直顯示舊失敗)。
+      try {
+        const k = `nlp_failed_subs_${actingUser.id}`;
+        const kept = JSON.parse(localStorage.getItem(k) || '[]').filter((f: any) => f.mission_id !== taskId);
+        localStorage.setItem(k, JSON.stringify(kept));
+      } catch { /* 忽略 */ }
       // ⚡ 立刻把「這筆新提交」加進畫面 → 任務卡馬上顯示「完成 / 已送審」,
       //    不必等下方背景 fetchData() 把所有表重撈完(那要好幾秒,就是延遲感的來源)。
       setSubmissions(prev => [{
