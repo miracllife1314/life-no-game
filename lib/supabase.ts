@@ -38,32 +38,38 @@ export async function uploadProofImage(
   input: string | null | undefined
 ): Promise<string | null> {
   if (!input) return null;
-  if (!isRealSupabase || !realSupabase || !input.startsWith('data:')) return input;
+  if (!isRealSupabase || !realSupabase) return input ?? null;
 
-  // 上傳到 Storage（失敗會重試一次）。
-  // ⚠️ 一律不退回 base64：以前失敗會把整張圖（base64）塞進 DB，造成資料表暴肥、登入變慢。
-  //    改為兩次都失敗就回 null（此筆沒圖、文字證明仍保留），DB 永遠不會再被圖片撐肥。
-  const tryUpload = async (): Promise<string> => {
-    const res = await fetch(input as string);
-    const blob = await res.blob();
-    const ext = (blob.type.split('/')[1] || 'webp').replace('+xml', '');
-    const path = `proof-${Date.now()}-${Math.random().toString(36).slice(2, 10)}.${ext}`;
-    const { error } = await realSupabase!.storage
-      .from('proof-images')
-      .upload(path, blob, { contentType: blob.type || 'image/webp', upsert: true });
-    if (error) throw error;
-    return realSupabase!.storage.from('proof-images').getPublicUrl(path).data.publicUrl;
+  // ⚠️ 打卡可一次傳多張圖,前端以 '|' 串接(例:data:...|data:...|data:...)。
+  //    必須「逐張」上傳;原本整串丟給 fetch 會壞掉 → 多張圖永遠上傳失敗。
+  const parts = String(input).split('|').map(s => s.trim()).filter(Boolean);
+  if (parts.length === 0) return null;
+
+  // 單張上傳:base64 → Storage,回公開 URL;失敗重試一次,兩次都失敗回 null。
+  // 一律不退回 base64(以前失敗會把整張圖塞進 DB,造成暴肥)。
+  const uploadOne = async (one: string): Promise<string | null> => {
+    if (!one.startsWith('data:')) return one;   // 已是 URL → 原樣保留
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      try {
+        const res = await fetch(one);
+        const blob = await res.blob();
+        const ext = (blob.type.split('/')[1] || 'webp').replace('+xml', '');
+        const path = `proof-${Date.now()}-${Math.random().toString(36).slice(2, 10)}.${ext}`;
+        const { error } = await realSupabase!.storage
+          .from('proof-images')
+          .upload(path, blob, { contentType: blob.type || 'image/webp', upsert: true });
+        if (error) throw error;
+        return realSupabase!.storage.from('proof-images').getPublicUrl(path).data.publicUrl;
+      } catch (e) {
+        console.error(`[uploadProofImage] 單張上傳失敗（第 ${attempt} 次）：`, e);
+      }
+    }
+    return null;
   };
 
-  for (let attempt = 1; attempt <= 2; attempt++) {
-    try {
-      return await tryUpload();
-    } catch (e) {
-      console.error(`[uploadProofImage] 上傳失敗（第 ${attempt} 次）：`, e);
-    }
-  }
-  console.error('[uploadProofImage] 多次上傳失敗，放棄存圖（不退回 base64，避免撐肥 DB）');
-  return null;
+  const results = (await Promise.all(parts.map(uploadOne))).filter((r): r is string => !!r);
+  // 至少有一張成功就回傳(以 '|' 串接);全部失敗才回 null(讓上層攔截、提示重傳)。
+  return results.length > 0 ? results.join('|') : null;
 }
 
 export function getRequiredStageByLevel(level: number): number {
