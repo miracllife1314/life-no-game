@@ -284,12 +284,17 @@ export function useGameActions(d: Deps) {
       return;
     }
 
-    await supabase.from('course_attendance').insert({
+    const { error: regErr } = await supabase.from('course_attendance').insert({
       course_id: courseId,
       student_id: actingUser.id,
       status: 'registered',
       attended_at: null
     });
+    if (regErr) {
+      console.error('課程報名失敗:', regErr);
+      showToast('報名沒有成功,請稍後再試或重新登入 🙏', 'error');
+      return;
+    }
     await fetchData();
   };
 
@@ -319,19 +324,22 @@ export function useGameActions(d: Deps) {
     // Check if note already exists
     const existing = notes.find(n => n.student_id === studentId && n.captain_id === currentUser.id);
 
-    if (existing) {
-      await supabase
-        .from('student_notes')
-        .update({ note: noteText, updated_at: new Date().toISOString() })
-        .eq('id', existing.id);
-    } else {
-      await supabase.from('student_notes').insert({
-        student_id: studentId,
-        captain_id: currentUser.id,
-        note: noteText,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      });
+    const { error: noteErr } = existing
+      ? await supabase
+          .from('student_notes')
+          .update({ note: noteText, updated_at: new Date().toISOString() })
+          .eq('id', existing.id)
+      : await supabase.from('student_notes').insert({
+          student_id: studentId,
+          captain_id: currentUser.id,
+          note: noteText,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        });
+    if (noteErr) {
+      console.error('儲存備註失敗:', noteErr);
+      showToast('備註沒有存成功,請稍後再試 🙏', 'error');
+      return;
     }
     await fetchData();
   };
@@ -448,10 +456,16 @@ export function useGameActions(d: Deps) {
       // 審核者通過時可決定是否上見證牆；退回則一律不上牆
       share_to_witness: status === 'approved' ? !!shareToWitness : false,
     };
-    await supabase
+    // ⚠️ 必須檢查 error:Supabase 失敗回 {error} 不 throw,否則下面樂觀加分會「假成功」。
+    const { error: reviewErr } = await supabase
       .from('submissions')
       .update(updatePayload)
       .eq('id', submissionId);
+    if (reviewErr) {
+      console.error('審核更新失敗:', reviewErr);
+      showToast('審核沒有成功,請確認網路連線或重新登入後再試 🙏', 'error');
+      return;
+    }
 
     // ⚡ 樂觀更新本地狀態，取代「每審一筆就 fetchData() 全撈」——
     //    大隊長全撈資料量大，每筆重載會明顯變慢。改為直接在畫面套用結果。

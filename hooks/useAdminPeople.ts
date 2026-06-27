@@ -333,15 +333,18 @@ export function useAdminPeople({ setIsSyncing, fetchData, teams, profiles, gmMod
   };
 
   const handleDeleteBatch = async (batchId: string) => {
-    // Delete related data in order (cascade-safe)
-    await supabase.from('batch_mission_templates').delete().eq('batch_id', batchId);
-    await supabase.from('missions').delete().eq('batch_id', batchId);
-    // Clear profiles' batch_id that belong to this batch
-    await supabase.from('profiles').update({ batch_id: null, team_id: null }).eq('batch_id', batchId);
-    // Delete teams in this batch
-    await supabase.from('teams').delete().eq('batch_id', batchId);
-    // Finally delete the batch itself
-    await supabase.from('batches').delete().eq('id', batchId);
+    // ⚠️ 每步都檢查 error,任一步失敗就「中止並拋錯」——
+    //    否則 Supabase 失敗只回 {error} 不 throw,程式會硬著繼續刪下去 → 期數資料半毀。
+    const step = async (label: string, q: any) => {
+      const { error } = await q;
+      if (error) throw new Error(`刪除期數已中止(「${label}」這步失敗,先前步驟可能已部分執行):${error.message}`);
+    };
+    // 依相依順序刪除(cascade-safe)
+    await step('任務範本規則', supabase.from('batch_mission_templates').delete().eq('batch_id', batchId));
+    await step('任務', supabase.from('missions').delete().eq('batch_id', batchId));
+    await step('清空學員期數歸屬', supabase.from('profiles').update({ batch_id: null, team_id: null }).eq('batch_id', batchId));
+    await step('小隊', supabase.from('teams').delete().eq('batch_id', batchId));
+    await step('期數本體', supabase.from('batches').delete().eq('id', batchId));
     await fetchData();
   };
 

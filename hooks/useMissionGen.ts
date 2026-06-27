@@ -310,6 +310,7 @@ export function useMissionGen({ setIsSyncing, fetchData, batches, missionTemplat
       await fetchData();
     } catch (err) {
       console.error('產生任務失敗:', err);
+      throw err;   // 丟給呼叫端,讓它顯示「失敗」而非用部分結果跳「成功」
     } finally {
       setIsSyncing(false);
     }

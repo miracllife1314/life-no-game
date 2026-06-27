@@ -316,9 +316,13 @@ export function BatchesTab({ batches, teams, isSyncing, onCreateBatch, onUpdateB
                               })()}
                               {onDeleteBatch && (
                                 <button
-                                  onClick={() => {
+                                  onClick={async () => {
                                     if (confirm(`⚠️ 確定要刪除「${batch.name}」這個期數嗎？\n\n此操作無法復原，該期數的相關任務與規則資料也會一併刪除。`)) {
-                                      onDeleteBatch(batch.id);
+                                      try {
+                                        await onDeleteBatch(batch.id);
+                                      } catch (err: any) {
+                                        alert(`❌ ${err?.message || '刪除期數失敗，請稍後再試。'}`);
+                                      }
                                     }
                                   }}
                                   className="px-2 py-1 bg-red-500/10 border border-red-500/20 text-[10px] rounded hover:bg-red-500 hover:text-white text-red-400 font-bold cursor-pointer inline-block transition-colors"

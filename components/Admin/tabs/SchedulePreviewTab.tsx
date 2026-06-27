@@ -294,8 +294,12 @@ export function SchedulePreviewTab({ batches, missionTemplates, batchMissionTemp
                     <button
                       onClick={async () => {
                         if (onGenerateMissions) {
-                          const res = await onGenerateMissions(selectedPreviewBatchId, previewData);
-                          alert(`🎉 任務產生完成！\n成功產生：${res.successCount} 筆\n跳過重複：${res.skipCount} 筆`);
+                          try {
+                            const res = await onGenerateMissions(selectedPreviewBatchId, previewData);
+                            alert(`🎉 任務產生完成！\n成功產生：${res.successCount} 筆\n跳過重複：${res.skipCount} 筆`);
+                          } catch (err: any) {
+                            alert(`❌ 產生任務失敗，請稍後再試或重新登入。\n${err?.message || ''}`);
+                          }
                         }
                       }}
                       disabled={isSyncing}
