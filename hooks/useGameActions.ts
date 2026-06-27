@@ -205,6 +205,15 @@ export function useGameActions(d: Deps) {
         }
         return;
       }
+      // ⚡ 立刻把「這筆新提交」加進畫面 → 任務卡馬上顯示「完成 / 已送審」,
+      //    不必等下方背景 fetchData() 把所有表重撈完(那要好幾秒,就是延遲感的來源)。
+      setSubmissions(prev => [{
+        ...submissionData,
+        proof_image_url: uploadedImg,
+        mission: mission || undefined,
+        profile: actingUser,
+      } as any, ...prev]);
+
       // 樂觀更新 UI (Optimistic Update) — 對 actingUser（被檢視學員或自己）
       if (!requiresApproval) {
         const nextScore = (actingUser.score || 0) + points;
