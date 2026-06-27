@@ -2248,8 +2248,13 @@ export function DailyQuestsTab({
                           <div className="absolute bottom-3.5 left-3.5 w-3 h-3 border-b border-l border-amber-500/40 pointer-events-none" />
                           <div className="absolute bottom-3.5 right-3.5 w-3 h-3 border-b border-r border-amber-500/40 pointer-events-none" />
                           
-                          <div className="text-[10px] font-black tracking-wider text-amber-400/80 uppercase z-10">
-                            ★ 今日以終為始修行 ★
+                          <div className="text-[10px] font-black tracking-wider text-amber-400/80 uppercase z-10 flex flex-col items-center gap-0.5">
+                            <span>★ 今日以終為始修行 ★</span>
+                            {dailyDraw?.drawnDate && (
+                              <span className="text-[9px] text-slate-400 font-bold bg-slate-950/40 px-2 py-0.5 rounded-full border border-white/5">
+                                修行日期：{dailyDraw.drawnDate}
+                              </span>
+                            )}
                           </div>
                           
                           <div className="my-auto py-4 flex flex-col items-center z-10">
@@ -2262,7 +2267,10 @@ export function DailyQuestsTab({
                           </div>
                           
                           <div className="w-full space-y-2.5 z-10">
-                            <p className="text-[11px] text-amber-400 bg-slate-950/70 border border-amber-500/30 px-3 py-2.5 rounded-xl leading-relaxed font-bold text-center shadow-inner">
+                            <p 
+                              onClick={() => showToast?.('💡 這是今日修行提醒，無須點擊提交。您只要在對話中成功引導他人說出此詞彙即可！', 'info')}
+                              className="text-[11px] text-amber-400 bg-slate-950/70 border border-amber-500/30 px-3 py-2.5 rounded-xl leading-relaxed font-bold text-center shadow-inner cursor-pointer hover:bg-slate-900/80 transition-colors"
+                            >
                               🎯 引導他人說出這個詞彙以完成今日修行
                             </p>
                             <div className="flex items-center justify-center gap-1 text-[9px] text-slate-400 font-black">
