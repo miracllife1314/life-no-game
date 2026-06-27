@@ -155,7 +155,7 @@ export function ReviewsTab({
   const [reviewBatchFilter, setReviewBatchFilter] = useState('all');
   const [reviewTeamFilter, setReviewTeamFilter] = useState('all');
   const [reviewSearch, setReviewSearch] = useState('');
-  const [reviewSortKey, setReviewSortKey] = useState('time_asc'); // 'time_desc' (最新優先), 'time_asc' (最舊優先)
+  const [reviewSortKey, setReviewSortKey] = useState('time_desc'); // 預設「最新優先」;'time_asc' = 最舊優先(依序審核)
   const [reviewView, setReviewView] = useState<'pending' | 'approved'>('pending'); // 待審核 / 已通過(可退回)
   const [reviewTaskFilter, setReviewTaskFilter] = useState('all'); // 依任務篩選
   const approvedSubmissions = useMemo(
@@ -437,7 +437,7 @@ export function ReviewsTab({
                   ) : (
                     <>
                       <button
-                        onClick={() => onReviewSubmission(sub.id, 'rejected')}
+                        onClick={() => { if (window.confirm(`確定退回「${prof?.name || '這位學員'}」的「${taskNameOfSub(sub)}」嗎？\n\n退回後不會加分,學員可重新上傳。`)) onReviewSubmission(sub.id, 'rejected'); }}
                         disabled={isSyncing}
                         className="btn-action bg-slate-900 border border-red-500/30 hover:bg-red-500/10 text-red-400 p-2.5 rounded-xl text-xs font-black flex items-center gap-1 light:bg-slate-100"
                       >
@@ -445,7 +445,7 @@ export function ReviewsTab({
                         退回
                       </button>
                       <button
-                        onClick={() => onReviewSubmission(sub.id, 'approved', false)}
+                        onClick={() => { if (window.confirm(`確定同意「${prof?.name || '這位學員'}」的「${taskNameOfSub(sub)}」並加分嗎？`)) onReviewSubmission(sub.id, 'approved', false); }}
                         disabled={isSyncing}
                         className="btn-action bg-emerald-500 hover:bg-emerald-600 text-slate-950 p-2.5 rounded-xl text-xs font-black flex items-center gap-1"
                       >
@@ -453,7 +453,7 @@ export function ReviewsTab({
                         同意加分
                       </button>
                       <button
-                        onClick={() => onReviewSubmission(sub.id, 'approved', true)}
+                        onClick={() => { if (window.confirm(`確定通過「${prof?.name || '這位學員'}」的「${taskNameOfSub(sub)}」並分享到見證牆嗎？`)) onReviewSubmission(sub.id, 'approved', true); }}
                         disabled={isSyncing}
                         title="通過並分享到見證牆"
                         className="btn-action bg-purple-500 hover:bg-purple-600 text-white p-2.5 rounded-xl text-xs font-black flex items-center gap-1"
