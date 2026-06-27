@@ -29,6 +29,7 @@ interface WitnessTabProps {
   teams?: Team[];
   onHideWitness?: (subId: string) => Promise<void>;
   onDeleteWitness?: (subId: string) => Promise<void>;
+  showToast?: (message: string, type?: 'success' | 'info' | 'error') => void;
 }
 
 const CAPTAIN_MANUAL       = '由小隊長於指揮所手動設定打卡';
@@ -71,7 +72,7 @@ const compressImage = (file: File): Promise<string> => {
   });
 };
 
-export function WitnessTab({ profiles, tasks, submissions, currentUserId, onRefresh, batches, teams, onHideWitness, onDeleteWitness }: WitnessTabProps) {
+export function WitnessTab({ profiles, tasks, submissions, currentUserId, onRefresh, batches, teams, onHideWitness, onDeleteWitness, showToast }: WitnessTabProps) {
   const [category,     setCategory]     = useState<'all' | 'current' | 'mission' | 'sharing' | 'hidden'>('all');
   const [searchQuery,  setSearchQuery]  = useState('');
   const [likes,        setLikes]        = useState<Record<string, string[]>>({});
@@ -322,22 +323,16 @@ export function WitnessTab({ profiles, tasks, submissions, currentUserId, onRefr
     });
 
     try {
-      if (liked) {
-        await supabase
-          .from('witness_likes')
-          .delete()
-          .eq('submission_id', subId)
-          .eq('user_id', currentUserId);
-      } else {
-        await supabase
-          .from('witness_likes')
-          .insert({
-            submission_id: subId,
-            user_id: currentUserId,
-          });
-      }
+      // ⚠️ Supabase 失敗是回 { error } 而非 throw → 必須檢查 error,否則樂觀更新會「假成功」。
+      const { error } = liked
+        ? await supabase.from('witness_likes').delete().eq('submission_id', subId).eq('user_id', currentUserId)
+        : await supabase.from('witness_likes').insert({ submission_id: subId, user_id: currentUserId });
+      if (error) throw error;
     } catch (e) {
       console.error('更新按讚失敗', e);
+      // 還原樂觀更新(回到原本的按讚狀態),並提示,避免「重整後悄悄消失」。
+      setLikes(prev => ({ ...prev, [subId]: arr }));
+      showToast?.('按讚沒有成功,請稍後再試 🙏', 'error');
     }
   };
 
@@ -363,7 +358,7 @@ export function WitnessTab({ profiles, tasks, submissions, currentUserId, onRefr
     setCommentDraft(prev => ({ ...prev, [subId]: '' }));
 
     try {
-      await supabase
+      const { error } = await supabase
         .from('witness_comments')
         .insert({
           id: newCommentId,
@@ -373,8 +368,13 @@ export function WitnessTab({ profiles, tasks, submissions, currentUserId, onRefr
           content: text,
           created_at: newComment.createdAt
         });
+      if (error) throw error;
     } catch (e) {
       console.error('發布留言失敗', e);
+      // 還原:移除剛剛樂觀加上的留言、把草稿補回去讓他可重送,並提示。
+      setComments(prev => prev.filter(c => c.id !== newCommentId));
+      setCommentDraft(prev => ({ ...prev, [subId]: text }));
+      showToast?.('留言沒有送出,請稍後再試 🙏', 'error');
     }
   };
 

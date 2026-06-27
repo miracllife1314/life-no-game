@@ -1048,6 +1048,7 @@ export default function Home() {
             teams={teams}
             onHideWitness={handleHideWitness}
             onDeleteWitness={handleDeleteWitness}
+            showToast={showToast}
           />
         )}
 
