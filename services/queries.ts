@@ -131,16 +131,22 @@ async function fetchScoped(batchId: string): Promise<AllTables> {
     .map((p) => p.id);
   const hasIds = batchStudentIds.length > 0;
 
+  // ⚠️ 不撈 proof_image_url（可能含 base64 整張圖、極肥；那 11 筆會讓學員一次下載 ~10MB、手機轉很久）。
+  //    圖片另在下方只補「非 base64 的 URL 圖」（很小）。與大隊長 fetchFull 同一套做法。
+  const SUB_COLS = 'id,mission_id,task_id,student_id,proof_text,proof_link,status,score_awarded,reviewed_by,reviewed_at,share_to_witness,created_at';
   // 第二批：大表，只撈本期學員的，以及所有入選見證牆的提交
-  const [subsCurrentBatch, subsWitness, scoreLogs, userPets, userAchs, attendance, notes] = await Promise.all([
+  const [subsCurrentBatch, subsWitness, subsImgBatch, subsImgWitness, scoreLogs, userPets, userAchs, attendance, notes] = await Promise.all([
     // 最新優先 + 拉高上限:避免某期提交多時被 PostgREST 預設 1000 筆截掉最新待審(隊長也審核)。
-    hasIds ? supabase.from('submissions').select('*').in('student_id', batchStudentIds).order('created_at', { ascending: false }).limit(5000) : EMPTY,
+    hasIds ? supabase.from('submissions').select(SUB_COLS).in('student_id', batchStudentIds).order('created_at', { ascending: false }).limit(5000) : EMPTY,
     supabase.from('submissions')
-      .select('*')
+      .select(SUB_COLS)
       .eq('status', 'approved')
       .or('share_to_witness.eq.true,mission_id.eq.task-custom-post')
       .order('created_at', { ascending: false })
       .limit(300),
+    // proof_image_url 另撈、排除 base64 肥圖(只載正常 URL 圖,很小)
+    hasIds ? supabase.from('submissions').select('id,proof_image_url').in('student_id', batchStudentIds).not('proof_image_url', 'is', null).not('proof_image_url', 'like', 'data:%') : EMPTY,
+    supabase.from('submissions').select('id,proof_image_url').eq('status', 'approved').or('share_to_witness.eq.true,mission_id.eq.task-custom-post').not('proof_image_url', 'is', null).not('proof_image_url', 'like', 'data:%').limit(300),
     hasIds ? supabase.from('score_logs').select('*').in('student_id', batchStudentIds) : EMPTY,
     hasIds ? supabase.from('user_pets').select('*').in('student_id', batchStudentIds) : EMPTY,
     hasIds ? supabase.from('user_achievements').select('*').in('student_id', batchStudentIds) : EMPTY,
@@ -148,10 +154,13 @@ async function fetchScoped(batchId: string): Promise<AllTables> {
     hasIds ? supabase.from('student_notes').select('*').in('student_id', batchStudentIds) : EMPTY,
   ]);
 
-  // 合併並去重 submissions
+  // 合併並去重 submissions,並補回（非 base64 的）圖片。
+  const imgMap = new Map<string, any>();
+  (d(subsImgBatch) as any[]).forEach((r: any) => imgMap.set(r.id, r.proof_image_url));
+  (d(subsImgWitness) as any[]).forEach((r: any) => imgMap.set(r.id, r.proof_image_url));
   const mergedSubsMap = new Map<string, any>();
-  d(subsCurrentBatch).forEach((s: any) => mergedSubsMap.set(s.id, s));
-  d(subsWitness).forEach((s: any) => mergedSubsMap.set(s.id, s));
+  d(subsCurrentBatch).forEach((s: any) => mergedSubsMap.set(s.id, { ...s, proof_image_url: imgMap.get(s.id) ?? null }));
+  d(subsWitness).forEach((s: any) => mergedSubsMap.set(s.id, { ...s, proof_image_url: imgMap.get(s.id) ?? null }));
   const subsList = Array.from(mergedSubsMap.values());
 
   return {
