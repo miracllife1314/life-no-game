@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useLayoutEffect, useCallback, useRef, lazy, Suspense } from 'react';
 import { supabase } from '@/lib/supabase';
 import { fetchAllTables } from '@/services/queries';
+import { logEvent } from '@/lib/clientLog';
 import { computeJoinedData } from '@/services/joinData';
 import { useUiFeedback } from '@/hooks/useUiFeedback';
 import { useSquadRoles } from '@/hooks/useSquadRoles';
@@ -339,7 +340,13 @@ export default function Home() {
       }
 
       // 2b. 撈最新資料覆蓋畫面（背景刷新）
+      const _loadStart = Date.now();
       const fresh = await fetchAllTables({ batchId: userBatchId, isAdmin: isAdminUser });
+      // 監控:載入過慢(>8秒)主動記下,讓大隊長在後台看到「誰、何時、轉幾秒」,不用等學員回報。
+      const _loadSec = (Date.now() - _loadStart) / 1000;
+      if (_loadSec > 8) {
+        logEvent('slow_load', `${_loadSec.toFixed(1)}s, ${isAdminUser ? 'admin' : 'student'}`, loadedProfile?.name);
+      }
       applyTables(fresh);
 
       // 2c. 更新快取(大小防護：超過上限就不存，避免塞爆 localStorage)

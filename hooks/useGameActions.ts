@@ -4,6 +4,7 @@
 //   —— 從 app/page.tsx 抽出，行為完全不變（含 gmMode 樂觀更新路徑）。
 // =====================================================================
 import { supabase, uploadProofImage } from '@/lib/supabase';
+import { logEvent } from '@/lib/clientLog';
 import { removeStorageImageByUrl } from '@/lib/helpers';
 import { calculateLevelFromExp } from '@/lib/levelLogic';
 import {
@@ -199,6 +200,7 @@ export function useGameActions(d: Deps) {
       // 有給圖片但上傳失敗(回 null)→ 不送出「沒圖的證明」,記錄失敗讓學員重傳。
       if (typeof submissionData.proof_image_url === 'string' && submissionData.proof_image_url.startsWith('data:') && !uploadedImg) {
         recordFailed('圖片上傳失敗(可能網路不穩或圖片太大),請重新上傳一次');
+        logEvent('upload_fail', mission?.title || taskId, actingUser.name);
         showToast('圖片上傳失敗,請重新上傳一次 🙏', 'error');
         checkInLock.current.delete(taskId);
         return;
@@ -209,6 +211,7 @@ export function useGameActions(d: Deps) {
       if (insertError) {
         console.error('[CheckIn] submissions insert error:', insertError);
         recordFailed(insertError.message || '送出失敗,請稍後再試');
+        logEvent('submit_fail', `${mission?.title || taskId}:${insertError.message || ''}`, actingUser.name);
         // 安全鎖擋下通常代表「登入身分失效/未綁定」→ 引導重新登入，而非顯示嚇人的安全訊息
         if (/\[安全\]|只能為自己|row-level security/i.test(insertError.message || '')) {
           showToast('您的登入似乎已過期，請重新登入後再打卡 🙏', 'error');

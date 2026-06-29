@@ -9,7 +9,7 @@ import {
 import {
   ShieldCheck, FileCheck, Calendar,
   UserPlus, Sliders, Megaphone,
-  Sparkles, Layers, BookOpen, Shield, Users
+  Sparkles, Layers, BookOpen, Shield, Users, Activity
 } from 'lucide-react';
 import { BatchesTab } from './tabs/BatchesTab';
 import { RosterTab } from './tabs/RosterTab';
@@ -24,6 +24,7 @@ import { PetsTab } from './tabs/PetsTab';
 import { ReviewsTab } from './tabs/ReviewsTab';
 import { AdjustTab } from './tabs/AdjustTab';
 import { GuideTab } from './tabs/GuideTab';
+import { HealthTab } from './tabs/HealthTab';
 
 export const MISSION_CATEGORIES = ['初階', '進階', 'VIP', '期數任務', '神獸進化'];
 
@@ -176,7 +177,7 @@ export function AdminDashboard({
   currentUserId,
   showToast
 }: AdminDashboardProps) {
-  const [adminTab, setAdminTab] = useState<'reviews' | 'tasks' | 'teams' | 'adjust' | 'others' | 'pets' | 'decks' | 'batches' | 'mission_templates' | 'batch_rules' | 'schedule_preview' | 'captain_candidates' | 'roster' | 'guide'>('reviews');
+  const [adminTab, setAdminTab] = useState<'reviews' | 'tasks' | 'teams' | 'adjust' | 'others' | 'pets' | 'decks' | 'batches' | 'mission_templates' | 'batch_rules' | 'schedule_preview' | 'captain_candidates' | 'roster' | 'guide' | 'health'>('reviews');
 
 
 
@@ -263,7 +264,8 @@ export function AdminDashboard({
             { key: 'teams', label: '小隊分配', icon: UserPlus },
             { key: 'captain_candidates', label: '小隊長候選', icon: Shield },
             { key: 'adjust', label: '手動調分', icon: Sliders },
-            { key: 'others', label: '班次/公告/課程/成就', icon: Megaphone }
+            { key: 'others', label: '班次/公告/課程/成就', icon: Megaphone },
+            { key: 'health', label: '系統健康', icon: Activity }
           ].map(tab => {
             const Icon = tab.icon;
             const isActive = adminTab === tab.key;
@@ -515,6 +517,11 @@ export function AdminDashboard({
       {/* ==================== 攻略配置分頁 ==================== */}
       {adminTab === 'guide' && (
         <GuideTab isSyncing={isSyncing} />
+      )}
+
+      {/* ==================== 系統健康(監控)分頁 ==================== */}
+      {adminTab === 'health' && (
+        <HealthTab />
       )}
 
       {/* ==================== 卡牌與排組分頁 ==================== */}
