@@ -142,7 +142,8 @@ export function useAdminPeople({ setIsSyncing, fetchData, teams, profiles, gmMod
 
     if (rows && rows.length > 0) {
       // 該期已有此人(可能不只一筆)→ 全部沿用更新成此隊小隊長,絕不新建
-      await supabase.from('profiles').update(update).in('id', rows.map((r: any) => r.id));
+      const { error } = await supabase.from('profiles').update(update).in('id', rows.map((r: any) => r.id));
+      if (error) { console.error(error); alert('指派小隊長失敗：' + error.message); return; }
     } else {
       // 該期完全沒有此人 → 取同一人(其他期)的姓名/電話,新增唯一一筆隊長報名
       const { data: anyRows } = await supabase
@@ -155,7 +156,7 @@ export function useAdminPeople({ setIsSyncing, fetchData, teams, profiles, gmMod
         const newId = (typeof crypto !== 'undefined' && crypto.randomUUID)
           ? crypto.randomUUID()
           : `usr-${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
-        await supabase.from('profiles').insert({
+        const { error } = await supabase.from('profiles').insert({
           id: newId,
           profile_id: capProfileId,
           name: anyProfile.name,
@@ -168,6 +169,7 @@ export function useAdminPeople({ setIsSyncing, fetchData, teams, profiles, gmMod
           status: 'active',
           created_at: new Date().toISOString()
         });
+        if (error) { console.error(error); alert('建立小隊長報名失敗：' + error.message); return; }
       }
     }
   };
@@ -183,7 +185,8 @@ export function useAdminPeople({ setIsSyncing, fetchData, teams, profiles, gmMod
       return;
     }
     try {
-      await supabase.from('teams').update(settings).eq('id', teamId);
+      const { error } = await supabase.from('teams').update(settings).eq('id', teamId);
+      if (error) { console.error(error); alert('更新隊伍設定失敗：' + error.message); return; }
 
       // 指派小隊長時：確保該隊長在「這個梯次」有唯一一筆 captain 報名(沿用現有、絕不重建),支援跨期。
       // 否則只設了 teams.captain_id，本人沒有該期報名 → 登入後看不到也管不了這一隊。
@@ -221,10 +224,11 @@ export function useAdminPeople({ setIsSyncing, fetchData, teams, profiles, gmMod
     if (status !== undefined) {
       updateData.status = status;
     }
-    await supabase
+    const { error } = await supabase
       .from('profiles')
       .update(updateData)
       .eq('id', studentId);
+    if (error) { console.error(error); alert('指派小隊失敗：' + error.message); return; }
     await fetchData();
   };
 
@@ -254,12 +258,13 @@ export function useAdminPeople({ setIsSyncing, fetchData, teams, profiles, gmMod
 
   const handleCreateBatch = async (batchData: Omit<Batch, 'id' | 'created_at' | 'updated_at'>, teamCount?: number) => {
     const batchId = 'batch-' + Math.random().toString(36).substring(2, 9);
-    await supabase.from('batches').insert({
+    const { error } = await supabase.from('batches').insert({
       ...batchData,
       id: batchId,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     });
+    if (error) { console.error(error); alert('建立期數失敗：' + error.message); return; }
 
     if (teamCount && teamCount > 0) {
       const prefix = (batchData.name.includes('NLP') || batchData.name.includes('ＮＬＰ')) ? batchData.name : `NLP初階${batchData.name}`;
@@ -267,7 +272,7 @@ export function useAdminPeople({ setIsSyncing, fetchData, teams, profiles, gmMod
         const chNum = getChineseNumber(i);
         const teamName = `${prefix}第${chNum}隊`;
         const teamId = 'team-' + Math.random().toString(36).substring(2, 9);
-        await supabase.from('teams').insert({
+        const { error: teamErr } = await supabase.from('teams').insert({
           id: teamId,
           name: teamName,
           captain_id: null,
@@ -278,6 +283,7 @@ export function useAdminPeople({ setIsSyncing, fetchData, teams, profiles, gmMod
           max_members: 10,
           created_at: new Date().toISOString()
         });
+        if (teamErr) { console.error(teamErr); alert('建立小隊失敗：' + teamErr.message); return; }
       }
     }
 
@@ -285,13 +291,14 @@ export function useAdminPeople({ setIsSyncing, fetchData, teams, profiles, gmMod
   };
 
   const handleUpdateBatch = async (batchId: string, batchData: Partial<Batch>, teamCount?: number) => {
-    await supabase
+    const { error } = await supabase
       .from('batches')
       .update({
         ...batchData,
         updated_at: new Date().toISOString()
       })
       .eq('id', batchId);
+    if (error) { console.error(error); alert('更新期數失敗：' + error.message); return; }
 
     if (teamCount !== undefined) {
       const { data: teamsList } = await supabase.from('teams').select('*');
@@ -306,7 +313,7 @@ export function useAdminPeople({ setIsSyncing, fetchData, teams, profiles, gmMod
           const chNum = getChineseNumber(i);
           const teamName = `${prefix}第${chNum}隊`;
           const teamId = 'team-' + Math.random().toString(36).substring(2, 9);
-          await supabase.from('teams').insert({
+          const { error: teamErr } = await supabase.from('teams').insert({
             id: teamId,
             name: teamName,
             captain_id: null,
@@ -317,14 +324,17 @@ export function useAdminPeople({ setIsSyncing, fetchData, teams, profiles, gmMod
             max_members: 10,
             created_at: new Date().toISOString()
           });
+          if (teamErr) { console.error(teamErr); alert('建立小隊失敗：' + teamErr.message); return; }
         }
       } else if (teamCount < currentCount) {
         const sortedTeams = [...currentTeams].sort((a, b) => a.name.localeCompare(b.name));
         const teamsToDelete = sortedTeams.slice(teamCount);
 
         for (const teamToDelete of teamsToDelete) {
-          await supabase.from('teams').delete().eq('id', teamToDelete.id);
-          await supabase.from('profiles').update({ team_id: null }).eq('team_id', teamToDelete.id);
+          const { error: delErr } = await supabase.from('teams').delete().eq('id', teamToDelete.id);
+          if (delErr) { console.error(delErr); alert('刪除小隊失敗：' + delErr.message); return; }
+          const { error: updErr } = await supabase.from('profiles').update({ team_id: null }).eq('team_id', teamToDelete.id);
+          if (updErr) { console.error(updErr); alert('清空學員小隊歸屬失敗：' + updErr.message); return; }
         }
       }
     }

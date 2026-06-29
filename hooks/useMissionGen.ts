@@ -19,17 +19,19 @@ export function useMissionGen({ setIsSyncing, fetchData, batches, missionTemplat
     rules: Omit<BatchMissionTemplate, 'id' | 'created_at' | 'updated_at'>[]
   ) => {
     // 1. Delete existing rules for this cohort
-    await supabase.from('batch_mission_templates').delete().eq('batch_id', batchId);
+    const { error: delRulesErr } = await supabase.from('batch_mission_templates').delete().eq('batch_id', batchId);
+    if (delRulesErr) { console.error(delRulesErr); alert('清除任務範本規則失敗：' + delRulesErr.message); return; }
 
     // 2. Insert new ones if any
     if (rules.length > 0) {
-      await supabase.from('batch_mission_templates').insert(
+      const { error: insRulesErr } = await supabase.from('batch_mission_templates').insert(
         rules.map(r => ({
           ...r,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         }))
       );
+      if (insRulesErr) { console.error(insRulesErr); alert('儲存任務範本規則失敗：' + insRulesErr.message); return; }
     }
 
     // 3. Clear existing missions for this cohort that DO NOT have student submissions yet
@@ -43,7 +45,8 @@ export function useMissionGen({ setIsSyncing, fetchData, batches, missionTemplat
         .filter((id: string) => !submittedMissionIds.has(id));
 
       if (missionsToDelete.length > 0) {
-        await supabase.from('missions').delete().in('id', missionsToDelete);
+        const { error: delMisErr } = await supabase.from('missions').delete().in('id', missionsToDelete);
+        if (delMisErr) { console.error(delMisErr); alert('清除舊任務失敗：' + delMisErr.message); return; }
       }
     }
 
@@ -210,7 +213,8 @@ export function useMissionGen({ setIsSyncing, fetchData, batches, missionTemplat
 
         const missionsToInsert = previews.filter(p => !existingKeys.has(`${p.template_id}_${String(p.publish_at).substring(0, 10)}`));
         if (missionsToInsert.length > 0) {
-          await supabase.from('missions').insert(missionsToInsert);
+          const { error: insMisErr } = await supabase.from('missions').insert(missionsToInsert);
+          if (insMisErr) { console.error(insMisErr); alert('產生任務失敗：' + insMisErr.message); return; }
         }
       }
     }

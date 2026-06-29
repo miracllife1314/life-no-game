@@ -16,17 +16,19 @@ export function useAdminMisc({ currentUser, setIsSyncing, fetchData, userPets }:
   // ---- 任務 ----
   const handleCreateTask = async (taskData: Omit<Task, 'id' | 'created_at' | 'created_by'>) => {
     if (!currentUser) return;
-    await supabase.from('tasks').insert({
+    const { error } = await supabase.from('tasks').insert({
       id: crypto.randomUUID(),
       ...taskData,
       created_by: currentUser.id,
       created_at: new Date().toISOString()
     });
+    if (error) { console.error(error); alert('建立任務失敗：' + error.message); return; }
     await fetchData();
   };
 
   const handleDeleteTask = async (taskId: string) => {
-    await supabase.from('tasks').delete().eq('id', taskId);
+    const { error } = await supabase.from('tasks').delete().eq('id', taskId);
+    if (error) { console.error(error); alert('刪除任務失敗：' + error.message); return; }
     await fetchData();
   };
 
@@ -75,39 +77,44 @@ export function useAdminMisc({ currentUser, setIsSyncing, fetchData, userPets }:
 
   // ---- 任務範本 ----
   const handleCreateMissionTemplate = async (templateData: Omit<MissionTemplate, 'id' | 'created_at' | 'updated_at'>) => {
-    const { data } = await supabase.from('mission_templates').insert({
+    const { data, error } = await supabase.from('mission_templates').insert({
       id: crypto.randomUUID(),
       ...templateData,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     });
+    if (error) { console.error(error); alert('建立任務範本失敗：' + error.message); return; }
     await fetchData();
     return data?.[0] || (Array.isArray(data) ? data[0] : data);
   };
 
   const handleUpdateMissionTemplate = async (templateId: string, templateData: Partial<MissionTemplate>) => {
-    await supabase
+    const { error } = await supabase
       .from('mission_templates')
       .update({
         ...templateData,
         updated_at: new Date().toISOString()
       })
       .eq('id', templateId);
+    if (error) { console.error(error); alert('更新任務範本失敗：' + error.message); return; }
     // 同步「既有任務本體(missions)」的審核權限,避免後台改了範本、舊任務卻沒跟著變,
     // 造成「後台寫管理員審核、小隊長卻審得了」之類的不一致。
     // 只同步 review_type(審核權限);分數 points 等不自動回改,以免影響進行中任務的計分。
     if (templateData.review_type) {
-      await supabase
+      const { error: e2 } = await supabase
         .from('missions')
         .update({ review_type: templateData.review_type })
         .eq('template_id', templateId);
+      if (e2) { console.error(e2); alert('同步任務審核權限失敗：' + e2.message); return; }
     }
     await fetchData();
   };
 
   const handleDeleteMissionTemplate = async (templateId: string) => {
-    await supabase.from('batch_mission_templates').delete().eq('template_id', templateId);
-    await supabase.from('mission_templates').delete().eq('id', templateId);
+    const { error: e1 } = await supabase.from('batch_mission_templates').delete().eq('template_id', templateId);
+    if (e1) { console.error(e1); alert('刪除任務範本規則失敗：' + e1.message); return; }
+    const { error: e2 } = await supabase.from('mission_templates').delete().eq('id', templateId);
+    if (e2) { console.error(e2); alert('刪除任務範本失敗：' + e2.message); return; }
     await fetchData();
   };
 
@@ -143,37 +150,42 @@ export function useAdminMisc({ currentUser, setIsSyncing, fetchData, userPets }:
 
   // ---- 寵物 / 卡牌 / 牌組 ----
   const handleCreatePet = async (petData: Omit<Pet, 'id' | 'created_at'>) => {
-    await supabase.from('pets').insert(petData);
+    const { error } = await supabase.from('pets').insert(petData);
+    if (error) { console.error(error); alert('建立神獸失敗：' + error.message); return; }
     await fetchData();
   };
 
   const handleCreateCard = async (cardData: Omit<Card, 'id' | 'created_at'>) => {
-    await supabase.from('cards').insert(cardData);
+    const { error } = await supabase.from('cards').insert(cardData);
+    if (error) { console.error(error); alert('建立卡牌失敗：' + error.message); return; }
     await fetchData();
   };
 
   const handleCreateDeck = async (name: string, isTemplate: boolean, cardIds: { cardId: string; count: number }[]) => {
     const deckId = 'deck-' + Math.random().toString(36).substring(2, 11);
-    await supabase.from('decks').insert({
+    const { error: e1 } = await supabase.from('decks').insert({
       id: deckId,
       name,
       created_by: currentUser?.id || 'admin1',
       is_template: isTemplate
     });
+    if (e1) { console.error(e1); alert('建立牌組失敗：' + e1.message); return; }
 
     const deckCardsToInsert = cardIds.map(c => ({
       deck_id: deckId,
       card_id: c.cardId,
       count: c.count
     }));
-    await supabase.from('deck_cards').insert(deckCardsToInsert);
+    const { error: e2 } = await supabase.from('deck_cards').insert(deckCardsToInsert);
+    if (e2) { console.error(e2); alert('建立牌組卡牌失敗：' + e2.message); return; }
     await fetchData();
   };
 
   const handleAwardPetSkin = async (studentId: string, petId: string, skinName: string) => {
     const userPetRecord = userPets.find(up => up.student_id === studentId && up.pet_id === petId);
     if (userPetRecord) {
-      await supabase.from('user_pets').update({ current_skin: skinName }).eq('id', userPetRecord.id);
+      const { error } = await supabase.from('user_pets').update({ current_skin: skinName }).eq('id', userPetRecord.id);
+      if (error) { console.error(error); alert('授予神獸造型失敗：' + error.message); return; }
       await fetchData();
     }
   };
@@ -181,18 +193,21 @@ export function useAdminMisc({ currentUser, setIsSyncing, fetchData, userPets }:
   const handleLevelUpPet = async (userPetId: string) => {
     const record = userPets.find(up => up.id === userPetId);
     if (record) {
-      await supabase.from('user_pets').update({ pet_level: (record.pet_level ?? 1) + 1 }).eq('id', userPetId);
+      const { error } = await supabase.from('user_pets').update({ pet_level: (record.pet_level ?? 1) + 1 }).eq('id', userPetId);
+      if (error) { console.error(error); alert('神獸升級失敗：' + error.message); return; }
       await fetchData();
     }
   };
 
   const handleUpdatePetStage = async (stageId: string, updatedFields: Partial<PetStage>) => {
-    await supabase.from('pet_stages').update(updatedFields).eq('id', stageId);
+    const { error } = await supabase.from('pet_stages').update(updatedFields).eq('id', stageId);
+    if (error) { console.error(error); alert('更新神獸階段失敗：' + error.message); return; }
     await fetchData();
   };
 
   const handleUpdatePetLine = async (lineId: string, updatedFields: Partial<PetLine>) => {
-    await supabase.from('pet_lines').update(updatedFields).eq('id', lineId);
+    const { error } = await supabase.from('pet_lines').update(updatedFields).eq('id', lineId);
+    if (error) { console.error(error); alert('更新神獸系列失敗：' + error.message); return; }
     await fetchData();
   };
 
