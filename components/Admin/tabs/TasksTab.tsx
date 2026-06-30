@@ -12,7 +12,7 @@ interface TasksTabProps {
   isSyncing: boolean;
   onCreateTask: (taskData: Omit<Task, 'id' | 'created_at' | 'created_by'>) => Promise<void>;
   onDeleteTask: (taskId: string) => Promise<void>;
-  onUpdateTask?: (taskId: string, updates: Partial<Task>) => Promise<void>;
+  onUpdateTask?: (taskId: string, updates: Partial<Task>) => Promise<boolean | void>;
 }
 
 export function TasksTab({ tasks, batches, missionCategories, isSyncing, onCreateTask, onDeleteTask, onUpdateTask }: TasksTabProps) {
@@ -141,12 +141,15 @@ export function TasksTab({ tasks, batches, missionCategories, isSyncing, onCreat
       category: taskCategory
     };
 
-    // 編輯模式:更新既有任務(不改 publish_time);成功才關閉。
+    // 編輯模式:二次確認 → 更新既有任務(不改 publish_time)→ 成功提示。
     if (editingTaskId) {
+      const ok = window.confirm(`確定要儲存「${taskName}」的修改嗎？`);
+      if (!ok) return;
       const idToEdit = editingTaskId;
       setShowTaskModal(false);
       try {
-        if (onUpdateTask) await onUpdateTask(idToEdit, currentTaskData);
+        const success = onUpdateTask ? await onUpdateTask(idToEdit, currentTaskData) : false;
+        if (success !== false) alert('✅ 任務已修改成功！');
       } catch (err) {
         console.error('更新任務失敗:', err);
         setShowTaskModal(true);   // 失敗時重開,讓使用者重試

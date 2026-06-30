@@ -32,11 +32,12 @@ export function useAdminMisc({ currentUser, setIsSyncing, fetchData, userPets }:
     await fetchData();
   };
 
-  // 編輯大會修行任務(tasks):只更新傳入的欄位,成功才刷新。
-  const handleUpdateTask = async (taskId: string, updates: Partial<Task>) => {
+  // 編輯大會修行任務(tasks):只更新傳入的欄位,成功才刷新。回傳是否成功。
+  const handleUpdateTask = async (taskId: string, updates: Partial<Task>): Promise<boolean> => {
     const { error } = await supabase.from('tasks').update(updates).eq('id', taskId);
-    if (error) { console.error(error); alert('更新任務失敗：' + error.message); return; }
+    if (error) { console.error(error); alert('更新任務失敗：' + error.message); return false; }
     await fetchData();
+    return true;
   };
 
   // ---- 小隊長候選人 ----
@@ -143,8 +144,8 @@ export function useAdminMisc({ currentUser, setIsSyncing, fetchData, userPets }:
   };
 
   // 編輯已產生的期數任務(missions):可改標題/描述/分數/發布·截止時間/狀態。
-  // 只更新傳入欄位,成功才刷新;失敗跳提示不假成功。
-  const handleUpdateMission = async (missionId: string, updates: Record<string, any>) => {
+  // 只更新傳入欄位,成功才刷新;失敗跳提示不假成功。回傳是否成功。
+  const handleUpdateMission = async (missionId: string, updates: Record<string, any>): Promise<boolean> => {
     setIsSyncing(true);
     try {
       const { error } = await supabase
@@ -153,9 +154,11 @@ export function useAdminMisc({ currentUser, setIsSyncing, fetchData, userPets }:
         .eq('id', missionId);
       if (error) throw new Error(error.message);
       await fetchData();
+      return true;
     } catch (err: any) {
       console.error('更新任務失敗:', err);
       alert('更新任務失敗：' + (err?.message || '請稍後再試'));
+      return false;
     } finally {
       setIsSyncing(false);
     }

@@ -14,7 +14,7 @@ interface SchedulePreviewTabProps {
   submissions: Submission[];
   isSyncing: boolean;
   onDeleteMission?: (missionId: string) => Promise<void>;
-  onUpdateMission?: (missionId: string, updates: Record<string, any>) => Promise<void>;
+  onUpdateMission?: (missionId: string, updates: Record<string, any>) => Promise<boolean | void>;
   onGenerateMissions?: (batchId: string, previewData: Array<{
     templateId: string;
     title: string;
@@ -51,16 +51,27 @@ export function SchedulePreviewTab({ batches, missionTemplates, batchMissionTemp
     if (!editMission || !onUpdateMission) return;
     if (!emTitle.trim()) { alert('任務標題不可空白'); return; }
     if (emPubDate > emDeadDate) { alert('截止日不可早於發布日'); return; }
+    // 二次確認:列出將變更的內容讓使用者核對。
+    const ok = window.confirm(
+      `確定要儲存這筆修改嗎？\n\n` +
+      `任務：${emTitle.trim()}\n` +
+      `發布：${emPubDate}\n` +
+      `截止：${emDeadDate}\n` +
+      `分數：${Number(emPoints) || 0}　狀態：${emStatus}`
+    );
+    if (!ok) return;
     const id = editMission.id;
     setEditMission(null);
     // 發布日 00:00、截止日 23:59:59,皆以 +00 存(系統把存的牆上時鐘當台灣時間,與既有任務一致)。
-    await onUpdateMission(id, {
+    const success = await onUpdateMission(id, {
       title: emTitle.trim(),
       points: Number(emPoints) || 0,
       publish_at: `${emPubDate} 00:00:00+00`,
       deadline_at: `${emDeadDate} 23:59:59+00`,
       status: emStatus,
     });
+    // 成功才提示;失敗時 handler 內已跳錯誤訊息。
+    if (success !== false) alert('✅ 任務已修改成功！');
   };
 
   // Auto select first batch if none selected

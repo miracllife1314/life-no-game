@@ -47,7 +47,7 @@ interface AdminDashboardProps {
   batches: Batch[];
   missions: Mission[];
   onDeleteMission?: (missionId: string) => Promise<void>;
-  onUpdateMission?: (missionId: string, updates: Record<string, any>) => Promise<void>;
+  onUpdateMission?: (missionId: string, updates: Record<string, any>) => Promise<boolean | void>;
   onViewAsStudent?: (studentId: string) => void;
   missionTemplates: MissionTemplate[];
   batchMissionTemplates: BatchMissionTemplate[];
@@ -67,7 +67,7 @@ interface AdminDashboardProps {
   onReviewSubmission: (submissionId: string, status: 'approved' | 'rejected', shareToWitness?: boolean) => Promise<void>;
   onCreateTask: (taskData: Omit<Task, 'id' | 'created_at' | 'created_by'>) => Promise<void>;
   onDeleteTask: (taskId: string) => Promise<void>;
-  onUpdateTask?: (taskId: string, updates: Partial<Task>) => Promise<void>;
+  onUpdateTask?: (taskId: string, updates: Partial<Task>) => Promise<boolean | void>;
   onAssignTeam: (studentId: string, teamId: string | null, role: UserRole, batchId?: string | null, divisionName?: string | null, directorId?: string | null, status?: 'active' | 'ended' | 'inactive') => Promise<void>;
   onManualAdjustScore: (studentId: string, amount: number, reason: string) => Promise<void>;
   onCreateAnnouncement: (title: string, content: string, batchId?: string | null, publishAt?: string | null) => Promise<void>;
