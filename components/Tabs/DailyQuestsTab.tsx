@@ -743,13 +743,12 @@ export function DailyQuestsTab({
 
   const getTaskProgress = (taskId: string) => {
     let limit = 1;
-    if (isUsingMissions) {
-      const m = missions?.find(x => x.id === taskId);
-      if (m) limit = m.max_completions ?? 1;
-    } else {
-      const t = tasks.find(x => x.id === taskId);
-      if (t) limit = t.max_completions ?? 1;
-    }
+    // 期數任務(missions)與單次任務(tasks)現在並存,兩邊都可能傳進來 →
+    // 兩個來源都查,以實際找到的那個的 max_completions 為準(不再只看 isUsingMissions 分支)。
+    const m = missions?.find(x => x.id === taskId);
+    const t = tasks.find(x => x.id === taskId);
+    if (m) limit = m.max_completions ?? 1;
+    else if (t) limit = t.max_completions ?? 1;
 
     const taskSubs = submissions.filter(s => s.mission_id === taskId);
     const validSubs = taskSubs.filter(s => s.status !== 'rejected');
