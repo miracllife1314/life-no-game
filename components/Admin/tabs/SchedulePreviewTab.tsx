@@ -2,7 +2,7 @@
 // 後台「任務排程預覽」分頁 —— 從 AdminDashboard.tsx 抽出，行為/UI 不變。
 // =====================================================================
 import { useState, useEffect } from 'react';
-import { Calendar, Check } from 'lucide-react';
+import { Calendar, Check, Pencil, X } from 'lucide-react';
 import { Batch, MissionTemplate, BatchMissionTemplate, Mission, Submission } from '@/types';
 
 interface SchedulePreviewTabProps {
@@ -14,6 +14,7 @@ interface SchedulePreviewTabProps {
   submissions: Submission[];
   isSyncing: boolean;
   onDeleteMission?: (missionId: string) => Promise<void>;
+  onUpdateMission?: (missionId: string, updates: Record<string, any>) => Promise<void>;
   onGenerateMissions?: (batchId: string, previewData: Array<{
     templateId: string;
     title: string;
@@ -26,8 +27,41 @@ interface SchedulePreviewTabProps {
   }>) => Promise<{ successCount: number; skipCount: number }>;
 }
 
-export function SchedulePreviewTab({ batches, missionTemplates, batchMissionTemplates, missionCategories, missions, submissions, isSyncing, onDeleteMission, onGenerateMissions }: SchedulePreviewTabProps) {
+export function SchedulePreviewTab({ batches, missionTemplates, batchMissionTemplates, missionCategories, missions, submissions, isSyncing, onDeleteMission, onUpdateMission, onGenerateMissions }: SchedulePreviewTabProps) {
   const [selectedPreviewBatchId, setSelectedPreviewBatchId] = useState<string>('');
+
+  // ---- 編輯已產生的任務 ----
+  const [editMission, setEditMission] = useState<Mission | null>(null);
+  const [emTitle, setEmTitle] = useState('');
+  const [emPoints, setEmPoints] = useState<number | string>(0);
+  const [emPubDate, setEmPubDate] = useState('');     // YYYY-MM-DD
+  const [emDeadDate, setEmDeadDate] = useState('');    // YYYY-MM-DD
+  const [emStatus, setEmStatus] = useState<string>('active');
+
+  const openEditMission = (m: Mission) => {
+    setEditMission(m);
+    setEmTitle(m.title);
+    setEmPoints(m.points);
+    setEmPubDate(String(m.publish_at).substring(0, 10));
+    setEmDeadDate(String(m.deadline_at).substring(0, 10));
+    setEmStatus(m.status || 'active');
+  };
+
+  const handleSaveMission = async () => {
+    if (!editMission || !onUpdateMission) return;
+    if (!emTitle.trim()) { alert('任務標題不可空白'); return; }
+    if (emPubDate > emDeadDate) { alert('截止日不可早於發布日'); return; }
+    const id = editMission.id;
+    setEditMission(null);
+    // 發布日 00:00、截止日 23:59:59,皆以 +00 存(系統把存的牆上時鐘當台灣時間,與既有任務一致)。
+    await onUpdateMission(id, {
+      title: emTitle.trim(),
+      points: Number(emPoints) || 0,
+      publish_at: `${emPubDate} 00:00:00+00`,
+      deadline_at: `${emDeadDate} 23:59:59+00`,
+      status: emStatus,
+    });
+  };
 
   // Auto select first batch if none selected
   useEffect(() => {
@@ -163,18 +197,26 @@ export function SchedulePreviewTab({ batches, missionTemplates, batchMissionTemp
           category: category
         });
       } else if (type === 'limited') {
-        const offset = rule.day_offset !== null ? Math.max(0, rule.day_offset - 1) : 0;
-        const duration = rule.duration_days !== null ? rule.duration_days : 1;
-        
-        const pubDate = new Date(startDate);
-        pubDate.setDate(pubDate.getDate() + offset);
-        
-        const deadDate = new Date(pubDate);
-        deadDate.setDate(deadDate.getDate() + duration);
-        
-        const pubStr = pubDate.toISOString().substring(0, 10);
-        const deadStr = deadDate.toISOString().substring(0, 10);
-        
+        let pubStr: string;
+        let deadStr: string;
+        // 「指定日期」模式:直接用絕對日期;否則從開訓日推算。
+        if ((rule as any).abs_publish_date && (rule as any).abs_deadline_date) {
+          pubStr = String((rule as any).abs_publish_date).substring(0, 10);
+          deadStr = String((rule as any).abs_deadline_date).substring(0, 10);
+        } else {
+          const offset = rule.day_offset !== null ? Math.max(0, rule.day_offset - 1) : 0;
+          const duration = rule.duration_days !== null ? rule.duration_days : 1;
+
+          const pubDate = new Date(startDate);
+          pubDate.setDate(pubDate.getDate() + offset);
+
+          const deadDate = new Date(pubDate);
+          deadDate.setDate(deadDate.getDate() + duration);
+
+          pubStr = pubDate.toISOString().substring(0, 10);
+          deadStr = deadDate.toISOString().substring(0, 10);
+        }
+
         previews.push({
           date: pubStr,
           title,
@@ -194,6 +236,7 @@ export function SchedulePreviewTab({ batches, missionTemplates, batchMissionTemp
   };
 
   return (
+    <>
         <div className="glass-panel p-6 rounded-3xl border border-white/5 space-y-6 animate-in fade-in duration-300 text-left light:bg-white light:border-slate-200">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 select-none pb-4 border-b border-white/5 light:border-slate-100">
             <div>
@@ -259,20 +302,29 @@ export function SchedulePreviewTab({ batches, missionTemplates, batchMissionTemp
                               <td className="p-3 text-slate-400 font-mono">{String(m.deadline_at).substring(0, 10)}</td>
                               <td className="p-3 text-center text-amber-500 font-bold">{subCount}</td>
                               <td className="p-3 text-center">
-                                <button
-                                  type="button"
-                                  onClick={async () => {
-                                    const msg = subCount > 0
-                                      ? `確定刪除任務「${m.title}」嗎？\n\n它已有 ${subCount} 筆打卡，刪除會一併移除這些打卡並退回對應經驗。\n此操作無法復原。`
-                                      : `確定刪除任務「${m.title}」嗎？\n此操作無法復原。`;
-                                    if (window.confirm(msg) && onDeleteMission) {
-                                      await onDeleteMission(m.id);
-                                    }
-                                  }}
-                                  className="text-red-400 hover:text-white hover:bg-red-500 px-3 py-1 rounded-lg text-[11px] font-bold transition-colors cursor-pointer border border-red-500/30"
-                                >
-                                  刪除
-                                </button>
+                                <div className="flex items-center justify-center gap-1.5">
+                                  <button
+                                    type="button"
+                                    onClick={() => openEditMission(m)}
+                                    className="text-amber-400 hover:text-white hover:bg-amber-500 px-3 py-1 rounded-lg text-[11px] font-bold transition-colors cursor-pointer border border-amber-500/30 inline-flex items-center gap-1"
+                                  >
+                                    <Pencil size={11} /> 編輯
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={async () => {
+                                      const msg = subCount > 0
+                                        ? `確定刪除任務「${m.title}」嗎？\n\n它已有 ${subCount} 筆打卡，刪除會一併移除這些打卡並退回對應經驗。\n此操作無法復原。`
+                                        : `確定刪除任務「${m.title}」嗎？\n此操作無法復原。`;
+                                      if (window.confirm(msg) && onDeleteMission) {
+                                        await onDeleteMission(m.id);
+                                      }
+                                    }}
+                                    className="text-red-400 hover:text-white hover:bg-red-500 px-3 py-1 rounded-lg text-[11px] font-bold transition-colors cursor-pointer border border-red-500/30"
+                                  >
+                                    刪除
+                                  </button>
+                                </div>
                               </td>
                             </tr>
                           );
@@ -371,5 +423,102 @@ export function SchedulePreviewTab({ batches, missionTemplates, batchMissionTemp
             </div>
           )}
         </div>
+
+        {/* ==================== 編輯已產生任務 Modal ==================== */}
+        {editMission && (
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-start justify-center p-4 overflow-y-auto">
+            <div className="glass-panel w-full max-w-md p-5 my-auto rounded-3xl border border-white/10 shadow-2xl relative animate-in zoom-in-95 duration-200 light:bg-white light:border-slate-200">
+              <div className="flex justify-between items-center mb-4 select-none">
+                <h3 className="text-base font-black text-white light:text-slate-900 flex items-center gap-2">
+                  <Pencil size={16} className="text-amber-400" /> 編輯任務
+                </h3>
+                <button type="button" onClick={() => setEditMission(null)} className="p-1 rounded-full text-slate-400 hover:text-white light:hover:text-slate-900">
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="space-y-3 text-left">
+                <div>
+                  <label className="block text-[11px] text-slate-400 light:text-slate-500 font-bold mb-1">任務標題</label>
+                  <input
+                    type="text"
+                    value={emTitle}
+                    onChange={e => setEmTitle(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl py-2 px-3 text-xs outline-none focus:border-amber-500 transition-all light:bg-slate-50 light:border-slate-200 light:text-slate-900"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-2.5">
+                  <div>
+                    <label className="block text-[11px] text-slate-400 light:text-slate-500 font-bold mb-1">發布日</label>
+                    <input
+                      type="date"
+                      value={emPubDate}
+                      onChange={e => setEmPubDate(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl py-2 px-3 text-xs outline-none focus:border-amber-500 transition-all light:bg-slate-50 light:border-slate-200 light:text-slate-900"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] text-slate-400 light:text-slate-500 font-bold mb-1">截止日</label>
+                    <input
+                      type="date"
+                      value={emDeadDate}
+                      onChange={e => setEmDeadDate(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl py-2 px-3 text-xs outline-none focus:border-amber-500 transition-all light:bg-slate-50 light:border-slate-200 light:text-slate-900"
+                    />
+                  </div>
+                </div>
+                <p className="text-[10px] text-slate-500 light:text-slate-400 leading-relaxed select-none">
+                  發布日當天 00:00 開放、截止日當晚 23:59 關閉。學員要看得到,「今天」需落在這區間內。
+                </p>
+
+                <div className="grid grid-cols-2 gap-2.5">
+                  <div>
+                    <label className="block text-[11px] text-slate-400 light:text-slate-500 font-bold mb-1">獎勵分數</label>
+                    <input
+                      type="number"
+                      value={emPoints}
+                      onFocus={e => e.target.select()}
+                      onChange={e => setEmPoints(e.target.value === '' ? '' : Number(e.target.value))}
+                      onBlur={() => { if (emPoints === '') setEmPoints(0); }}
+                      className="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl py-2 px-3 text-xs outline-none focus:border-amber-500 transition-all light:bg-slate-50 light:border-slate-200 light:text-slate-900"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] text-slate-400 light:text-slate-500 font-bold mb-1">狀態</label>
+                    <select
+                      value={emStatus}
+                      onChange={e => setEmStatus(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl py-2 px-3 text-xs outline-none focus:border-amber-500 transition-all light:bg-slate-50 light:border-slate-200 light:text-slate-900"
+                    >
+                      <option value="active">啟用 (active)</option>
+                      <option value="scheduled">排程 (scheduled)</option>
+                      <option value="ended">結束 (ended)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="flex gap-2.5 pt-2 select-none">
+                  <button
+                    type="button"
+                    onClick={() => setEditMission(null)}
+                    className="flex-1 btn-action py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 text-xs font-bold hover:bg-slate-800 transition-all light:bg-slate-100 light:border-slate-200 light:text-slate-600 cursor-pointer"
+                  >
+                    取消
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSaveMission}
+                    disabled={isSyncing}
+                    className="flex-1 btn-action py-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white text-xs font-black shadow-md shadow-amber-500/10 transition-all cursor-pointer"
+                  >
+                    儲存修改
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+    </>
   );
 }

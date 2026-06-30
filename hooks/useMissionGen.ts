@@ -173,17 +173,27 @@ export function useMissionGen({ setIsSyncing, fetchData, batches, missionTemplat
             updated_at: new Date().toISOString()
           });
         } else if (type === 'limited') {
-          const offset = rule.day_offset !== null ? Math.max(0, rule.day_offset - 1) : 0;
-          const duration = rule.duration_days !== null ? rule.duration_days : 1;
+          let pubStr: string;
+          let deadStr: string;
+          let limitedDeadlineTime = '12:00:00';   // 開訓第幾天模式:維持中午截止
+          // 「指定日期」模式:兩個絕對日期都有 → 直接用,不從開訓日推算;截止日整天可做到 23:59。
+          if ((rule as any).abs_publish_date && (rule as any).abs_deadline_date) {
+            pubStr = String((rule as any).abs_publish_date).substring(0, 10);
+            deadStr = String((rule as any).abs_deadline_date).substring(0, 10);
+            limitedDeadlineTime = '23:59:59';
+          } else {
+            const offset = rule.day_offset !== null ? Math.max(0, rule.day_offset - 1) : 0;
+            const duration = rule.duration_days !== null ? rule.duration_days : 1;
 
-          const pubDate = new Date(startDate);
-          pubDate.setDate(pubDate.getDate() + offset);
+            const pubDate = new Date(startDate);
+            pubDate.setDate(pubDate.getDate() + offset);
 
-          const deadDate = new Date(pubDate);
-          deadDate.setDate(deadDate.getDate() + duration);
+            const deadDate = new Date(pubDate);
+            deadDate.setDate(deadDate.getDate() + duration);
 
-          const pubStr = pubDate.toISOString().substring(0, 10);
-          const deadStr = deadDate.toISOString().substring(0, 10);
+            pubStr = pubDate.toISOString().substring(0, 10);
+            deadStr = deadDate.toISOString().substring(0, 10);
+          }
 
           previews.push({
             batch_id: batchId,
@@ -193,7 +203,7 @@ export function useMissionGen({ setIsSyncing, fetchData, batches, missionTemplat
             mission_type: type,
             points,
             publish_at: `${pubStr} 00:00:00`,
-            deadline_at: `${deadStr} 12:00:00`,
+            deadline_at: `${deadStr} ${limitedDeadlineTime}`,
             status: 'scheduled',
             review_type: reviewType,
             category: category,

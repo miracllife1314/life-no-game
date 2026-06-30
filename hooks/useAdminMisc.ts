@@ -32,6 +32,13 @@ export function useAdminMisc({ currentUser, setIsSyncing, fetchData, userPets }:
     await fetchData();
   };
 
+  // 編輯大會修行任務(tasks):只更新傳入的欄位,成功才刷新。
+  const handleUpdateTask = async (taskId: string, updates: Partial<Task>) => {
+    const { error } = await supabase.from('tasks').update(updates).eq('id', taskId);
+    if (error) { console.error(error); alert('更新任務失敗：' + error.message); return; }
+    await fetchData();
+  };
+
   // ---- 小隊長候選人 ----
   const handleAddCaptainCandidate = async (profileId: string, status: 'eligible' | 'paused' | 'disabled') => {
     setIsSyncing(true);
@@ -135,6 +142,25 @@ export function useAdminMisc({ currentUser, setIsSyncing, fetchData, userPets }:
     }
   };
 
+  // 編輯已產生的期數任務(missions):可改標題/描述/分數/發布·截止時間/狀態。
+  // 只更新傳入欄位,成功才刷新;失敗跳提示不假成功。
+  const handleUpdateMission = async (missionId: string, updates: Record<string, any>) => {
+    setIsSyncing(true);
+    try {
+      const { error } = await supabase
+        .from('missions')
+        .update({ ...updates, updated_at: new Date().toISOString() })
+        .eq('id', missionId);
+      if (error) throw new Error(error.message);
+      await fetchData();
+    } catch (err: any) {
+      console.error('更新任務失敗:', err);
+      alert('更新任務失敗：' + (err?.message || '請稍後再試'));
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   const handleManualAdjustScore = async (studentId: string, amount: number, reason: string) => {
     if (!currentUser) return;
     // 檢查 RPC 是否真的成功，失敗就拋錯（避免「假成功」）
@@ -212,10 +238,10 @@ export function useAdminMisc({ currentUser, setIsSyncing, fetchData, userPets }:
   };
 
   return {
-    handleCreateTask, handleDeleteTask,
+    handleCreateTask, handleDeleteTask, handleUpdateTask,
     handleAddCaptainCandidate, handleUpdateCaptainCandidate, handleDeleteCaptainCandidate,
     handleCreateMissionTemplate, handleUpdateMissionTemplate, handleDeleteMissionTemplate,
-    handleDeleteMission, handleManualAdjustScore,
+    handleDeleteMission, handleUpdateMission, handleManualAdjustScore,
     handleCreatePet, handleCreateCard, handleCreateDeck,
     handleAwardPetSkin, handleLevelUpPet, handleUpdatePetStage, handleUpdatePetLine,
   };

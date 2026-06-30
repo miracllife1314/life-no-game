@@ -27,6 +27,10 @@ export function BatchRulesTab({ batches, missionTemplates, missionCategories, ba
     week_offset: number | null;
     day_offset: number | null;
     duration_days: number | null;
+    // limited「指定日期」模式:'offset'=開訓第幾天(預設) / 'absolute'=直接填日期
+    date_mode: 'offset' | 'absolute';
+    abs_publish_date: string | null;
+    abs_deadline_date: string | null;
     is_enabled: boolean;
   }>>({});
 
@@ -48,11 +52,15 @@ export function BatchRulesTab({ batches, missionTemplates, missionCategories, ba
     
     missionTemplates.filter(t => t.is_active).forEach(template => {
       const existingRule = cohortRules.find(r => r.template_id === template.id);
+      const hasAbs = !!(existingRule && existingRule.abs_publish_date && existingRule.abs_deadline_date);
       initialLocalRules[template.id] = {
         is_applied: !!existingRule,
         week_offset: existingRule && existingRule.week_offset !== null ? existingRule.week_offset : 1,
         day_offset: existingRule && existingRule.day_offset !== null ? existingRule.day_offset : 1,
         duration_days: existingRule && existingRule.duration_days !== null ? existingRule.duration_days : 1,
+        date_mode: hasAbs ? 'absolute' : 'offset',
+        abs_publish_date: existingRule?.abs_publish_date ? String(existingRule.abs_publish_date).substring(0, 10) : null,
+        abs_deadline_date: existingRule?.abs_deadline_date ? String(existingRule.abs_deadline_date).substring(0, 10) : null,
         is_enabled: existingRule ? existingRule.is_enabled : true
       };
     });
@@ -86,14 +94,26 @@ export function BatchRulesTab({ batches, missionTemplates, missionCategories, ba
         const template = missionTemplates.find(t => t.id === templateId);
         if (!template) return;
         
-        rulesToSave.push({
+        // 限時任務「指定日期」模式:兩個日期都填了才算數,存絕對日期、清空 day_offset/duration。
+        const limitedAbs = template.mission_type === 'limited'
+          && rule.date_mode === 'absolute'
+          && !!rule.abs_publish_date && !!rule.abs_deadline_date;
+
+        const ruleObj: any = {
           batch_id: selectedRuleBatchId,
           template_id: templateId,
           week_offset: template.mission_type === 'weekly' ? Number(rule.week_offset ?? 1) : null,
-          day_offset: (template.mission_type === 'limited' || template.mission_type === 'weekly') ? Number(rule.day_offset ?? 1) : null,
-          duration_days: template.mission_type === 'limited' ? Number(rule.duration_days ?? 1) : (template.mission_type === 'weekly' ? 7 : null),
+          day_offset: limitedAbs ? null : ((template.mission_type === 'limited' || template.mission_type === 'weekly') ? Number(rule.day_offset ?? 1) : null),
+          duration_days: limitedAbs ? null : (template.mission_type === 'limited' ? Number(rule.duration_days ?? 1) : (template.mission_type === 'weekly' ? 7 : null)),
           is_enabled: rule.is_enabled
-        });
+        };
+        // ⚠️ 只有真的用「指定日期」時才帶 abs_* 欄位 —— 沒用就不帶,
+        //    這樣即使資料庫還沒跑 schema_fixes_25(欄位不存在),既有套用功能也不會壞。
+        if (limitedAbs) {
+          ruleObj.abs_publish_date = rule.abs_publish_date;
+          ruleObj.abs_deadline_date = rule.abs_deadline_date;
+        }
+        rulesToSave.push(ruleObj);
       }
     });
     
@@ -307,40 +327,83 @@ export function BatchRulesTab({ batches, missionTemplates, missionCategories, ba
                                   )}
                                   
                                   {template.mission_type === 'limited' && (
-                                    <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-                                      <div className="flex items-center gap-1.5 shrink-0">
-                                        <span className="text-slate-400 light:text-slate-600 font-bold">開訓第</span>
-                                        <input
-                                          required
-                                          type="number"
-                                          min={1}
-                                          value={localRule.day_offset ?? ''}
-                                          onFocus={e => e.target.select()}
-                                          onChange={e => updateLocalRuleField(template.id, 'day_offset', e.target.value === '' ? '' : Number(e.target.value))}
-                                          onBlur={() => { if (localRule.day_offset === null || (localRule.day_offset as any) === '') updateLocalRuleField(template.id, 'day_offset', 1); }}
-                                          className="w-16 shrink-0 bg-slate-950 border border-slate-800 text-white rounded-lg p-2 text-xs text-center outline-none focus:border-red-500 light:bg-slate-50 light:border-slate-200 light:text-slate-900 font-mono font-bold"
-                                        />
-                                        <span className="text-slate-400 light:text-slate-600 font-bold">天發布</span>
-                                      </div>
-                                      
-                                      <div className="flex items-center gap-1.5 shrink-0">
-                                        <span className="text-slate-400 light:text-slate-600 font-bold">持續時間</span>
-                                        <input
-                                          required
-                                          type="number"
-                                          min={1}
-                                          value={localRule.duration_days ?? ''}
-                                          onFocus={e => e.target.select()}
-                                          onChange={e => updateLocalRuleField(template.id, 'duration_days', e.target.value === '' ? '' : Number(e.target.value))}
-                                          onBlur={() => { if (localRule.duration_days === null || (localRule.duration_days as any) === '') updateLocalRuleField(template.id, 'duration_days', 1); }}
-                                          className="w-16 shrink-0 bg-slate-950 border border-slate-800 text-white rounded-lg p-2 text-xs text-center outline-none focus:border-red-500 light:bg-slate-50 light:border-slate-200 light:text-slate-900 font-mono font-bold"
-                                        />
-                                        <span className="text-slate-400 light:text-slate-600 font-bold">天</span>
+                                    <div className="flex flex-col gap-2">
+                                      {/* 模式切換:開訓第幾天 / 指定日期 */}
+                                      <div className="inline-flex rounded-lg overflow-hidden border border-white/10 light:border-slate-300 w-fit select-none">
+                                        {(['offset', 'absolute'] as const).map(mode => (
+                                          <button
+                                            key={mode}
+                                            type="button"
+                                            onClick={() => updateLocalRuleField(template.id, 'date_mode', mode)}
+                                            className={`px-3 py-1 text-[11px] font-black transition-colors ${
+                                              (localRule.date_mode ?? 'offset') === mode
+                                                ? 'bg-red-500 text-white'
+                                                : 'bg-slate-900 text-slate-400 hover:text-white light:bg-slate-100 light:text-slate-500'
+                                            }`}
+                                          >
+                                            {mode === 'offset' ? '開訓第幾天' : '指定日期'}
+                                          </button>
+                                        ))}
                                       </div>
 
-                                      <span className="text-[10px] text-slate-500 font-bold bg-slate-900/60 light:bg-slate-200/50 px-2.5 py-1 rounded border border-white/5 light:border-slate-300/60 shrink-0 select-none">
-                                        {template.max_completions === 0 ? '無限次' : `限做 ${template.max_completions ?? 1} 次`}
-                                      </span>
+                                      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                                        {(localRule.date_mode ?? 'offset') === 'offset' ? (
+                                          <>
+                                            <div className="flex items-center gap-1.5 shrink-0">
+                                              <span className="text-slate-400 light:text-slate-600 font-bold">開訓第</span>
+                                              <input
+                                                type="number"
+                                                min={1}
+                                                value={localRule.day_offset ?? ''}
+                                                onFocus={e => e.target.select()}
+                                                onChange={e => updateLocalRuleField(template.id, 'day_offset', e.target.value === '' ? '' : Number(e.target.value))}
+                                                onBlur={() => { if (localRule.day_offset === null || (localRule.day_offset as any) === '') updateLocalRuleField(template.id, 'day_offset', 1); }}
+                                                className="w-16 shrink-0 bg-slate-950 border border-slate-800 text-white rounded-lg p-2 text-xs text-center outline-none focus:border-red-500 light:bg-slate-50 light:border-slate-200 light:text-slate-900 font-mono font-bold"
+                                              />
+                                              <span className="text-slate-400 light:text-slate-600 font-bold">天發布</span>
+                                            </div>
+
+                                            <div className="flex items-center gap-1.5 shrink-0">
+                                              <span className="text-slate-400 light:text-slate-600 font-bold">持續時間</span>
+                                              <input
+                                                type="number"
+                                                min={1}
+                                                value={localRule.duration_days ?? ''}
+                                                onFocus={e => e.target.select()}
+                                                onChange={e => updateLocalRuleField(template.id, 'duration_days', e.target.value === '' ? '' : Number(e.target.value))}
+                                                onBlur={() => { if (localRule.duration_days === null || (localRule.duration_days as any) === '') updateLocalRuleField(template.id, 'duration_days', 1); }}
+                                                className="w-16 shrink-0 bg-slate-950 border border-slate-800 text-white rounded-lg p-2 text-xs text-center outline-none focus:border-red-500 light:bg-slate-50 light:border-slate-200 light:text-slate-900 font-mono font-bold"
+                                              />
+                                              <span className="text-slate-400 light:text-slate-600 font-bold">天</span>
+                                            </div>
+                                          </>
+                                        ) : (
+                                          <>
+                                            <div className="flex items-center gap-1.5 shrink-0">
+                                              <span className="text-slate-400 light:text-slate-600 font-bold">發布日</span>
+                                              <input
+                                                type="date"
+                                                value={localRule.abs_publish_date ?? ''}
+                                                onChange={e => updateLocalRuleField(template.id, 'abs_publish_date', e.target.value || null)}
+                                                className="shrink-0 bg-slate-950 border border-slate-800 text-white rounded-lg p-2 text-xs outline-none focus:border-red-500 light:bg-slate-50 light:border-slate-200 light:text-slate-900 font-mono font-bold"
+                                              />
+                                            </div>
+                                            <div className="flex items-center gap-1.5 shrink-0">
+                                              <span className="text-slate-400 light:text-slate-600 font-bold">截止日</span>
+                                              <input
+                                                type="date"
+                                                value={localRule.abs_deadline_date ?? ''}
+                                                onChange={e => updateLocalRuleField(template.id, 'abs_deadline_date', e.target.value || null)}
+                                                className="shrink-0 bg-slate-950 border border-slate-800 text-white rounded-lg p-2 text-xs outline-none focus:border-red-500 light:bg-slate-50 light:border-slate-200 light:text-slate-900 font-mono font-bold"
+                                              />
+                                            </div>
+                                          </>
+                                        )}
+
+                                        <span className="text-[10px] text-slate-500 font-bold bg-slate-900/60 light:bg-slate-200/50 px-2.5 py-1 rounded border border-white/5 light:border-slate-300/60 shrink-0 select-none">
+                                          {template.max_completions === 0 ? '無限次' : `限做 ${template.max_completions ?? 1} 次`}
+                                        </span>
+                                      </div>
                                     </div>
                                   )}
                                 </div>

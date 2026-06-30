@@ -648,10 +648,10 @@ export default function Home() {
   });
 
   const {
-    handleCreateTask, handleDeleteTask,
+    handleCreateTask, handleDeleteTask, handleUpdateTask,
     handleAddCaptainCandidate, handleUpdateCaptainCandidate, handleDeleteCaptainCandidate,
     handleCreateMissionTemplate, handleUpdateMissionTemplate, handleDeleteMissionTemplate,
-    handleDeleteMission, handleManualAdjustScore,
+    handleDeleteMission, handleUpdateMission, handleManualAdjustScore,
     handleCreatePet, handleCreateCard, handleCreateDeck,
     handleAwardPetSkin, handleLevelUpPet, handleUpdatePetStage, handleUpdatePetLine,
   } = useAdminMisc({ currentUser, setIsSyncing, fetchData, userPets });
@@ -1150,6 +1150,7 @@ export default function Home() {
             onReviewSubmission={handleReviewSubmission}
             onCreateTask={handleCreateTask}
             onDeleteTask={handleDeleteTask}
+            onUpdateTask={handleUpdateTask}
             onAssignTeam={handleAssignTeam}
             onManualAdjustScore={handleManualAdjustScore}
             onCreateAnnouncement={handleCreateAnnouncement}
@@ -1179,6 +1180,7 @@ export default function Home() {
             onGenerateMissions={handleGenerateMissions}
             missions={missions}
             onDeleteMission={handleDeleteMission}
+            onUpdateMission={handleUpdateMission}
             onViewAsStudent={(id: string) => { setViewAsUserId(id); setViewCanOperate(false); setEditAccountOpen(false); setActiveTab('daily'); }}
             onAddProfile={handleAddProfile}
             onUpdateProfile={handleUpdateProfile}

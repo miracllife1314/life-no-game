@@ -2,7 +2,7 @@
 // 後台「任務管理」分頁（任務列表 + 建立任務 Modal）—— 從 AdminDashboard.tsx 抽出，行為/UI 不變。
 // =====================================================================
 import { useState, useMemo } from 'react';
-import { Plus, Trash2, X } from 'lucide-react';
+import { Plus, Trash2, X, Pencil } from 'lucide-react';
 import { Task, Batch, TaskType, TaskTargetType } from '@/types';
 
 interface TasksTabProps {
@@ -12,10 +12,13 @@ interface TasksTabProps {
   isSyncing: boolean;
   onCreateTask: (taskData: Omit<Task, 'id' | 'created_at' | 'created_by'>) => Promise<void>;
   onDeleteTask: (taskId: string) => Promise<void>;
+  onUpdateTask?: (taskId: string, updates: Partial<Task>) => Promise<void>;
 }
 
-export function TasksTab({ tasks, batches, missionCategories, isSyncing, onCreateTask, onDeleteTask }: TasksTabProps) {
+export function TasksTab({ tasks, batches, missionCategories, isSyncing, onCreateTask, onDeleteTask, onUpdateTask }: TasksTabProps) {
   const [showTaskModal, setShowTaskModal] = useState(false);
+  // 編輯中的任務 id;null = 建立新任務模式
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [taskName, setTaskName] = useState('');
   const [taskDesc, setTaskDesc] = useState('');
   const [taskType, setTaskType] = useState<TaskType>('daily');
@@ -88,11 +91,40 @@ export function TasksTab({ tasks, batches, missionCategories, isSyncing, onCreat
       }
     }
   };
-  const handleCreateTask = async (e: React.FormEvent) => {
+  // 開啟「建立新任務」(清空表單)
+  const openCreateModal = () => {
+    setEditingTaskId(null);
+    setTaskName('');
+    setTaskDesc('');
+    setTaskType('daily');
+    setTaskScore(100);
+    setTaskReqProof(true);
+    setTaskBatchId('');
+    setTaskCategory('初階');
+    setTaskStartTime(formatDateToLocal(new Date()));
+    setTaskEndTime(formatDateToLocal(new Date(Date.now() + 604800000)));
+    setShowTaskModal(true);
+  };
+
+  // 開啟「編輯既有任務」(帶入該任務現有資料)
+  const openEditModal = (task: Task) => {
+    setEditingTaskId(task.id);
+    setTaskName(task.name);
+    setTaskDesc(task.description || '');
+    setTaskType(task.type);
+    setTaskScore(task.score);
+    setTaskReqProof(!!task.requires_proof);
+    setTaskBatchId(task.batch_id || '');
+    setTaskCategory(task.category || '初階');
+    setTaskStartTime(formatDateToLocal(new Date(task.start_time)));
+    setTaskEndTime(formatDateToLocal(new Date(task.end_time)));
+    setShowTaskModal(true);
+  };
+
+  const handleSubmitTask = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!taskName) return;
 
-    // 立即關閉對話框並清空輸入，避免非同步載入重渲染時閃爍
     const currentTaskData = {
       name: taskName,
       description: taskDesc,
@@ -100,7 +132,6 @@ export function TasksTab({ tasks, batches, missionCategories, isSyncing, onCreat
       score: Number(taskScore),
       requires_approval: taskReqProof,
       requires_proof: taskReqProof,
-      publish_time: new Date().toISOString(),
       start_time: new Date(taskStartTime).toISOString(),
       end_time: new Date(taskEndTime).toISOString(),
       target_type: 'all' as TaskTargetType,
@@ -110,6 +141,21 @@ export function TasksTab({ tasks, batches, missionCategories, isSyncing, onCreat
       category: taskCategory
     };
 
+    // 編輯模式:更新既有任務(不改 publish_time);成功才關閉。
+    if (editingTaskId) {
+      const idToEdit = editingTaskId;
+      setShowTaskModal(false);
+      try {
+        if (onUpdateTask) await onUpdateTask(idToEdit, currentTaskData);
+      } catch (err) {
+        console.error('更新任務失敗:', err);
+        setShowTaskModal(true);   // 失敗時重開,讓使用者重試
+      }
+      return;
+    }
+
+    // 建立模式:立即關閉並清空輸入,避免非同步重渲染閃爍
+    const createData = { ...currentTaskData, publish_time: new Date().toISOString() };
     setTaskName('');
     setTaskDesc('');
     setTaskScore(100);
@@ -118,15 +164,15 @@ export function TasksTab({ tasks, batches, missionCategories, isSyncing, onCreat
     setShowTaskModal(false);
 
     try {
-      await onCreateTask(currentTaskData);
+      await onCreateTask(createData);
     } catch (err) {
       console.error('建立任務失敗:', err);
       // 若失敗，則恢復狀態供使用者調整
-      setTaskName(currentTaskData.name);
-      setTaskDesc(currentTaskData.description);
-      setTaskScore(currentTaskData.score);
-      setTaskBatchId(currentTaskData.batch_id || '');
-      setTaskCategory(currentTaskData.category);
+      setTaskName(createData.name);
+      setTaskDesc(createData.description);
+      setTaskScore(createData.score);
+      setTaskBatchId(createData.batch_id || '');
+      setTaskCategory(createData.category);
       setShowTaskModal(true);
     }
   };
@@ -188,7 +234,7 @@ export function TasksTab({ tasks, batches, missionCategories, isSyncing, onCreat
               />
 
               <button
-                onClick={() => setShowTaskModal(true)}
+                onClick={openCreateModal}
                 className="btn-action bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded-xl text-xs font-black flex items-center gap-1 shrink-0"
               >
                 <Plus size={14} />
@@ -231,17 +277,28 @@ export function TasksTab({ tasks, batches, missionCategories, isSyncing, onCreat
                   <p className="text-xs text-slate-400 mt-1 line-clamp-1 light:text-slate-500">{task.description}</p>
                 </div>
 
-                <button
-                  onClick={() => {
-                    if (confirm(`確定要刪除發布任務「${task.name}」嗎？`)) {
-                      onDeleteTask(task.id);
-                    }
-                  }}
-                  disabled={isSyncing}
-                  className="btn-action bg-slate-900 border border-white/5 hover:border-red-500/30 text-red-400 p-2 rounded-xl text-xs"
-                >
-                  <Trash2 size={14} />
-                </button>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    onClick={() => openEditModal(task)}
+                    disabled={isSyncing}
+                    className="btn-action bg-slate-900 border border-white/5 hover:border-amber-500/40 text-amber-400 p-2 rounded-xl text-xs light:bg-slate-100 light:border-slate-200"
+                    title="編輯任務"
+                  >
+                    <Pencil size={14} />
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (confirm(`確定要刪除發布任務「${task.name}」嗎？`)) {
+                        onDeleteTask(task.id);
+                      }
+                    }}
+                    disabled={isSyncing}
+                    className="btn-action bg-slate-900 border border-white/5 hover:border-red-500/30 text-red-400 p-2 rounded-xl text-xs light:bg-slate-100 light:border-slate-200"
+                    title="刪除任務"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
               </div>
             )))}
           </div>
@@ -253,7 +310,7 @@ export function TasksTab({ tasks, batches, missionCategories, isSyncing, onCreat
           <div className="glass-panel w-full max-w-md p-5 my-auto rounded-3xl border border-white/10 shadow-2xl relative animate-in zoom-in-95 duration-200 light:bg-white light:border-slate-200">
             <div className="flex justify-between items-center mb-3 select-none">
               <h3 className="text-base font-black text-white light:text-slate-900">
-                建立新修行任務
+                {editingTaskId ? '編輯修行任務' : '建立新修行任務'}
               </h3>
               <button 
                 type="button"
@@ -264,7 +321,7 @@ export function TasksTab({ tasks, batches, missionCategories, isSyncing, onCreat
               </button>
             </div>
             
-            <form onSubmit={handleCreateTask} className="space-y-3 text-left">
+            <form onSubmit={handleSubmitTask} className="space-y-3 text-left">
               
               {/* Group 1: 班次 */}
               <div className="space-y-2">
@@ -416,7 +473,7 @@ export function TasksTab({ tasks, batches, missionCategories, isSyncing, onCreat
                   disabled={isSyncing}
                   className="flex-1 btn-action py-3 rounded-xl bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white text-xs font-black shadow-md shadow-red-500/10 transition-all cursor-pointer"
                 >
-                  確認發布
+                  {editingTaskId ? '儲存修改' : '確認發布'}
                 </button>
               </div>
             </form>

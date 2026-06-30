@@ -317,6 +317,9 @@ export interface BatchMissionTemplate {
   week_offset: number | null;
   day_offset: number | null; // limited 任務使用，代表梯次第幾天發布
   duration_days: number | null; // limited 任務使用，維持幾天
+  // limited 任務「指定日期」模式：兩者皆有值時，改用絕對日期(不再從開訓日推算)。YYYY-MM-DD。
+  abs_publish_date?: string | null;
+  abs_deadline_date?: string | null;
   is_enabled: boolean;
   created_at: string;
   updated_at: string;
