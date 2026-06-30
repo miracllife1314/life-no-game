@@ -779,6 +779,9 @@ export function DailyQuestsTab({
   const filteredTasks = tasks.filter(t => {
     // 進化任務只在寵物進化流程出現，不列入一般任務列表
     if (isEvolutionTask(t)) return false;
+    // 單次任務的期數範圍:指定期數的只給該期學員;沒指定期數(全體/大會任務)給所有人。
+    // (避免某一期的單次任務外洩到別期看到。)
+    if (t.batch_id && profile.batch_id && t.batch_id !== profile.batch_id) return false;
     let matchesTab = false;
     if (activeCategory === 'daily') matchesTab = t.type === 'daily';
     else if (activeCategory === 'weekly') matchesTab = t.type === 'weekly';
@@ -852,12 +855,16 @@ export function DailyQuestsTab({
 
   // 該分頁是否有「目前可做但尚未完成」的任務（用來顯示小紅點提醒）
   const categoryHasUndone = (catKey: string): boolean => {
-    if (isUsingMissions) {
-      const mType: Record<string, string> = { daily: 'daily', weekly: 'weekly', special: 'special', temporary: 'limited' };
-      return displayMissions.some(m => m.mission_type === mType[catKey] && !getTaskProgress(m.id).isDone);
-    }
+    // 期數任務(missions)與單次任務(tasks)現在並存,小紅點要兩邊都看。
+    const mType: Record<string, string> = { daily: 'daily', weekly: 'weekly', special: 'special', temporary: 'limited' };
     const tType: Record<string, string> = { daily: 'daily', weekly: 'weekly', special: 'temporary', temporary: 'limited' };
-    return tasks.some((t: Task) => !isEvolutionTask(t) && t.type === tType[catKey] && !getTaskProgress(t.id).isDone);
+    const missionUndone = isUsingMissions &&
+      displayMissions.some(m => m.mission_type === mType[catKey] && !getTaskProgress(m.id).isDone);
+    const taskUndone = tasks.some((t: Task) =>
+      !isEvolutionTask(t) &&
+      (!t.batch_id || !profile.batch_id || t.batch_id === profile.batch_id) &&
+      t.type === tType[catKey] && !getTaskProgress(t.id).isDone);
+    return missionUndone || taskUndone;
   };
 
   const handleCardClick = (task: Task) => {
@@ -1732,10 +1739,12 @@ export function DailyQuestsTab({
         </div>
 
 
-        {/* Task/Mission Grid */}
+        {/* Task/Mission Grid
+            期數任務(missions)與「任務管理」單次任務(tasks)『並存顯示』:
+            missions 由期數產生;tasks 是臨時/單次發放(已依 batch 過濾,只給本期+全體)。
+            以前是「有 missions 就不顯示 tasks」,導致單次任務被擋住看不到 → 改成兩者一起列。 */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {isUsingMissions && filteredMissions.length > 0
-            ? filteredMissions.map((mission) => {
+          {isUsingMissions && filteredMissions.map((mission) => {
                   const nowTime = nowTaipei().getTime();
                   const pubTime = parseLocalTime(mission.publish_at).getTime();
                   const deadTime = parseLocalTime(mission.deadline_at).getTime();
@@ -1912,8 +1921,8 @@ export function DailyQuestsTab({
                       </div>
                     </div>
                   );
-                })
-              : sortedTasks.map((task) => {
+                })}
+              {sortedTasks.map((task) => {
                   const { isDone, approvedCount, limit } = getTaskProgress(task.id);
                   const status = getTaskStatus(task.id);
                   const sub = getTaskSubmission(task.id);
