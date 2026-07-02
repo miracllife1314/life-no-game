@@ -104,7 +104,10 @@ async function fetchFull(): Promise<AllTables> {
 }
 
 // 學員 / 隊長情境：只撈自己這一期需要的資料
-async function fetchScoped(batchId: string): Promise<AllTables> {
+// opts.keepBatchSubs(隊長/盯盯隊長=true):submissions 維持「本期全員完整欄位」(要審核/看隊員進度)。
+// 純學員(false):改撈「自己的完整提交」+「本期全員精簡欄位(無心得文字,僅供排行榜計數)」
+//   → 心得文字是提交最肥的欄位;不載全期他人心得,提交越多省越多(見證牆另有完整查詢,不受影響)。
+async function fetchScoped(batchId: string, opts?: { studentId?: string; keepBatchSubs?: boolean }): Promise<AllTables> {
   // 第一批：參考表 + 全體 profiles（排行榜需要）+ 本期任務/公告
   const [
     batches, teams, profiles, pets, petLines, petStages, achs, templates, squadRoles,
@@ -134,10 +137,27 @@ async function fetchScoped(batchId: string): Promise<AllTables> {
   // ⚠️ 不撈 proof_image_url（可能含 base64 整張圖、極肥；那 11 筆會讓學員一次下載 ~10MB、手機轉很久）。
   //    圖片另在下方只補「非 base64 的 URL 圖」（很小）。與大隊長 fetchFull 同一套做法。
   const SUB_COLS = 'id,mission_id,task_id,student_id,proof_text,proof_link,status,score_awarded,reviewed_by,reviewed_at,share_to_witness,created_at';
+  // 純學員瘦身:keepBatchSubs=false 且知道 studentId 時,不載全期他人的完整提交。
+  const slimMode = !opts?.keepBatchSubs && !!opts?.studentId;
+  // 精簡欄位:排行榜(邀約王者/影響力之神)只需要 status/mission_id/student_id 計數;
+  //   不含 proof_text(心得)等肥欄位。見證牆有 subsWitness 完整查詢、自己的有 subsOwn,不受影響。
+  const SUB_COLS_SLIM = 'id,mission_id,task_id,student_id,status,created_at';
+
   // 第二批：大表，只撈本期學員的，以及所有入選見證牆的提交
-  const [subsCurrentBatch, subsWitness, subsImgBatch, subsImgWitness, scoreLogs, userPets, userAchs, attendance, notes] = await Promise.all([
+  const [subsCurrentBatch, subsOwn, subsWitness, subsImgBatch, subsImgWitness, scoreLogs, userPets, userAchs, attendance, notes] = await Promise.all([
     // 最新優先 + 拉高上限:避免某期提交多時被 PostgREST 預設 1000 筆截掉最新待審(隊長也審核)。
-    hasIds ? supabase.from('submissions').select(SUB_COLS).in('student_id', batchStudentIds).order('created_at', { ascending: false }).limit(5000) : EMPTY,
+    // slimMode(純學員):全期他人只撈精簡欄位;隊長/盯盯隊長維持完整欄位(要審核、看隊員進度)。
+    hasIds
+      ? supabase.from('submissions')
+          .select(slimMode ? SUB_COLS_SLIM : SUB_COLS)
+          .in('student_id', batchStudentIds)
+          .order('created_at', { ascending: false })
+          .limit(5000)
+      : EMPTY,
+    // 自己的完整提交(打卡狀態/明細/重交都要):slimMode 才需要另撈;隊長模式上面那筆已含完整欄位。
+    slimMode
+      ? supabase.from('submissions').select(SUB_COLS).eq('student_id', opts!.studentId as string).order('created_at', { ascending: false }).limit(2000)
+      : EMPTY,
     supabase.from('submissions')
       .select(SUB_COLS)
       .eq('status', 'approved')
@@ -145,7 +165,12 @@ async function fetchScoped(batchId: string): Promise<AllTables> {
       .order('created_at', { ascending: false })
       .limit(300),
     // proof_image_url 另撈、排除 base64 肥圖(只載正常 URL 圖,很小)
-    hasIds ? supabase.from('submissions').select('id,proof_image_url').in('student_id', batchStudentIds).not('proof_image_url', 'is', null).not('proof_image_url', 'like', 'data:%') : EMPTY,
+    // slimMode:只補「自己的」圖;隊長模式維持整期(審核要看隊員圖)。
+    hasIds
+      ? supabase.from('submissions').select('id,proof_image_url')
+          .in('student_id', slimMode ? [opts!.studentId as string] : batchStudentIds)
+          .not('proof_image_url', 'is', null).not('proof_image_url', 'like', 'data:%')
+      : EMPTY,
     supabase.from('submissions').select('id,proof_image_url').eq('status', 'approved').or('share_to_witness.eq.true,mission_id.eq.task-custom-post').not('proof_image_url', 'is', null).not('proof_image_url', 'like', 'data:%').limit(300),
     hasIds ? supabase.from('score_logs').select('*').in('student_id', batchStudentIds) : EMPTY,
     hasIds ? supabase.from('user_pets').select('*').in('student_id', batchStudentIds) : EMPTY,
@@ -155,11 +180,13 @@ async function fetchScoped(batchId: string): Promise<AllTables> {
   ]);
 
   // 合併並去重 submissions,並補回（非 base64 的）圖片。
+  // ⚠️ 順序重要:精簡(或全批)→ 自己的完整 → 見證牆完整;後蓋前,確保「自己+見證」一定是完整欄位。
   const imgMap = new Map<string, any>();
   (d(subsImgBatch) as any[]).forEach((r: any) => imgMap.set(r.id, r.proof_image_url));
   (d(subsImgWitness) as any[]).forEach((r: any) => imgMap.set(r.id, r.proof_image_url));
   const mergedSubsMap = new Map<string, any>();
   d(subsCurrentBatch).forEach((s: any) => mergedSubsMap.set(s.id, { ...s, proof_image_url: imgMap.get(s.id) ?? null }));
+  d(subsOwn).forEach((s: any) => mergedSubsMap.set(s.id, { ...s, proof_image_url: imgMap.get(s.id) ?? null }));
   d(subsWitness).forEach((s: any) => mergedSubsMap.set(s.id, { ...s, proof_image_url: imgMap.get(s.id) ?? null }));
   const subsList = Array.from(mergedSubsMap.values());
 
@@ -175,7 +202,18 @@ async function fetchScoped(batchId: string): Promise<AllTables> {
   };
 }
 
-export async function fetchAllTables(opts: { batchId?: string | null; isAdmin?: boolean }): Promise<AllTables> {
+export async function fetchAllTables(opts: {
+  batchId?: string | null;
+  isAdmin?: boolean;
+  studentId?: string | null;
+  // 隊長/盯盯隊長要看整期(審核+隊員進度);純學員 false → 走瘦身載入。未知時預設 true(安全優先)。
+  keepBatchSubs?: boolean;
+}): Promise<AllTables> {
   const useScoped = !opts.isAdmin && !!opts.batchId;
-  return useScoped ? fetchScoped(opts.batchId as string) : fetchFull();
+  return useScoped
+    ? fetchScoped(opts.batchId as string, {
+        studentId: opts.studentId ?? undefined,
+        keepBatchSubs: opts.keepBatchSubs !== false,   // 沒明說就保守維持全批
+      })
+    : fetchFull();
 }

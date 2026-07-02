@@ -62,10 +62,23 @@ export function HealthTab() {
 
   useEffect(() => { load(); }, [load]);
 
-  // 今天(本地日)的筆數統計
+  // 今天/昨天(本地日)的筆數統計 + 近 7 日趨勢
   const startOfToday = new Date(); startOfToday.setHours(0, 0, 0, 0);
+  const startOfYesterday = new Date(startOfToday); startOfYesterday.setDate(startOfYesterday.getDate() - 1);
   const todayLogs = logs.filter(l => new Date(l.created_at) >= startOfToday);
+  const yesterdayLogs = logs.filter(l => { const d = new Date(l.created_at); return d >= startOfYesterday && d < startOfToday; });
   const countToday = (t: string) => todayLogs.filter(l => l.type === t).length;
+  const countYesterday = (t: string) => yesterdayLogs.filter(l => l.type === t).length;
+  // 近 7 天每天的總異常數(今天在最右),給一眼看趨勢的小長條
+  const last7: { label: string; count: number }[] = Array.from({ length: 7 }, (_, i) => {
+    const dayStart = new Date(startOfToday); dayStart.setDate(dayStart.getDate() - (6 - i));
+    const dayEnd = new Date(dayStart); dayEnd.setDate(dayEnd.getDate() + 1);
+    return {
+      label: `${dayStart.getMonth() + 1}/${dayStart.getDate()}`,
+      count: logs.filter(l => { const d = new Date(l.created_at); return d >= dayStart && d < dayEnd; }).length,
+    };
+  });
+  const maxDay = Math.max(1, ...last7.map(d => d.count));
 
   return (
     <div className="space-y-5">
@@ -98,11 +111,33 @@ export function HealthTab() {
                 <span className="text-[11px] font-bold text-slate-400 light:text-slate-500 leading-tight">{meta.label}</span>
               </div>
               <div className={`text-2xl font-black ${n > 0 ? meta.color : 'text-slate-600 light:text-slate-400'}`}>{n}</div>
-              <div className="text-[10px] text-slate-500 light:text-slate-400 mt-0.5">今日</div>
+              <div className="text-[10px] text-slate-500 light:text-slate-400 mt-0.5">今日 · 昨日 {countYesterday(t)}</div>
             </div>
           );
         })}
       </div>
+
+      {/* 近 7 日趨勢:一眼看「最近有沒有變糟」 */}
+      {!tableMissing && (
+        <div className="rounded-2xl p-4 border bg-slate-900/50 border-white/5 light:bg-white light:border-slate-200">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[11px] font-bold text-slate-400 light:text-slate-500">近 7 日異常趨勢(每日總筆數)</span>
+            <span className="text-[10px] text-slate-500 light:text-slate-400">7日合計 {last7.reduce((s, x) => s + x.count, 0)} 筆</span>
+          </div>
+          <div className="flex items-end gap-2 h-16">
+            {last7.map((dItem, i) => (
+              <div key={i} className="flex-1 flex flex-col items-center gap-1 min-w-0">
+                <span className={`text-[10px] font-bold ${dItem.count > 0 ? 'text-amber-400 light:text-amber-600' : 'text-slate-600 light:text-slate-300'}`}>{dItem.count}</span>
+                <div
+                  className={`w-full rounded-t ${dItem.count > 0 ? 'bg-amber-500/70' : 'bg-slate-800 light:bg-slate-200'}`}
+                  style={{ height: `${Math.max(4, (dItem.count / maxDay) * 40)}px` }}
+                />
+                <span className="text-[9px] text-slate-500 light:text-slate-400">{dItem.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* 表還沒建 → 提示跑 SQL */}
       {tableMissing && (
