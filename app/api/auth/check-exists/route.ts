@@ -17,10 +17,31 @@ const srHeaders = {
   'Content-Type': 'application/json',
 };
 
+// 極輕量記憶體限流(每個 serverless 實例各自計):擋掉同 IP 對「姓名+電話是否存在」的大量掃描。
+// 不進 DB(不污染 login 的限流計數)、fail-open。每分鐘 > 20 次即擋。
+const _hits = new Map<string, number[]>();
+function _throttled(ip: string, max = 20, windowMs = 60_000): boolean {
+  const now = Date.now();
+  const arr = (_hits.get(ip) || []).filter(t => now - t < windowMs);
+  arr.push(now);
+  _hits.set(ip, arr);
+  if (_hits.size > 500) {   // 防記憶體膨脹:偶爾清掉沒動靜的 IP
+    for (const [k, v] of _hits) if (v.every(t => now - t >= windowMs)) _hits.delete(k);
+  }
+  return arr.length > max;
+}
+
 export async function POST(req: Request) {
   try {
     if (!SUPA_URL || !SERVICE_KEY) {
       return NextResponse.json({ error: 'server_not_configured' }, { status: 500 });
+    }
+    // 限流:擋掉「拿此端點暴力驗證姓名+電話組合」的掃描。
+    const ip =
+      (req.headers.get('x-forwarded-for') || '').split(',')[0].trim() ||
+      req.headers.get('x-real-ip') || 'unknown';
+    if (ip !== 'unknown' && _throttled(ip)) {
+      return NextResponse.json({ error: 'too_many_attempts' }, { status: 429 });
     }
     const { name, phone } = await req.json().catch(() => ({}));
     const safeName = String(name || '').trim();
