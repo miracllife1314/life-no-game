@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { Task, Submission } from '@/types';
+import { safeLinkHref } from '@/lib/helpers';
 import { CheckCircle2, Clock, AlertCircle, FileText, Send, ExternalLink, Circle } from 'lucide-react';
 
 interface WeeklyTopicTabProps {
@@ -164,7 +165,7 @@ export function WeeklyTopicTab({ tasks, submissions, onCheckIn, isSyncing }: Wee
                       </p>
                       {sub.proof_link && (
                         <a
-                          href={sub.proof_link}
+                          href={safeLinkHref(sub.proof_link)}
                           target="_blank"
                           rel="noreferrer"
                           onClick={(e) => e.stopPropagation()}

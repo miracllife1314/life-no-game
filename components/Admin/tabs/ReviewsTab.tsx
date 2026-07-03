@@ -5,6 +5,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { Check, X, ScrollText, Share2, ChevronDown } from 'lucide-react';
 import { Submission, Task, Profile, Team, Batch } from '@/types';
 import { nowTaipei, parseTaipei } from '@/lib/time';
+import { safeLinkHref, safeImageHref } from '@/lib/helpers';
 
 interface ReviewsTabProps {
   pendingSubmissions: Submission[];
@@ -395,7 +396,7 @@ export function ReviewsTab({
                     <div className="flex flex-wrap gap-3 pt-1.5 select-none">
                       {sub.proof_link && (
                         <a
-                          href={sub.proof_link}
+                          href={safeLinkHref(sub.proof_link)}
                           target="_blank"
                           rel="noreferrer"
                           className="text-[10px] text-amber-500 hover:underline"
@@ -406,7 +407,7 @@ export function ReviewsTab({
                       {sub.proof_image_url && String(sub.proof_image_url).split('|').filter(Boolean).map((url: string, i: number, arr: string[]) => (
                         <a
                           key={i}
-                          href={url}
+                          href={safeImageHref(url)}
                           target="_blank"
                           rel="noreferrer"
                           className="text-[10px] text-amber-500 hover:underline"

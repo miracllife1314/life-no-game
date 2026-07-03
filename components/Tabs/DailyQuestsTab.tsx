@@ -5,6 +5,7 @@ import { Task, Submission, Announcement, Profile, Mission, UserPet, PetStage, Ba
 import { nowTaipei, taipeiDateStr } from '@/lib/time';
 import { supabase } from '@/lib/supabase';
 import { parsePetOffset } from '@/lib/petImage';
+import { safeLinkHref } from '@/lib/helpers';
 import {
   parseLocalTime, isEvolutionTask, getActiveStage, getCountdownText,
   isTodayLocal, isTodayInRangeLocal, compressImage,
@@ -2053,11 +2054,11 @@ export function DailyQuestsTab({
                         <div className="text-[10px] text-slate-500 mt-2 border-t border-white/5 pt-2 flex flex-col gap-1 light:border-slate-200">
                           <span className="line-clamp-1 italic font-bold">證明：「{sub.proof_text}」</span>
                           {sub.proof_link && (
-                            <a 
-                              href={sub.proof_link} 
-                              target="_blank" 
+                            <a
+                              href={safeLinkHref(sub.proof_link)}
+                              target="_blank"
                               rel="noreferrer"
-                              onClick={(e) => e.stopPropagation()} 
+                              onClick={(e) => e.stopPropagation()}
                               className={`flex items-center gap-0.5 hover:underline ${
                                 isDone 
                                   ? 'text-slate-400 hover:text-amber-500' 
