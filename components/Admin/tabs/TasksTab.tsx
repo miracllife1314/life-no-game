@@ -23,6 +23,7 @@ export function TasksTab({ tasks, batches, missionCategories, isSyncing, onCreat
   const [taskDesc, setTaskDesc] = useState('');
   const [taskType, setTaskType] = useState<TaskType>('daily');
   const [taskScore, setTaskScore] = useState<number | string>(100);
+  const [taskRewardShields, setTaskRewardShields] = useState<number | string>(0);   // 完成獎勵護盾張數
   const [taskReqProof, setTaskReqProof] = useState(true);
   const [taskCategory, setTaskCategory] = useState<string>('初階');
 
@@ -98,6 +99,7 @@ export function TasksTab({ tasks, batches, missionCategories, isSyncing, onCreat
     setTaskDesc('');
     setTaskType('daily');
     setTaskScore(100);
+    setTaskRewardShields(0);
     setTaskReqProof(true);
     setTaskBatchId('');
     setTaskCategory('初階');
@@ -113,6 +115,7 @@ export function TasksTab({ tasks, batches, missionCategories, isSyncing, onCreat
     setTaskDesc(task.description || '');
     setTaskType(task.type);
     setTaskScore(task.score);
+    setTaskRewardShields(task.reward_shields ?? 0);
     setTaskReqProof(!!task.requires_proof);
     setTaskBatchId(task.batch_id || '');
     setTaskCategory(task.category || '初階');
@@ -130,6 +133,7 @@ export function TasksTab({ tasks, batches, missionCategories, isSyncing, onCreat
       description: taskDesc,
       type: taskType,
       score: Number(taskScore),
+      reward_shields: Number(taskRewardShields) || 0,
       requires_approval: taskReqProof,
       requires_proof: taskReqProof,
       start_time: new Date(taskStartTime).toISOString(),
@@ -417,6 +421,25 @@ export function TasksTab({ tasks, batches, missionCategories, isSyncing, onCreat
                       className="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl py-2 px-2 text-[11px] outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 transition-all light:bg-slate-50 light:border-slate-200 light:text-slate-900"
                     />
                   </div>
+                </div>
+
+                {/* 🛡️ 完成獎勵護盾(補打卡卡) */}
+                <div>
+                  <label className="block text-[11px] text-slate-400 light:text-slate-500 font-bold mb-1">
+                    🛡️ 完成獎勵護盾(補打卡卡)
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    onFocus={(e) => e.target.select()}
+                    value={taskRewardShields}
+                    onChange={e => setTaskRewardShields(e.target.value === '' ? '' : (Number(e.target.value) || 0))}
+                    onBlur={() => { if (taskRewardShields === '') setTaskRewardShields(0); }}
+                    className="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl py-2 px-3 text-[11px] outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-all light:bg-slate-50 light:border-slate-200 light:text-slate-900"
+                  />
+                  <p className="text-[10px] text-slate-500 light:text-slate-400 mt-1 select-none">
+                    學員完成此任務可獲得 N 張連勝護盾(每人最多存 3 張)。設 0 = 不給。
+                  </p>
                 </div>
               </div>
 

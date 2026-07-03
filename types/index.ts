@@ -63,6 +63,7 @@ export interface Task {
   created_by: string | null;
   created_at: string;
   max_completions?: number;
+  reward_shields?: number;   // 完成此任務可獲得的連勝護盾張數(0=不給)
 }
 
 export type SubmissionStatus = 'pending' | 'approved' | 'rejected';

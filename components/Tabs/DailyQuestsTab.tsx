@@ -1126,21 +1126,15 @@ export function DailyQuestsTab({
             <span className="text-[10px] font-black text-slate-500 bg-slate-950 px-2 py-0.5 rounded-full mt-1 inline-block light:bg-slate-100">
               成長等級：LV.{userLevel}
             </span>
+            {/* 神獸介紹文字(移到成長等級下方) */}
+            <p className="text-[11px] text-slate-400 mt-1.5 leading-relaxed light:text-slate-500 max-w-xs text-center">
+              {stageDesc}
+            </p>
             {dailyStreak > 0 && (
               <span className="text-[10px] font-black tracking-wider text-orange-400 bg-gradient-to-r from-orange-500/10 to-red-500/10 border border-orange-500/30 px-3 py-1 rounded-full mt-2 inline-flex items-center gap-1.5 shadow-[0_0_12px_rgba(249,115,22,0.15)] light:bg-orange-50 light:text-orange-700 light:border-orange-300 light:shadow-none">
                 <span className="animate-bounce">🔥</span> 連續修行 <span className="text-white font-extrabold text-xs light:text-orange-900">{dailyStreak}</span> 天
               </span>
             )}
-            {/* 🛡️ 連勝護盾:漏一天自動幫你補上,連勝不斷 */}
-            {typeof activeProfile.streak_shields === 'number' && (
-              <span
-                title="漏打一天時,系統會自動用一張護盾幫你補上,連勝不會斷。"
-                className="text-[10px] font-black tracking-wider text-sky-300 bg-sky-500/10 border border-sky-500/30 px-3 py-1 rounded-full mt-2 inline-flex items-center gap-1.5 light:bg-sky-50 light:text-sky-700 light:border-sky-300"
-              >
-                🛡️ 連勝護盾 <span className="text-white font-extrabold text-xs light:text-sky-900">{activeProfile.streak_shields}</span> 張
-              </span>
-            )}
-
             {/* 🎮 連勝修行航線 (Streak Road Map) */}
             <div className="w-full max-w-[280px] mt-3.5 mb-2 px-2.5 py-3 bg-slate-950/40 border border-white/5 rounded-2xl light:bg-slate-50 light:border-slate-200 select-none">
               <div className="flex justify-between items-center text-[9px] text-slate-400 font-bold mb-3.5 light:text-slate-500">
@@ -1247,6 +1241,30 @@ export function DailyQuestsTab({
               )}
             </div>
 
+            {/* 🛡️ 連勝護盾面板(放在里程碑下方):顯示張數 + 說明 + 前往賺取 */}
+            {typeof activeProfile.streak_shields === 'number' && (
+              <div className="w-full max-w-[280px] mt-1 mb-2 px-3 py-3 bg-sky-500/5 border border-sky-500/25 rounded-2xl light:bg-sky-50 light:border-sky-200 select-none text-center">
+                <div className="flex items-center justify-center gap-2 text-sky-300 light:text-sky-700 font-black text-xs">
+                  🛡️ 連勝護盾
+                  <span className="text-white font-extrabold light:text-sky-900">{activeProfile.streak_shields}</span>
+                  <span className="text-[10px] font-bold text-sky-300/70 light:text-sky-600">/ 3 張</span>
+                </div>
+                <p className="text-[10px] text-slate-400 light:text-slate-500 mt-1.5 leading-relaxed">
+                  漏打一天時自動幫你補上、連勝不斷,最多可補 <b className="text-sky-300 light:text-sky-700">3 次</b>。
+                  完成有 <b className="text-sky-300 light:text-sky-700">🛡️ 標記</b> 的任務即可獲得護盾。
+                </p>
+                {!isCohortEnded && (
+                  <button
+                    type="button"
+                    onClick={() => setActiveCategory('temporary')}
+                    className="mt-2 text-[10px] font-black text-white bg-sky-500 hover:bg-sky-600 active:scale-95 transition-all px-3 py-1.5 rounded-full"
+                  >
+                    前往任務賺護盾 →
+                  </button>
+                )}
+              </div>
+            )}
+
             {/* ⚠️ 斷連提醒：連勝中且今天還沒定課 → 醒目提示快打卡 */}
             {!isCohortEnded && dailyStreak >= 1 && !checkedInToday && (
               <span className="text-[10px] font-black text-red-300 bg-red-500/15 border border-red-500/40 px-3 py-1 rounded-full mt-1.5 inline-flex items-center gap-1 animate-pulse light:text-red-600 light:bg-red-50 light:border-red-200">
@@ -1254,17 +1272,16 @@ export function DailyQuestsTab({
               </span>
             )}
 
-            <p className="text-xs text-slate-400 mt-2 leading-relaxed light:text-slate-500 max-w-xs text-center">
-              {((userPet?.has_pending_evolution) || (userLevel >= 5 && (!userPet || userPet.current_stage_index <= 1))) && (!userPet || userPet.current_stage_index <= 1) ? (
+            {/* 進化提示(神獸介紹已移到上方成長等級下;這裡只在進化時提示,緊鄰下方進化按鈕) */}
+            {((userPet?.has_pending_evolution) || (userLevel >= 5 && (!userPet || userPet.current_stage_index <= 1))) && (!userPet || userPet.current_stage_index <= 1) && (
+              <p className="text-xs mt-2 leading-relaxed max-w-xs text-center">
                 <span className="text-amber-400 font-bold block animate-pulse">
                   {approvedEvoLine
                     ? '考驗任務已通過！點擊下方按鈕即可直接破殼進化。'
                     : '你的混沌的蛋已經覺醒！完成對應的神秘考驗任務，即可解鎖該方向並破殼進化。'}
                 </span>
-              ) : (
-                stageDesc
-              )}
-            </p>
+              </p>
+            )}
             
             {/* ✨ 開始進化 Button */}
             {((userPet?.has_pending_evolution) || (userLevel >= 5 && (!userPet || userPet.current_stage_index <= 1))) && !isCohortEnded && (
@@ -2019,6 +2036,11 @@ export function DailyQuestsTab({
                           }`}>
                             +{task.score} 經驗
                           </span>
+                          {(task.reward_shields ?? 0) > 0 && (
+                            <span className="text-[11px] font-black tracking-widest px-2 py-0.5 rounded-lg border text-sky-300 bg-sky-500/15 border-sky-500/30 light:text-sky-700 light:bg-sky-50 light:border-sky-300">
+                              🛡️ 護盾 x{task.reward_shields}
+                            </span>
+                          )}
                           {(() => {
                             if (limit === 0) {
                               return (
