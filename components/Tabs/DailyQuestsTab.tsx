@@ -109,6 +109,9 @@ export function DailyQuestsTab({
   const [isLoadingDraw, setIsLoadingDraw] = useState(true);
   const [isDrawingAnimation, setIsDrawingAnimation] = useState(false);
 
+  // --- 🛡️ 連勝護盾:載入本人「被護盾補上的日期」,連勝計算會把這些天也算成有打卡 ---
+  const [shieldDayKeys, setShieldDayKeys] = useState<Set<string>>(new Set());
+
   // Cohort resolving logic
   const activeProfile = profile;
   const activeBatch = batches.find(b => b.id === profile.batch_id);
@@ -117,6 +120,27 @@ export function DailyQuestsTab({
   const isCohortEnded = profile.status === 'ended' || profile.status === 'inactive' || (activeBatch ? activeBatch.status === 'ended' : false);
   const isUserAdvanced = !!(activeBatch?.name?.includes('進階') || activeBatch?.name?.includes('高階') || activeBatch?.name?.includes('班長班'));
   const isAdmin = profile.role === 'admin';
+
+  // 載入本人的護盾補日(submissions 變動時一併重抓,打卡後若觸發護盾能即時反映)
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!activeProfile?.id) return;
+      const { data } = await supabase
+        .from('streak_shield_days')
+        .select('covered_date')
+        .eq('student_id', activeProfile.id);
+      if (cancelled || !data) return;
+      const keys = new Set<string>(
+        data.map((r: any) => {
+          const dt = parseLocalTime(r.covered_date);
+          return `${dt.getFullYear()}-${dt.getMonth()}-${dt.getDate()}`;
+        })
+      );
+      setShieldDayKeys(keys);
+    })();
+    return () => { cancelled = true; };
+  }, [activeProfile?.id, submissions.length]);
 
   // Level and Pet stage logic
   const totalExp = userPet ? userPet.total_exp : activeProfile.score;
@@ -727,6 +751,8 @@ export function DailyQuestsTab({
       if (!pub) continue;
       done.add(dayKey(parseLocalTime(pub)));
     }
+    // 🛡️ 護盾補上的日子也算「有打卡」→ 連勝不因漏一天而斷
+    shieldDayKeys.forEach(k => done.add(k));
     // 「今天」以中午換日界線為準(午前算前一天),與每日任務顯示一致
     const todayKey = dayKey(new Date(dailyAnchor.getFullYear(), dailyAnchor.getMonth(), dailyAnchor.getDate()));
     const isTodayDone = done.has(todayKey);
@@ -1103,6 +1129,15 @@ export function DailyQuestsTab({
             {dailyStreak > 0 && (
               <span className="text-[10px] font-black tracking-wider text-orange-400 bg-gradient-to-r from-orange-500/10 to-red-500/10 border border-orange-500/30 px-3 py-1 rounded-full mt-2 inline-flex items-center gap-1.5 shadow-[0_0_12px_rgba(249,115,22,0.15)] light:bg-orange-50 light:text-orange-700 light:border-orange-300 light:shadow-none">
                 <span className="animate-bounce">🔥</span> 連續修行 <span className="text-white font-extrabold text-xs light:text-orange-900">{dailyStreak}</span> 天
+              </span>
+            )}
+            {/* 🛡️ 連勝護盾:漏一天自動幫你補上,連勝不斷 */}
+            {typeof activeProfile.streak_shields === 'number' && (
+              <span
+                title="漏打一天時,系統會自動用一張護盾幫你補上,連勝不會斷。"
+                className="text-[10px] font-black tracking-wider text-sky-300 bg-sky-500/10 border border-sky-500/30 px-3 py-1 rounded-full mt-2 inline-flex items-center gap-1.5 light:bg-sky-50 light:text-sky-700 light:border-sky-300"
+              >
+                🛡️ 連勝護盾 <span className="text-white font-extrabold text-xs light:text-sky-900">{activeProfile.streak_shields}</span> 張
               </span>
             )}
 

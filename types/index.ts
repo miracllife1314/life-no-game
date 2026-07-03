@@ -24,6 +24,7 @@ export interface Profile {
   profile_id?: string;
   status?: 'active' | 'ended' | 'inactive';
   squad_role?: string | null;
+  streak_shields?: number;   // 連勝護盾剩餘張數(補打卡卡)
 }
 
 
