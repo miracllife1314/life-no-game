@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Task, Submission, Announcement, Profile, Mission, UserPet, PetStage, Batch, PetLine, MissionTemplate } from '@/types';
 import { nowTaipei, taipeiDateStr } from '@/lib/time';
 import { supabase } from '@/lib/supabase';
@@ -111,15 +111,7 @@ export function DailyQuestsTab({
 
   // --- 🛡️ 連勝護盾:載入本人「被護盾補上的日期」,連勝計算會把這些天也算成有打卡 ---
   const [shieldDayKeys, setShieldDayKeys] = useState<Set<string>>(new Set());
-  const [showShieldInfo, setShowShieldInfo] = useState(false);   // 護盾說明彈窗
-  const missionBoardRef = useRef<HTMLDivElement>(null);          // 「前往賺護盾」捲動目標
-
-  // 前往任務區(切到限時分頁 + 捲到任務清單),讓「前往賺護盾」真的帶使用者到任務畫面
-  const goEarnShield = () => {
-    setShowShieldInfo(false);
-    setActiveCategory('temporary');
-    setTimeout(() => missionBoardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 120);
-  };
+  const [showShieldInfo, setShowShieldInfo] = useState(false);   // 補打卡彈窗
 
   // Cohort resolving logic
   const activeProfile = profile;
@@ -772,6 +764,33 @@ export function DailyQuestsTab({
     return { dailyStreak: streak, checkedInToday: isTodayDone };
   })();
 
+  // 🩹 補打卡:本人的補打卡任務 + 剩餘次數 + 「最近缺的那一天」(接得上連勝的缺口)
+  const makeupTask = tasks.find((t: any) => t.is_makeup && (!t.batch_id || !profile.batch_id || t.batch_id === profile.batch_id));
+  const makeupRemaining = activeProfile.streak_shields ?? 0;
+  const recentMissingDay: Date | null = (() => {
+    const dailyIds = new Set(missions.filter((m: any) => m.mission_type === 'daily').map((m: any) => m.id));
+    if (dailyIds.size === 0) return null;
+    const dateOfMission = new Map(missions.map((m: any) => [m.id, m.publish_at]));
+    const dayKey = (dt: Date) => `${dt.getFullYear()}-${dt.getMonth()}-${dt.getDate()}`;
+    const done = new Set<string>();
+    for (const s of submissions) {
+      if (s.student_id !== activeProfile.id || s.status === 'rejected') continue;
+      if (!dailyIds.has(s.mission_id)) continue;
+      const pub = dateOfMission.get(s.mission_id);
+      if (pub) done.add(dayKey(parseLocalTime(pub)));
+    }
+    shieldDayKeys.forEach(k => done.add(k));
+    // 從昨天往回 30 天,找最近一個「D 缺、D-1 有」的 D(補了就接得上連勝)
+    const base = new Date(dailyAnchor.getFullYear(), dailyAnchor.getMonth(), dailyAnchor.getDate());
+    for (let i = 1; i <= 30; i++) {
+      const d = new Date(base); d.setDate(d.getDate() - i);
+      const prev = new Date(d); prev.setDate(prev.getDate() - 1);
+      if (!done.has(dayKey(d)) && done.has(dayKey(prev))) return d;
+    }
+    return null;
+  })();
+  const canMakeup = !!makeupTask && makeupRemaining > 0 && !!recentMissingDay && !isCohortEnded;
+
   // 連勝里程碑：徽章門檻 3/7/14/21/30 天；皆有加分(與後台 claim_streak_bonus 一致)
   const STREAK_MILESTONES = [3, 7, 14, 21, 30];
   const STREAK_BONUS: Record<number, number> = { 3: 100, 7: 200, 14: 500, 21: 800, 30: 1000 };
@@ -785,6 +804,7 @@ export function DailyQuestsTab({
     const t = tasks.find(x => x.id === taskId);
     if (m) limit = m.max_completions ?? 1;
     else if (t) limit = t.max_completions ?? 1;
+    if ((t as any)?.is_makeup) limit = 0;   // 補打卡任務可重複用(次數由護盾配額控制)
 
     const taskSubs = submissions.filter(s => s.mission_id === taskId);
     const validSubs = taskSubs.filter(s => s.status !== 'rejected');
@@ -814,6 +834,8 @@ export function DailyQuestsTab({
   const filteredTasks = tasks.filter(t => {
     // 進化任務只在寵物進化流程出現，不列入一般任務列表
     if (isEvolutionTask(t)) return false;
+    // 🩹 補打卡任務不進一般任務區,只在「補打卡」彈窗出現
+    if ((t as any).is_makeup) return false;
     // 單次任務的期數範圍:指定期數的只給該期學員;沒指定期數(全體/大會任務)給所有人。
     // (避免某一期的單次任務外洩到別期看到。)
     if (t.batch_id && profile.batch_id && t.batch_id !== profile.batch_id) return false;
@@ -1246,15 +1268,20 @@ export function DailyQuestsTab({
               )}
             </div>
 
-            {/* 🛡️ 連勝護盾:小標籤,點擊才彈出說明(與里程碑同一套互動) */}
+            {/* 🩹 補打卡:小標籤,點擊彈出說明/補打卡。有可補的一天時醒目提示 + 紅點 */}
             {typeof activeProfile.streak_shields === 'number' && (
               <button
                 type="button"
                 onClick={() => setShowShieldInfo(true)}
-                className="text-[10px] font-black tracking-wider text-sky-300 bg-sky-500/10 border border-sky-500/30 px-3 py-1 rounded-full mt-2 inline-flex items-center gap-1.5 hover:bg-sky-500/20 active:scale-95 transition-all cursor-pointer light:bg-sky-50 light:text-sky-700 light:border-sky-300"
+                className={`text-[10px] font-black tracking-wider px-3 py-1 rounded-full mt-2 inline-flex items-center gap-1.5 active:scale-95 transition-all cursor-pointer relative ${
+                  canMakeup
+                    ? 'text-white bg-gradient-to-r from-rose-500 to-red-500 border border-rose-400/50 animate-pulse shadow-[0_0_14px_rgba(244,63,94,0.4)]'
+                    : 'text-sky-300 bg-sky-500/10 border border-sky-500/30 hover:bg-sky-500/20 light:bg-sky-50 light:text-sky-700 light:border-sky-300'
+                }`}
               >
-                🛡️ 連勝護盾 <span className="text-white font-extrabold text-xs light:text-sky-900">{activeProfile.streak_shields}</span>/3 張
-                <span className="text-sky-300/60 light:text-sky-500">ⓘ</span>
+                {canMakeup && <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full border border-white animate-ping" />}
+                🩹 補打卡 <span className={`font-extrabold text-xs ${canMakeup ? 'text-white' : 'text-white light:text-sky-900'}`}>{activeProfile.streak_shields}</span> 次
+                {canMakeup ? <span className="font-black">· 昨天漏了,快補!</span> : <span className="text-sky-300/60 light:text-sky-500">ⓘ</span>}
               </button>
             )}
 
@@ -1740,7 +1767,7 @@ export function DailyQuestsTab({
           <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-amber-500/50 to-transparent" />
           
           {/* Board Content */}
-          <div ref={missionBoardRef} className="flex flex-col items-center gap-1.5 py-1 scroll-mt-4">
+          <div className="flex flex-col items-center gap-1.5 py-1 scroll-mt-4">
             {/* Small fantasy sub-badge */}
             <span className="text-[9px] font-black tracking-[0.25em] text-amber-500 bg-amber-500/10 px-2.5 py-0.5 rounded-full uppercase">
               Mission Board
@@ -2690,7 +2717,7 @@ export function DailyQuestsTab({
         />
       )}
 
-      {/* 🛡️ 連勝護盾說明彈窗 */}
+      {/* 🩹 補打卡彈窗 */}
       {showShieldInfo && (
         <div
           className="fixed inset-0 z-[110] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
@@ -2700,49 +2727,72 @@ export function DailyQuestsTab({
             className="glass-panel w-full max-w-xs rounded-3xl border border-sky-500/30 p-6 text-center relative animate-in zoom-in-95 duration-200 light:bg-white light:border-sky-200"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="text-4xl mb-2">🛡️</div>
-            <h3 className="text-lg font-black text-white light:text-slate-900">連勝護盾</h3>
-            <div className="text-2xl font-black text-sky-400 light:text-sky-600 mt-1 mb-2">
-              {activeProfile.streak_shields} <span className="text-sm text-slate-400 light:text-slate-500">/ 3 張</span>
+            <div className="text-4xl mb-2">🩹</div>
+            <h3 className="text-lg font-black text-white light:text-slate-900">連勝護盾(補打卡)</h3>
+            <div className="text-2xl font-black text-sky-400 light:text-sky-600 mt-1 mb-3">
+              剩 {makeupRemaining} <span className="text-sm text-slate-400 light:text-slate-500">次</span>
             </div>
 
-            {/* 最重要:強調全自動,不用手動 */}
-            <div className="inline-flex items-center gap-1.5 text-[11px] font-black text-emerald-300 bg-emerald-500/10 border border-emerald-500/30 px-3 py-1 rounded-full mb-3 light:text-emerald-700 light:bg-emerald-50 light:border-emerald-200">
-              🤖 全自動 · 不用手動使用
-            </div>
-
-            <div className="text-left space-y-2.5 bg-slate-950/40 rounded-2xl p-3.5 light:bg-slate-50">
-              <div className="flex gap-2 text-xs text-slate-300 light:text-slate-600 leading-relaxed">
-                <span className="shrink-0">①</span>
-                <span>哪天<b className="text-white light:text-slate-900">漏打卡</b>,隔天你一打卡,系統會<b className="text-sky-300 light:text-sky-700">自動用掉 1 張護盾</b>把那天補上 → <b className="text-orange-300 light:text-orange-600">連勝不斷</b>!(你什麼都不用按)</span>
-              </div>
-              <div className="flex gap-2 text-xs text-slate-300 light:text-slate-600 leading-relaxed">
-                <span className="shrink-0">②</span>
-                <span>怎麼獲得護盾?完成有 <b className="text-sky-300 light:text-sky-700">🛡️ 標記</b> 的任務就會 +1 張,最多存 <b className="text-sky-300 light:text-sky-700">3 張</b>。</span>
-              </div>
-              <div className="flex gap-2 text-xs text-slate-300 light:text-slate-600 leading-relaxed">
-                <span className="shrink-0">③</span>
-                <span>只能補<b className="text-white light:text-slate-900">單天</b>漏打;連續漏兩天就會斷連勝喔。</span>
-              </div>
-            </div>
-            <div className="flex gap-2 mt-5">
-              <button
-                type="button"
-                onClick={() => setShowShieldInfo(false)}
-                className="flex-1 py-2.5 rounded-xl bg-slate-800 border border-white/5 text-slate-300 text-xs font-bold hover:bg-slate-700 transition-all light:bg-slate-100 light:border-slate-200 light:text-slate-600"
-              >
-                知道了
-              </button>
-              {!isCohortEnded && (
+            {canMakeup && recentMissingDay ? (
+              // 有可補的一天 → 引導立即補打卡
+              <>
+                <div className="rounded-2xl bg-rose-500/10 border border-rose-500/30 p-3.5 light:bg-rose-50 light:border-rose-200">
+                  <p className="text-sm font-black text-rose-300 light:text-rose-600">
+                    😱 你有漏打的一天:{recentMissingDay.getMonth() + 1}/{recentMissingDay.getDate()}
+                  </p>
+                  <p className="text-xs text-slate-300 light:text-slate-600 mt-1.5 leading-relaxed">
+                    用 1 次補打卡,把連勝接回來!
+                    {makeupTask?.requires_proof
+                      ? '(需上傳證明,審核通過才生效)'
+                      : '(送出即補回)'}
+                  </p>
+                </div>
+                <div className="flex gap-2 mt-4">
+                  <button
+                    type="button"
+                    onClick={() => setShowShieldInfo(false)}
+                    className="flex-1 py-2.5 rounded-xl bg-slate-800 border border-white/5 text-slate-300 text-xs font-bold hover:bg-slate-700 transition-all light:bg-slate-100 light:border-slate-200 light:text-slate-600"
+                  >
+                    晚點再說
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setShowShieldInfo(false); if (makeupTask) handleCardClick(makeupTask); }}
+                    className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-rose-500 to-red-500 hover:from-rose-600 hover:to-red-600 text-white text-xs font-black active:scale-95 transition-all"
+                  >
+                    立即補打卡 →
+                  </button>
+                </div>
+              </>
+            ) : (
+              // 沒有可補的一天 → 顯示說明
+              <>
+                <div className="inline-flex items-center gap-1.5 text-[11px] font-black text-emerald-300 bg-emerald-500/10 border border-emerald-500/30 px-3 py-1 rounded-full mb-3 light:text-emerald-700 light:bg-emerald-50 light:border-emerald-200">
+                  ✅ 目前沒有需要補的
+                </div>
+                <div className="text-left space-y-2.5 bg-slate-950/40 rounded-2xl p-3.5 light:bg-slate-50">
+                  <div className="flex gap-2 text-xs text-slate-300 light:text-slate-600 leading-relaxed">
+                    <span className="shrink-0">①</span>
+                    <span>哪天<b className="text-white light:text-slate-900">漏打卡</b>,這裡會亮起提醒,點「立即補打卡」提交補打卡任務。</span>
+                  </div>
+                  <div className="flex gap-2 text-xs text-slate-300 light:text-slate-600 leading-relaxed">
+                    <span className="shrink-0">②</span>
+                    <span>補打卡{makeupTask?.requires_proof ? '(審核通過後)' : ''}會把那天補回、<b className="text-orange-300 light:text-orange-600">連勝接上</b>。</span>
+                  </div>
+                  <div className="flex gap-2 text-xs text-slate-300 light:text-slate-600 leading-relaxed">
+                    <span className="shrink-0">③</span>
+                    <span>每期最多補 <b className="text-sky-300 light:text-sky-700">5 次</b>,只補<b className="text-white light:text-slate-900">單天</b>(連漏兩天就斷)。</span>
+                  </div>
+                </div>
                 <button
                   type="button"
-                  onClick={goEarnShield}
-                  className="flex-1 py-2.5 rounded-xl bg-sky-500 hover:bg-sky-600 text-white text-xs font-black active:scale-95 transition-all"
+                  onClick={() => setShowShieldInfo(false)}
+                  className="w-full mt-4 py-2.5 rounded-xl bg-sky-500 hover:bg-sky-600 text-white text-xs font-black active:scale-95 transition-all"
                 >
-                  前往賺護盾 →
+                  知道了
                 </button>
-              )}
-            </div>
+              </>
+            )}
           </div>
         </div>
       )}

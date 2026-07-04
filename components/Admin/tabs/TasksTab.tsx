@@ -23,7 +23,8 @@ export function TasksTab({ tasks, batches, missionCategories, isSyncing, onCreat
   const [taskDesc, setTaskDesc] = useState('');
   const [taskType, setTaskType] = useState<TaskType>('daily');
   const [taskScore, setTaskScore] = useState<number | string>(100);
-  const [taskRewardShields, setTaskRewardShields] = useState<number | string>(0);   // 完成獎勵護盾張數
+  const [taskRewardShields, setTaskRewardShields] = useState<number | string>(0);   // (舊)完成獎勵護盾張數
+  const [taskIsMakeup, setTaskIsMakeup] = useState(false);   // 是否為補打卡任務
   const [taskReqProof, setTaskReqProof] = useState(true);
   const [taskCategory, setTaskCategory] = useState<string>('初階');
 
@@ -100,6 +101,7 @@ export function TasksTab({ tasks, batches, missionCategories, isSyncing, onCreat
     setTaskType('daily');
     setTaskScore(100);
     setTaskRewardShields(0);
+    setTaskIsMakeup(false);
     setTaskReqProof(true);
     setTaskBatchId('');
     setTaskCategory('初階');
@@ -116,6 +118,7 @@ export function TasksTab({ tasks, batches, missionCategories, isSyncing, onCreat
     setTaskType(task.type);
     setTaskScore(task.score);
     setTaskRewardShields(task.reward_shields ?? 0);
+    setTaskIsMakeup(!!task.is_makeup);
     setTaskReqProof(!!task.requires_proof);
     setTaskBatchId(task.batch_id || '');
     setTaskCategory(task.category || '初階');
@@ -134,6 +137,9 @@ export function TasksTab({ tasks, batches, missionCategories, isSyncing, onCreat
       type: taskType,
       score: Number(taskScore),
       reward_shields: Number(taskRewardShields) || 0,
+      is_makeup: taskIsMakeup,
+      // 補打卡任務可重複提交(次數由護盾配額控制)→ 完成次數設無限
+      ...(taskIsMakeup ? { max_completions: 0 } : {}),
       requires_approval: taskReqProof,
       requires_proof: taskReqProof,
       start_time: new Date(taskStartTime).toISOString(),
@@ -428,23 +434,21 @@ export function TasksTab({ tasks, batches, missionCategories, isSyncing, onCreat
                   </div>
                 </div>
 
-                {/* 🛡️ 完成獎勵護盾(補打卡卡) */}
-                <div>
-                  <label className="block text-[11px] text-slate-400 light:text-slate-500 font-bold mb-1">
-                    🛡️ 完成獎勵護盾(補打卡卡)
-                  </label>
+                {/* 🩹 設為補打卡任務 */}
+                <div className="flex items-start gap-2 p-2.5 rounded-xl bg-sky-500/5 border border-sky-500/20 light:bg-sky-50 light:border-sky-200">
                   <input
-                    type="number"
-                    min={0}
-                    onFocus={(e) => e.target.select()}
-                    value={taskRewardShields}
-                    onChange={e => setTaskRewardShields(e.target.value === '' ? '' : (Number(e.target.value) || 0))}
-                    onBlur={() => { if (taskRewardShields === '') setTaskRewardShields(0); }}
-                    className="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl py-2 px-3 text-[11px] outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-all light:bg-slate-50 light:border-slate-200 light:text-slate-900"
+                    type="checkbox"
+                    id="isMakeup"
+                    checked={taskIsMakeup}
+                    onChange={e => setTaskIsMakeup(e.target.checked)}
+                    className="w-3.5 h-3.5 rounded text-sky-500 focus:ring-sky-500 mt-0.5 shrink-0 cursor-pointer"
                   />
-                  <p className="text-[10px] text-slate-500 light:text-slate-400 mt-1 select-none">
-                    學員完成此任務可獲得 N 張連勝護盾(每人最多存 3 張)。設 0 = 不給。
-                  </p>
+                  <label htmlFor="isMakeup" className="text-[10px] text-slate-300 light:text-slate-600 font-bold leading-normal cursor-pointer">
+                    🩹 設為「補打卡任務」<br />
+                    <span className="font-normal text-slate-400 light:text-slate-500">
+                      勾選後:此任務**不會**出現在學員一般任務區,只在學員漏打時的「補打卡」彈窗出現;審核通過會補回學員最近缺的一天(每期 5 次)。審核方式用上面的「需上傳審核證明」與否決定。
+                    </span>
+                  </label>
                 </div>
               </div>
 

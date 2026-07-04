@@ -63,7 +63,8 @@ export interface Task {
   created_by: string | null;
   created_at: string;
   max_completions?: number;
-  reward_shields?: number;   // 完成此任務可獲得的連勝護盾張數(0=不給)
+  reward_shields?: number;   // (舊)完成此任務可獲得的連勝護盾張數
+  is_makeup?: boolean;       // 設為「補打卡任務」:隱藏於一般任務區,只在護盾彈窗出現;審核通過補回最近缺的一天
 }
 
 export type SubmissionStatus = 'pending' | 'approved' | 'rejected';
