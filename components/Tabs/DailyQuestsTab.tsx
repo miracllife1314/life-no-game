@@ -1268,20 +1268,15 @@ export function DailyQuestsTab({
               )}
             </div>
 
-            {/* 🩹 補打卡:小標籤,點擊彈出說明/補打卡。有可補的一天時醒目提示 + 紅點 */}
-            {typeof activeProfile.streak_shields === 'number' && (
+            {/* 🛡️ 連勝防禦(補打卡):只在「有漏打的一天可補」時才出現(平常不顯示) */}
+            {canMakeup && recentMissingDay && (
               <button
                 type="button"
                 onClick={() => setShowShieldInfo(true)}
-                className={`text-[10px] font-black tracking-wider px-3 py-1 rounded-full mt-2 inline-flex items-center gap-1.5 active:scale-95 transition-all cursor-pointer relative ${
-                  canMakeup
-                    ? 'text-white bg-gradient-to-r from-rose-500 to-red-500 border border-rose-400/50 animate-pulse shadow-[0_0_14px_rgba(244,63,94,0.4)]'
-                    : 'text-sky-300 bg-sky-500/10 border border-sky-500/30 hover:bg-sky-500/20 light:bg-sky-50 light:text-sky-700 light:border-sky-300'
-                }`}
+                className="relative text-[10px] font-black tracking-wider px-3 py-1 rounded-full mt-2 inline-flex items-center gap-1.5 active:scale-95 transition-all cursor-pointer text-white bg-gradient-to-r from-rose-500 to-red-500 border border-rose-400/50 animate-pulse shadow-[0_0_14px_rgba(244,63,94,0.4)]"
               >
-                {canMakeup && <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full border border-white animate-ping" />}
-                🩹 補打卡 <span className={`font-extrabold text-xs ${canMakeup ? 'text-white' : 'text-white light:text-sky-900'}`}>{activeProfile.streak_shields}</span> 次
-                {canMakeup ? <span className="font-black">· 昨天漏了,快補!</span> : <span className="text-sky-300/60 light:text-sky-500">ⓘ</span>}
+                <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full border border-white animate-ping" />
+                🛡️ 連勝防禦 · {recentMissingDay.getMonth() + 1}/{recentMissingDay.getDate()} 漏了,快補回!
               </button>
             )}
 
@@ -2727,8 +2722,8 @@ export function DailyQuestsTab({
             className="glass-panel w-full max-w-xs rounded-3xl border border-sky-500/30 p-6 text-center relative animate-in zoom-in-95 duration-200 light:bg-white light:border-sky-200"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="text-4xl mb-2">🩹</div>
-            <h3 className="text-lg font-black text-white light:text-slate-900">連勝護盾(補打卡)</h3>
+            <div className="text-4xl mb-2">🛡️</div>
+            <h3 className="text-lg font-black text-white light:text-slate-900">連勝防禦(補打卡)</h3>
             <div className="text-2xl font-black text-sky-400 light:text-sky-600 mt-1 mb-3">
               剩 {makeupRemaining} <span className="text-sm text-slate-400 light:text-slate-500">次</span>
             </div>
