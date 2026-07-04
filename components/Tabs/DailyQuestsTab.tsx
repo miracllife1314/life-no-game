@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Task, Submission, Announcement, Profile, Mission, UserPet, PetStage, Batch, PetLine, MissionTemplate } from '@/types';
 import { nowTaipei, taipeiDateStr } from '@/lib/time';
 import { supabase } from '@/lib/supabase';
@@ -112,6 +112,14 @@ export function DailyQuestsTab({
   // --- 🛡️ 連勝護盾:載入本人「被護盾補上的日期」,連勝計算會把這些天也算成有打卡 ---
   const [shieldDayKeys, setShieldDayKeys] = useState<Set<string>>(new Set());
   const [showShieldInfo, setShowShieldInfo] = useState(false);   // 護盾說明彈窗
+  const missionBoardRef = useRef<HTMLDivElement>(null);          // 「前往賺護盾」捲動目標
+
+  // 前往任務區(切到限時分頁 + 捲到任務清單),讓「前往賺護盾」真的帶使用者到任務畫面
+  const goEarnShield = () => {
+    setShowShieldInfo(false);
+    setActiveCategory('temporary');
+    setTimeout(() => missionBoardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 120);
+  };
 
   // Cohort resolving logic
   const activeProfile = profile;
@@ -1732,7 +1740,7 @@ export function DailyQuestsTab({
           <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-amber-500/50 to-transparent" />
           
           {/* Board Content */}
-          <div className="flex flex-col items-center gap-1.5 py-1">
+          <div ref={missionBoardRef} className="flex flex-col items-center gap-1.5 py-1 scroll-mt-4">
             {/* Small fantasy sub-badge */}
             <span className="text-[9px] font-black tracking-[0.25em] text-amber-500 bg-amber-500/10 px-2.5 py-0.5 rounded-full uppercase">
               Mission Board
@@ -2714,7 +2722,7 @@ export function DailyQuestsTab({
               {!isCohortEnded && (
                 <button
                   type="button"
-                  onClick={() => { setShowShieldInfo(false); setActiveCategory('temporary'); }}
+                  onClick={goEarnShield}
                   className="flex-1 py-2.5 rounded-xl bg-sky-500 hover:bg-sky-600 text-white text-xs font-black active:scale-95 transition-all"
                 >
                   前往賺護盾 →
