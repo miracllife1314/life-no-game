@@ -2702,15 +2702,29 @@ export function DailyQuestsTab({
           >
             <div className="text-4xl mb-2">🛡️</div>
             <h3 className="text-lg font-black text-white light:text-slate-900">連勝護盾</h3>
-            <div className="text-2xl font-black text-sky-400 light:text-sky-600 mt-1 mb-3">
+            <div className="text-2xl font-black text-sky-400 light:text-sky-600 mt-1 mb-2">
               {activeProfile.streak_shields} <span className="text-sm text-slate-400 light:text-slate-500">/ 3 張</span>
             </div>
-            <p className="text-xs text-slate-300 light:text-slate-600 leading-relaxed">
-              漏打一天時,系統會<b className="text-sky-300 light:text-sky-700">自動用一張護盾</b>幫你補上,連勝不會斷(連漏兩天才會斷)。
-            </p>
-            <p className="text-xs text-slate-300 light:text-slate-600 leading-relaxed mt-2">
-              完成有 <b className="text-sky-300 light:text-sky-700">🛡️ 標記</b> 的任務即可獲得護盾,最多存 <b className="text-sky-300 light:text-sky-700">3 張</b>。
-            </p>
+
+            {/* 最重要:強調全自動,不用手動 */}
+            <div className="inline-flex items-center gap-1.5 text-[11px] font-black text-emerald-300 bg-emerald-500/10 border border-emerald-500/30 px-3 py-1 rounded-full mb-3 light:text-emerald-700 light:bg-emerald-50 light:border-emerald-200">
+              🤖 全自動 · 不用手動使用
+            </div>
+
+            <div className="text-left space-y-2.5 bg-slate-950/40 rounded-2xl p-3.5 light:bg-slate-50">
+              <div className="flex gap-2 text-xs text-slate-300 light:text-slate-600 leading-relaxed">
+                <span className="shrink-0">①</span>
+                <span>哪天<b className="text-white light:text-slate-900">漏打卡</b>,隔天你一打卡,系統會<b className="text-sky-300 light:text-sky-700">自動用掉 1 張護盾</b>把那天補上 → <b className="text-orange-300 light:text-orange-600">連勝不斷</b>!(你什麼都不用按)</span>
+              </div>
+              <div className="flex gap-2 text-xs text-slate-300 light:text-slate-600 leading-relaxed">
+                <span className="shrink-0">②</span>
+                <span>怎麼獲得護盾?完成有 <b className="text-sky-300 light:text-sky-700">🛡️ 標記</b> 的任務就會 +1 張,最多存 <b className="text-sky-300 light:text-sky-700">3 張</b>。</span>
+              </div>
+              <div className="flex gap-2 text-xs text-slate-300 light:text-slate-600 leading-relaxed">
+                <span className="shrink-0">③</span>
+                <span>只能補<b className="text-white light:text-slate-900">單天</b>漏打;連續漏兩天就會斷連勝喔。</span>
+              </div>
+            </div>
             <div className="flex gap-2 mt-5">
               <button
                 type="button"
