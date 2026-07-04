@@ -310,6 +310,7 @@ export interface MissionTemplate {
   created_at: string;
   updated_at: string;
   max_completions?: number;
+  reward_shields?: number;   // 完成可獲得的連勝護盾張數(0=不給)
 }
 
 export interface BatchMissionTemplate {
@@ -346,6 +347,7 @@ export interface Mission {
   created_at: string;
   updated_at: string;
   max_completions?: number;
+  reward_shields?: number;   // 完成可獲得的連勝護盾張數(0=不給)
   // Joined fields
   batch?: Batch;
   template?: MissionTemplate;

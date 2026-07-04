@@ -68,6 +68,7 @@ export function useMissionGen({ setIsSyncing, fetchData, batches, missionTemplat
         const reviewType = template.review_type;
         const category = template.category;
         const maxCompletions = template.max_completions;
+        const rewardShields = template.reward_shields ?? 0;
 
         if (type === 'daily') {
           let cur = new Date(startDate);
@@ -86,6 +87,7 @@ export function useMissionGen({ setIsSyncing, fetchData, batches, missionTemplat
               review_type: reviewType,
               category: category,
               max_completions: maxCompletions,
+              reward_shields: rewardShields,
               created_at: new Date().toISOString(),
               updated_at: new Date().toISOString()
             });
@@ -123,6 +125,7 @@ export function useMissionGen({ setIsSyncing, fetchData, batches, missionTemplat
                 review_type: reviewType,
                 category: category,
                 max_completions: maxCompletions,
+                reward_shields: rewardShields,
                 created_at: new Date().toISOString(),
                 updated_at: new Date().toISOString()
               });
@@ -150,6 +153,7 @@ export function useMissionGen({ setIsSyncing, fetchData, batches, missionTemplat
               review_type: reviewType,
               category: category,
               max_completions: maxCompletions,
+              reward_shields: rewardShields,
               created_at: new Date().toISOString(),
               updated_at: new Date().toISOString()
             });
@@ -169,6 +173,7 @@ export function useMissionGen({ setIsSyncing, fetchData, batches, missionTemplat
             review_type: reviewType,
             category: category,
             max_completions: maxCompletions,
+            reward_shields: rewardShields,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
           });
@@ -208,6 +213,7 @@ export function useMissionGen({ setIsSyncing, fetchData, batches, missionTemplat
             review_type: reviewType,
             category: category,
             max_completions: maxCompletions,
+            reward_shields: rewardShields,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
           });
@@ -245,6 +251,7 @@ export function useMissionGen({ setIsSyncing, fetchData, batches, missionTemplat
       reviewType: 'auto' | 'leader' | 'admin';
       category?: string;
       maxCompletions?: number;
+      rewardShields?: number;
     }>
   ) => {
     setIsSyncing(true);
@@ -278,7 +285,8 @@ export function useMissionGen({ setIsSyncing, fetchData, batches, missionTemplat
             status: 'scheduled',
             review_type: p.reviewType,
             category: p.category,
-            max_completions: p.maxCompletions
+            max_completions: p.maxCompletions,
+            reward_shields: p.rewardShields ?? 0
           });
           successCount++;
         }
@@ -305,7 +313,8 @@ export function useMissionGen({ setIsSyncing, fetchData, batches, missionTemplat
           status: 'active',
           review_type: template.review_type,
           category: template.category || '神獸進化',
-          max_completions: template.max_completions ?? 1
+          max_completions: template.max_completions ?? 1,
+          reward_shields: template.reward_shields ?? 0
         });
         successCount++;
       });

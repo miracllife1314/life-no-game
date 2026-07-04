@@ -24,6 +24,7 @@ interface SchedulePreviewTabProps {
     publishAt: string;
     deadlineAt: string;
     reviewType: 'auto' | 'leader' | 'admin';
+    rewardShields?: number;
   }>) => Promise<{ successCount: number; skipCount: number }>;
 }
 
@@ -100,6 +101,7 @@ export function SchedulePreviewTab({ batches, missionTemplates, batchMissionTemp
       description: string;
       reviewType: 'auto' | 'leader' | 'admin';
       category?: string;
+      reward_shields?: number;
     }> = [];
     
     rules.forEach(rule => {
@@ -125,7 +127,8 @@ export function SchedulePreviewTab({ batches, missionTemplates, batchMissionTemp
             templateId: rule.template_id,
             description: template.description,
             reviewType: template.review_type,
-            category: category
+            category: category,
+            reward_shields: template.reward_shields ?? 0
           });
           cur.setDate(cur.getDate() + 1);
         }
@@ -167,7 +170,8 @@ export function SchedulePreviewTab({ batches, missionTemplates, batchMissionTemp
               templateId: rule.template_id,
               description: template.description,
               reviewType: template.review_type,
-              category: category
+              category: category,
+              reward_shields: template.reward_shields ?? 0
             });
           }
         } else {
@@ -190,7 +194,8 @@ export function SchedulePreviewTab({ batches, missionTemplates, batchMissionTemp
             templateId: rule.template_id,
             description: template.description,
             reviewType: template.review_type,
-            category: category
+            category: category,
+            reward_shields: template.reward_shields ?? 0
           });
         }
       } else if (type === 'special') {
@@ -205,7 +210,8 @@ export function SchedulePreviewTab({ batches, missionTemplates, batchMissionTemp
           templateId: rule.template_id,
           description: template.description,
           reviewType: template.review_type,
-          category: category
+          category: category,
+          reward_shields: template.reward_shields ?? 0
         });
       } else if (type === 'limited') {
         let pubStr: string;
@@ -238,7 +244,8 @@ export function SchedulePreviewTab({ batches, missionTemplates, batchMissionTemp
           templateId: rule.template_id,
           description: template.description,
           reviewType: template.review_type,
-          category: category
+          category: category,
+          reward_shields: template.reward_shields ?? 0
         });
       }
     });
@@ -358,7 +365,10 @@ export function SchedulePreviewTab({ batches, missionTemplates, batchMissionTemp
                       onClick={async () => {
                         if (onGenerateMissions) {
                           try {
-                            const res = await onGenerateMissions(selectedPreviewBatchId, previewData);
+                            const res = await onGenerateMissions(
+                              selectedPreviewBatchId,
+                              previewData.map(item => ({ ...item, rewardShields: item.reward_shields ?? 0 }))
+                            );
                             alert(`🎉 任務產生完成！\n成功產生：${res.successCount} 筆\n跳過重複：${res.skipCount} 筆`);
                           } catch (err: any) {
                             alert(`❌ 產生任務失敗，請稍後再試或重新登入。\n${err?.message || ''}`);
