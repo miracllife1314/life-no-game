@@ -525,6 +525,9 @@ export function MissionTemplatesTab({ missionTemplates, missionCategories, setMi
                                 </td>
                                 <td className="p-3 text-center text-slate-300 light:text-slate-700 font-mono font-bold">
                                   {template.points}
+                                  {(template.reward_shields ?? 0) > 0 && (
+                                    <span className="block text-[9px] font-black text-sky-400 light:text-sky-600 mt-0.5 whitespace-nowrap">🛡️ x{template.reward_shields}</span>
+                                  )}
                                 </td>
                                 <td className="p-3 text-center select-none">
                                   <span className={`text-[10px] font-black px-2 py-0.5 rounded ${

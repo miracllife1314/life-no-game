@@ -279,6 +279,11 @@ export function TasksTab({ tasks, batches, missionCategories, isSyncing, onCreat
                     <span className="text-[10px] text-slate-500 font-bold">
                       +{task.score} 分
                     </span>
+                    {(task.reward_shields ?? 0) > 0 && (
+                      <span className="text-[9px] font-black px-2 py-0.5 rounded bg-sky-500/15 text-sky-300 border border-sky-500/30 light:bg-sky-50 light:text-sky-700 light:border-sky-300">
+                        🛡️ 護盾 x{task.reward_shields}
+                      </span>
+                    )}
                   </div>
                   <h4 className="font-bold text-white text-sm mt-1">{task.name}</h4>
                   <p className="text-xs text-slate-400 mt-1 line-clamp-1 light:text-slate-500">{task.description}</p>

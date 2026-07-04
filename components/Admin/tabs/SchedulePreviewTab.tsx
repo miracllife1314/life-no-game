@@ -314,7 +314,12 @@ export function SchedulePreviewTab({ batches, missionTemplates, batchMissionTemp
                           const typeLabel = m.mission_type === 'daily' ? '每日' : m.mission_type === 'weekly' ? '每週' : m.mission_type === 'limited' ? '限時' : '特殊';
                           return (
                             <tr key={m.id} className="bg-slate-950/40 light:bg-white">
-                              <td className="p-3 font-bold text-white light:text-slate-900">{m.title}</td>
+                              <td className="p-3 font-bold text-white light:text-slate-900">
+                                {m.title}
+                                {((m as any).reward_shields ?? 0) > 0 && (
+                                  <span className="ml-1.5 text-[9px] font-black text-sky-400 light:text-sky-600 whitespace-nowrap">🛡️ x{(m as any).reward_shields}</span>
+                                )}
+                              </td>
                               <td className="p-3 text-slate-300 light:text-slate-600">{typeLabel}</td>
                               <td className="p-3 text-slate-400 font-mono">{String(m.publish_at).substring(0, 10)}</td>
                               <td className="p-3 text-slate-400 font-mono">{String(m.deadline_at).substring(0, 10)}</td>
