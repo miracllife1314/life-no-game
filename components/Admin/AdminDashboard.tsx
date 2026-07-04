@@ -100,7 +100,6 @@ interface AdminDashboardProps {
     publishAt: string;
     deadlineAt: string;
     reviewType: 'auto' | 'leader' | 'admin';
-    rewardShields?: number;
   }>) => Promise<{ successCount: number; skipCount: number }>;
   onAddProfile?: (profileData: { name: string; phone: string; role: UserRole; batchId: string; teamId: string; divisionName?: string | null; directorId?: string | null }) => Promise<void>;
   onUpdateProfile?: (profileId: string, updates: Partial<Profile>) => Promise<void>;

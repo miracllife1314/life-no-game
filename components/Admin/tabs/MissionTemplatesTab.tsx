@@ -46,7 +46,6 @@ export function MissionTemplatesTab({ missionTemplates, missionCategories, setMi
   const [newTemplateActive, setNewTemplateActive] = useState<boolean>(true);
   const [newTemplateCategory, setNewTemplateCategory] = useState<string>('初階');
   const [newTemplateMaxCompletions, setNewTemplateMaxCompletions] = useState<number>(1);
-  const [newTemplateRewardShields, setNewTemplateRewardShields] = useState<number>(0);
 
   const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null);
   const [editTemplateTitle, setEditTemplateTitle] = useState('');
@@ -57,7 +56,6 @@ export function MissionTemplatesTab({ missionTemplates, missionCategories, setMi
   const [editTemplateActive, setEditTemplateActive] = useState<boolean>(true);
   const [editTemplateCategory, setEditTemplateCategory] = useState<string>('初階');
   const [editTemplateMaxCompletions, setEditTemplateMaxCompletions] = useState<number>(1);
-  const [editTemplateRewardShields, setEditTemplateRewardShields] = useState<number>(0);
 
   const [templateFilterCategory, setTemplateFilterCategory] = useState<string>('全部');
   const startEditTemplate = (template: MissionTemplate) => {
@@ -70,7 +68,6 @@ export function MissionTemplatesTab({ missionTemplates, missionCategories, setMi
     setEditTemplateActive(template.is_active);
     setEditTemplateCategory(template.category ?? '初階');
     setEditTemplateMaxCompletions(template.max_completions ?? 1);
-    setEditTemplateRewardShields(template.reward_shields ?? 0);
   };
 
   const cancelEditTemplate = () => {
@@ -89,8 +86,7 @@ export function MissionTemplatesTab({ missionTemplates, missionCategories, setMi
         review_type: editTemplateReviewType,
         is_active: editTemplateActive,
         category: editTemplateCategory,
-        max_completions: editTemplateMaxCompletions,
-        reward_shields: Number(editTemplateRewardShields) || 0
+        max_completions: editTemplateMaxCompletions
       });
       setEditingTemplateId(null);
     }
@@ -108,8 +104,7 @@ export function MissionTemplatesTab({ missionTemplates, missionCategories, setMi
         review_type: newTemplateReviewType,
         is_active: newTemplateActive,
         category: newTemplateCategory,
-        max_completions: newTemplateMaxCompletions,
-        reward_shields: Number(newTemplateRewardShields) || 0
+        max_completions: newTemplateMaxCompletions
       });
       setNewTemplateTitle('');
       setNewTemplateDesc('');
@@ -119,7 +114,6 @@ export function MissionTemplatesTab({ missionTemplates, missionCategories, setMi
       setNewTemplateActive(true);
       setNewTemplateCategory('初階');
       setNewTemplateMaxCompletions(1);
-      setNewTemplateRewardShields(0);
       alert('任務模板建立成功！');
     }
   };
@@ -226,23 +220,6 @@ export function MissionTemplatesTab({ missionTemplates, missionCategories, setMi
                     <option value={10}>10 次</option>
                     <option value={0}>無限次</option>
                   </select>
-                </div>
-                <div>
-                  <label className="block text-xs text-slate-400 light:text-slate-500 font-bold mb-1.5">🛡️ 完成獎勵護盾（補打卡卡）</label>
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    value={newTemplateRewardShields}
-                    onChange={e => {
-                      const val = e.target.value.replace(/[^0-9]/g, '');
-                      setNewTemplateRewardShields(Number(val) || 0);
-                    }}
-                    className="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl p-3 text-xs outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 transition-all light:bg-slate-50 light:border-slate-200 light:text-slate-900"
-                  />
-                  <p className="text-[10px] text-slate-500 light:text-slate-400 mt-1 leading-relaxed">
-                    學員完成此任務可獲得 {Number(newTemplateRewardShields) || 0} 張連勝護盾（每人最多存 3 張）。設 0 = 不給。
-                  </p>
                 </div>
                 <div className="flex items-center gap-2">
                   <input
@@ -457,20 +434,6 @@ export function MissionTemplatesTab({ missionTemplates, missionCategories, setMi
                                      <option value={10}>10次</option>
                                      <option value={0}>無限</option>
                                    </select>
-                                   <div className="mt-1.5">
-                                     <label className="block text-[9px] text-slate-500 light:text-slate-400 font-bold mb-0.5">🛡️ 護盾</label>
-                                     <input
-                                       type="text"
-                                       inputMode="numeric"
-                                       pattern="[0-9]*"
-                                       value={editTemplateRewardShields}
-                                       onChange={e => {
-                                         const val = e.target.value.replace(/[^0-9]/g, '');
-                                         setEditTemplateRewardShields(Number(val) || 0);
-                                       }}
-                                       className="w-full bg-slate-950 border border-slate-800 text-white rounded p-1 text-xs text-center outline-none light:bg-white light:border-slate-200 light:text-slate-900"
-                                     />
-                                   </div>
                                  </td>
                                  <td className="p-2 text-center">
                                    <input
@@ -525,9 +488,6 @@ export function MissionTemplatesTab({ missionTemplates, missionCategories, setMi
                                 </td>
                                 <td className="p-3 text-center text-slate-300 light:text-slate-700 font-mono font-bold">
                                   {template.points}
-                                  {(template.reward_shields ?? 0) > 0 && (
-                                    <span className="block text-[9px] font-black text-sky-400 light:text-sky-600 mt-0.5 whitespace-nowrap">🛡️ x{template.reward_shields}</span>
-                                  )}
                                 </td>
                                 <td className="p-3 text-center select-none">
                                   <span className={`text-[10px] font-black px-2 py-0.5 rounded ${

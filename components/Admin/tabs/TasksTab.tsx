@@ -23,7 +23,6 @@ export function TasksTab({ tasks, batches, missionCategories, isSyncing, onCreat
   const [taskDesc, setTaskDesc] = useState('');
   const [taskType, setTaskType] = useState<TaskType>('daily');
   const [taskScore, setTaskScore] = useState<number | string>(100);
-  const [taskRewardShields, setTaskRewardShields] = useState<number | string>(0);   // (舊)完成獎勵護盾張數
   const [taskIsMakeup, setTaskIsMakeup] = useState(false);   // 是否為補打卡任務
   const [taskReqProof, setTaskReqProof] = useState(true);
   const [taskCategory, setTaskCategory] = useState<string>('初階');
@@ -100,7 +99,6 @@ export function TasksTab({ tasks, batches, missionCategories, isSyncing, onCreat
     setTaskDesc('');
     setTaskType('daily');
     setTaskScore(100);
-    setTaskRewardShields(0);
     setTaskIsMakeup(false);
     setTaskReqProof(true);
     setTaskBatchId('');
@@ -117,7 +115,6 @@ export function TasksTab({ tasks, batches, missionCategories, isSyncing, onCreat
     setTaskDesc(task.description || '');
     setTaskType(task.type);
     setTaskScore(task.score);
-    setTaskRewardShields(task.reward_shields ?? 0);
     setTaskIsMakeup(!!task.is_makeup);
     setTaskReqProof(!!task.requires_proof);
     setTaskBatchId(task.batch_id || '');
@@ -136,7 +133,6 @@ export function TasksTab({ tasks, batches, missionCategories, isSyncing, onCreat
       description: taskDesc,
       type: taskType,
       score: Number(taskScore),
-      reward_shields: Number(taskRewardShields) || 0,
       is_makeup: taskIsMakeup,
       // 補打卡任務可重複提交(次數由護盾配額控制)→ 完成次數設無限
       ...(taskIsMakeup ? { max_completions: 0 } : {}),
@@ -285,11 +281,6 @@ export function TasksTab({ tasks, batches, missionCategories, isSyncing, onCreat
                     <span className="text-[10px] text-slate-500 font-bold">
                       +{task.score} 分
                     </span>
-                    {(task.reward_shields ?? 0) > 0 && (
-                      <span className="text-[9px] font-black px-2 py-0.5 rounded bg-sky-500/15 text-sky-300 border border-sky-500/30 light:bg-sky-50 light:text-sky-700 light:border-sky-300">
-                        🛡️ 護盾 x{task.reward_shields}
-                      </span>
-                    )}
                   </div>
                   <h4 className="font-bold text-white text-sm mt-1">{task.name}</h4>
                   <p className="text-xs text-slate-400 mt-1 line-clamp-1 light:text-slate-500">{task.description}</p>
