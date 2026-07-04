@@ -111,7 +111,6 @@ export function DailyQuestsTab({
 
   // --- 🛡️ 連勝護盾:載入本人「被護盾補上的日期」,連勝計算會把這些天也算成有打卡 ---
   const [shieldDayKeys, setShieldDayKeys] = useState<Set<string>>(new Set());
-  const [usedMakeupToday, setUsedMakeupToday] = useState(false);   // 今天是否已補過(一天限一次)
   const [showShieldInfo, setShowShieldInfo] = useState(false);   // 補打卡彈窗
 
   // Cohort resolving logic
@@ -140,9 +139,6 @@ export function DailyQuestsTab({
         })
       );
       setShieldDayKeys(keys);
-      // 一天限補一次:今天(台灣)是否已有補過的紀錄
-      const today = taipeiDay(new Date());
-      setUsedMakeupToday(data.some((r: any) => r.created_at && taipeiDay(r.created_at) === today));
     })();
     return () => { cancelled = true; };
   }, [activeProfile?.id, submissions.length]);
@@ -793,8 +789,16 @@ export function DailyQuestsTab({
     }
     return null;
   })();
-  // 一天只能補一次 → 今天補過就不再顯示
-  const canMakeup = !!makeupTask && makeupRemaining > 0 && !!recentMissingDay && !isCohortEnded && !usedMakeupToday;
+  // 今天這筆補打卡提交(含待審);用來判斷「一天限一次」+ 顯示 審核中/已完成 狀態
+  const makeupTodaySub = makeupTask
+    ? submissions.find((s: any) =>
+        s.mission_id === makeupTask.id &&
+        s.student_id === activeProfile.id &&
+        s.status !== 'rejected' &&
+        s.created_at && taipeiDay(s.created_at) === taipeiDay(new Date()))
+    : undefined;
+  // 可以補打卡的紅色提示:有缺口 + 有次數 + 今天還沒提交過
+  const canMakeup = !!makeupTask && makeupRemaining > 0 && !!recentMissingDay && !isCohortEnded && !makeupTodaySub;
 
   // 連勝里程碑：徽章門檻 3/7/14/21/30 天；皆有加分(與後台 claim_streak_bonus 一致)
   const STREAK_MILESTONES = [3, 7, 14, 21, 30];
@@ -1273,8 +1277,19 @@ export function DailyQuestsTab({
               )}
             </div>
 
-            {/* 🛡️ 連勝防禦(補打卡):只在「有漏打的一天可補」時才出現(平常不顯示) */}
-            {canMakeup && recentMissingDay && (
+            {/* 🛡️ 連勝防禦(補打卡):3 種狀態 — 審核中 / 已完成 / 快補回(平常無事不顯示) */}
+            {makeupTodaySub?.status === 'pending' ? (
+              // 已提交、等待審核
+              <span className="text-[10px] font-black tracking-wider px-3 py-1 rounded-full mt-2 inline-flex items-center gap-1.5 text-blue-300 bg-blue-500/15 border border-blue-500/30 light:bg-blue-50 light:text-blue-700 light:border-blue-200">
+                🛡️ 補打卡已提交 · 審核中…
+              </span>
+            ) : makeupTodaySub?.status === 'approved' ? (
+              // 審核通過(或免審)→ 已補打卡完成(隔天自動消失)
+              <span className="text-[10px] font-black tracking-wider px-3 py-1 rounded-full mt-2 inline-flex items-center gap-1.5 text-emerald-300 bg-emerald-500/15 border border-emerald-500/30 light:bg-emerald-50 light:text-emerald-700 light:border-emerald-200">
+                ✅ 補打卡完成!連勝已接回
+              </span>
+            ) : canMakeup && recentMissingDay ? (
+              // 有漏打、可補 → 紅色醒目提示
               <button
                 type="button"
                 onClick={() => setShowShieldInfo(true)}
@@ -1283,7 +1298,7 @@ export function DailyQuestsTab({
                 <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full border border-white animate-ping" />
                 🛡️ 連勝防禦 · {recentMissingDay.getMonth() + 1}/{recentMissingDay.getDate()} 漏了,快補回!
               </button>
-            )}
+            ) : null}
 
             {/* ⚠️ 斷連提醒：連勝中且今天還沒定課 → 醒目提示快打卡 */}
             {!isCohortEnded && dailyStreak >= 1 && !checkedInToday && (
