@@ -38,6 +38,7 @@ export function SchedulePreviewTab({ batches, missionTemplates, batchMissionTemp
   const [emPubDate, setEmPubDate] = useState('');     // YYYY-MM-DD
   const [emDeadDate, setEmDeadDate] = useState('');    // YYYY-MM-DD
   const [emStatus, setEmStatus] = useState<string>('active');
+  const [emRewardShields, setEmRewardShields] = useState<number | string>(0);
 
   const openEditMission = (m: Mission) => {
     setEditMission(m);
@@ -46,6 +47,7 @@ export function SchedulePreviewTab({ batches, missionTemplates, batchMissionTemp
     setEmPubDate(String(m.publish_at).substring(0, 10));
     setEmDeadDate(String(m.deadline_at).substring(0, 10));
     setEmStatus(m.status || 'active');
+    setEmRewardShields((m as any).reward_shields ?? 0);
   };
 
   const handleSaveMission = async () => {
@@ -58,7 +60,7 @@ export function SchedulePreviewTab({ batches, missionTemplates, batchMissionTemp
       `任務：${emTitle.trim()}\n` +
       `發布：${emPubDate}\n` +
       `截止：${emDeadDate}\n` +
-      `分數：${Number(emPoints) || 0}　狀態：${emStatus}`
+      `分數：${Number(emPoints) || 0}　狀態：${emStatus}　🛡️護盾：${Number(emRewardShields) || 0}`
     );
     if (!ok) return;
     const id = editMission.id;
@@ -70,6 +72,7 @@ export function SchedulePreviewTab({ batches, missionTemplates, batchMissionTemp
       publish_at: `${emPubDate} 00:00:00+00`,
       deadline_at: `${emDeadDate} 23:59:59+00`,
       status: emStatus,
+      reward_shields: Number(emRewardShields) || 0,
     });
     // 成功才提示;失敗時 handler 內已跳錯誤訊息。
     if (success !== false) alert('✅ 任務已修改成功！');
@@ -522,6 +525,20 @@ export function SchedulePreviewTab({ batches, missionTemplates, batchMissionTemp
                       <option value="ended">結束 (ended)</option>
                     </select>
                   </div>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] text-slate-400 light:text-slate-500 font-bold mb-1">🛡️ 完成獎勵護盾(補打卡卡)</label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={emRewardShields}
+                    onFocus={e => e.target.select()}
+                    onChange={e => setEmRewardShields(e.target.value === '' ? '' : Number(e.target.value))}
+                    onBlur={() => { if (emRewardShields === '') setEmRewardShields(0); }}
+                    className="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl py-2 px-3 text-xs outline-none focus:border-sky-500 transition-all light:bg-slate-50 light:border-slate-200 light:text-slate-900"
+                  />
+                  <p className="text-[10px] text-slate-500 light:text-slate-400 mt-1 select-none">學員完成此任務可獲得 N 張連勝護盾(最多存 3 張)。設 0 = 不給。</p>
                 </div>
 
                 <div className="flex gap-2.5 pt-2 select-none">
