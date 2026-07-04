@@ -278,16 +278,8 @@ export function useGameActions(d: Deps) {
       // 達標自動加分(7天+200 / 14天+500 / 30天+1000)並防重複(同里程碑只給一次)。
       const isDailyMission = mission?.mission_type === 'daily';
       const bonusTask = isDailyMission
-        // 🛡️ 先判斷要不要用護盾補昨天(補了 claim_streak_bonus 才認得這段連勝),再結算里程碑。
-        ? supabase.rpc('use_streak_shield_if_needed', { p_student_id: actingUser.id })
-            .then(({ data: shieldRes }: { data: any; error: any }) => {
-              if (shieldRes?.used) {
-                showToast(`🛡️ 護盾啟動！幫你補上了漏打的一天，連勝繼續！(還剩 ${shieldRes.remaining} 張)`, 'success');
-                triggerConfetti();
-              }
-            })
-            .catch(() => { /* 護盾失敗不影響打卡 */ })
-            .then(() => supabase.rpc('claim_streak_bonus', { p_student_id: actingUser.id }))
+        // ⚠️ 補打卡改「手動」後,不再於打卡時自動用護盾(避免自動扣次數);連勝里程碑照常結算。
+        ? supabase.rpc('claim_streak_bonus', { p_student_id: actingUser.id })
             .then(({ data, error }: { data: any; error: any }) => {
               if (error) { console.error('[StreakBonus] claim error:', error); return; }
               const awarded = data?.awarded as Array<{ threshold: number; bonus: number }> | undefined;

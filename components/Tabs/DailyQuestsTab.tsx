@@ -2072,11 +2072,6 @@ export function DailyQuestsTab({
                           }`}>
                             +{task.score} 經驗
                           </span>
-                          {(task.reward_shields ?? 0) > 0 && (
-                            <span className="text-[11px] font-black tracking-widest px-2 py-0.5 rounded-lg border text-sky-300 bg-sky-500/15 border-sky-500/30 light:text-sky-700 light:bg-sky-50 light:border-sky-300">
-                              🛡️ 護盾 x{task.reward_shields}
-                            </span>
-                          )}
                           {(() => {
                             if (limit === 0) {
                               return (
