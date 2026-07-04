@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Task, Submission, Announcement, Profile, Mission, UserPet, PetStage, Batch, PetLine, MissionTemplate } from '@/types';
-import { nowTaipei, taipeiDateStr } from '@/lib/time';
+import { nowTaipei, taipeiDateStr, taipeiDay } from '@/lib/time';
 import { supabase } from '@/lib/supabase';
 import { parsePetOffset } from '@/lib/petImage';
 import { safeLinkHref } from '@/lib/helpers';
@@ -111,6 +111,7 @@ export function DailyQuestsTab({
 
   // --- 🛡️ 連勝護盾:載入本人「被護盾補上的日期」,連勝計算會把這些天也算成有打卡 ---
   const [shieldDayKeys, setShieldDayKeys] = useState<Set<string>>(new Set());
+  const [usedMakeupToday, setUsedMakeupToday] = useState(false);   // 今天是否已補過(一天限一次)
   const [showShieldInfo, setShowShieldInfo] = useState(false);   // 補打卡彈窗
 
   // Cohort resolving logic
@@ -129,7 +130,7 @@ export function DailyQuestsTab({
       if (!activeProfile?.id) return;
       const { data } = await supabase
         .from('streak_shield_days')
-        .select('covered_date')
+        .select('covered_date, created_at')
         .eq('student_id', activeProfile.id);
       if (cancelled || !data) return;
       const keys = new Set<string>(
@@ -139,6 +140,9 @@ export function DailyQuestsTab({
         })
       );
       setShieldDayKeys(keys);
+      // 一天限補一次:今天(台灣)是否已有補過的紀錄
+      const today = taipeiDay(new Date());
+      setUsedMakeupToday(data.some((r: any) => r.created_at && taipeiDay(r.created_at) === today));
     })();
     return () => { cancelled = true; };
   }, [activeProfile?.id, submissions.length]);
@@ -789,7 +793,8 @@ export function DailyQuestsTab({
     }
     return null;
   })();
-  const canMakeup = !!makeupTask && makeupRemaining > 0 && !!recentMissingDay && !isCohortEnded;
+  // 一天只能補一次 → 今天補過就不再顯示
+  const canMakeup = !!makeupTask && makeupRemaining > 0 && !!recentMissingDay && !isCohortEnded && !usedMakeupToday;
 
   // 連勝里程碑：徽章門檻 3/7/14/21/30 天；皆有加分(與後台 claim_streak_bonus 一致)
   const STREAK_MILESTONES = [3, 7, 14, 21, 30];
