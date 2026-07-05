@@ -105,7 +105,7 @@ export function useMissionGen({ setIsSyncing, fetchData, batches, missionTemplat
               publishDate.setUTCDate(firstMonday.getUTCDate() + (w - 1) * 7 + (dayOffset - 1));
 
               const deadlineDate = new Date(publishDate);
-              deadlineDate.setUTCDate(publishDate.getUTCDate() + 6);
+              deadlineDate.setUTCDate(publishDate.getUTCDate() + 7);
 
               const pubStr = publishDate.toISOString().substring(0, 10);
               const deadStr = deadlineDate.toISOString().substring(0, 10);
@@ -132,7 +132,7 @@ export function useMissionGen({ setIsSyncing, fetchData, batches, missionTemplat
             publishDate.setUTCDate(firstMonday.getUTCDate() + (weekOffset - 1) * 7 + (dayOffset - 1));
 
             const deadlineDate = new Date(publishDate);
-            deadlineDate.setUTCDate(publishDate.getUTCDate() + 6);
+            deadlineDate.setUTCDate(publishDate.getUTCDate() + 7);
 
             const pubStr = publishDate.toISOString().substring(0, 10);
             const deadStr = deadlineDate.toISOString().substring(0, 10);
