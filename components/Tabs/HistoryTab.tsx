@@ -276,7 +276,11 @@ export function HistoryTab({ logs, submissions = [], tasks = [], missions = [], 
                             </span>
                             <span className="text-[10px] text-slate-500 font-mono mt-1 flex items-center gap-1">
                               <Calendar size={10} />
-                              {new Date(log.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                              {(() => {
+                                const d = new Date(log.created_at);
+                                // 補上日期(M/D)+ 時間,避免「更早之前」只看到時間、看不出哪天
+                                return `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()} ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+                              })()}
                             </span>
                           </div>
                         </div>
