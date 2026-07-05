@@ -705,7 +705,8 @@ export default function Home() {
   // 「大隊長全看」只在:真的是 admin、不是在檢視某學員、且不是在模擬其他角色(GM 模式)時。
   // → 模擬學員/小隊長時改套用「該角色+該期」過濾,讓預覽真的等於該角色看到的畫面。
   const isAdminFullView = panelUser.role === 'admin' && !isViewingStudent && !gmMode;
-  const filteredTasks = isAdminFullView ? tasks : tasks.filter(t => t.batch_id === panelBatchId);
+  // ⚠️ 要放行「通用任務」(batch_id 空,例如通用補打卡任務)—— 否則所有期數都看不到。與公告/課程一致。
+  const filteredTasks = isAdminFullView ? tasks : tasks.filter(t => !t.batch_id || t.batch_id === panelBatchId);
   const filteredAnnouncements = isAdminFullView
     ? announcements
     : announcements.filter(ann => (!ann.batch_id || ann.batch_id === panelBatchId) && new Date(ann.created_at) <= now);
