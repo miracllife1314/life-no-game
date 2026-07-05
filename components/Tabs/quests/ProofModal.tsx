@@ -11,11 +11,11 @@ export function ProofModal({ selectedTask, proofText, proofImg, proofLink, setPr
             </h3>
             {/* 任務條件:醒目框,讓學員清楚知道要做什麼、要交什麼 */}
             {(selectedTask.description) && (
-              <div className="mb-4 p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30">
-                <p className="text-xs font-black text-amber-400 mb-1.5 flex items-center gap-1.5">
+              <div className="mb-4 p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 light:bg-amber-50 light:border-amber-300">
+                <p className="text-xs font-black text-amber-300 mb-1.5 flex items-center gap-1.5 light:text-amber-700">
                   📋 任務條件
                 </p>
-                <p className="text-sm text-white leading-relaxed whitespace-pre-line">
+                <p className="text-sm leading-relaxed whitespace-pre-line text-amber-50 light:text-amber-900">
                   {selectedTask.description}
                 </p>
               </div>
