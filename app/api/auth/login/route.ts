@@ -80,6 +80,10 @@ export async function POST(req: Request) {
       fetch(`${SUPA_URL}/rest/v1/login_attempts?created_at=lt.${new Date(now - 60 * 60 * 1000).toISOString()}`, {
         method: 'DELETE', headers: srHeaders,
       }).catch(() => {});
+      // A4:順手清掉 60 天前的 client_logs(系統健康監控紀錄),避免表無限成長。fire-and-forget。
+      fetch(`${SUPA_URL}/rest/v1/client_logs?created_at=lt.${new Date(now - 60 * 24 * 60 * 60 * 1000).toISOString()}`, {
+        method: 'DELETE', headers: srHeaders,
+      }).catch(() => {});
     } catch { /* 限流不可用時不阻斷登入 */ }
 
     // 1. 查 profiles（姓名+電話）。取完整資料 → 連同 token 回傳前端，省去前端再查一次。
