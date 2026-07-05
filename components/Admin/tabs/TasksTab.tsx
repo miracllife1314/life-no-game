@@ -117,7 +117,7 @@ export function TasksTab({ tasks, batches, missionCategories, isSyncing, onCreat
     setTaskScore(task.score);
     setTaskIsMakeup(!!task.is_makeup);
     setTaskReqProof(!!task.requires_proof);
-    setTaskBatchId(task.batch_id || '');
+    setTaskBatchId(task.batch_id || '__all__');   // 無期數 → 顯示為「通用」
     setTaskCategory(task.category || '初階');
     setTaskStartTime(formatDateToLocal(new Date(task.start_time)));
     setTaskEndTime(formatDateToLocal(new Date(task.end_time)));
@@ -143,7 +143,8 @@ export function TasksTab({ tasks, batches, missionCategories, isSyncing, onCreat
       target_type: 'all' as TaskTargetType,
       target_team_id: null,
       target_user_id: null,
-      batch_id: taskBatchId || null,
+      // '__all__' 或空 → 通用(batch_id null,所有期數學員都看得到)
+      batch_id: (taskBatchId && taskBatchId !== '__all__') ? taskBatchId : null,
       category: taskCategory
     };
 
@@ -348,6 +349,7 @@ export function TasksTab({ tasks, batches, missionCategories, isSyncing, onCreat
                     className="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl py-2 px-3 text-xs outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 transition-all light:bg-slate-50 light:border-slate-200 light:text-slate-900"
                   >
                     <option value="">請選擇期數...</option>
+                    <option value="__all__">🌐 全部期數(通用,所有學員都看得到)</option>
                     {batches.map(b => (
                       <option key={b.id} value={b.id}>{b.name}</option>
                     ))}
