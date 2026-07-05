@@ -6,10 +6,16 @@ export function ProofModal({ selectedTask, proofText, proofImg, proofLink, setPr
         <div className="fixed inset-0 z-[60] bg-black/80 overflow-y-auto overscroll-none modal-force-dark" onClick={(e) => { if (e.target === e.currentTarget) { setShowProofModal(false); setSelectedTask(null); }}}>
           <div className="min-h-full flex items-center justify-center p-4" onClick={(e) => { if (e.target === e.currentTarget) { setShowProofModal(false); setSelectedTask(null); }}}>
             <div className="glass-panel w-full max-w-md p-6 rounded-3xl border border-white/10 shadow-2xl relative animate-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
-              <h3 className="text-lg font-black text-white mb-4">
+              <h3 className="text-lg font-black text-white mb-1.5">
               提交修行證明：{selectedTask.name || selectedTask.title}
             </h3>
-            
+            {/* 任務說明(讓學員知道這個任務要做什麼、要交什麼) */}
+            {(selectedTask.description) && (
+              <p className="text-xs text-slate-300 leading-relaxed mb-4 pb-3 border-b border-white/10 whitespace-pre-line">
+                {selectedTask.description}
+              </p>
+            )}
+
             <form onSubmit={handleModalSubmit} className="space-y-4">
               <div>
                 <label className="block text-xs text-slate-400 font-bold mb-2">
