@@ -37,12 +37,29 @@ export function useMissionGen({ setIsSyncing, fetchData, batches, missionTemplat
     // 3. Clear existing missions for this cohort that DO NOT have student submissions yet
     const { data: currentMissions } = await supabase.from('missions').select('id').eq('batch_id', batchId);
     if (currentMissions && currentMissions.length > 0) {
-      const { data: subs } = await supabase.from('submissions').select('mission_id');
-      const submittedMissionIds = new Set((subs || []).map((s: any) => s.mission_id));
+      const missionIds: string[] = currentMissions.map((m: any) => m.id);
 
-      const missionsToDelete = currentMissions
-        .map((m: any) => m.id)
-        .filter((id: string) => !submittedMissionIds.has(id));
+      // ⚠️ A1 修正:只查「本期任務」的提交(而非全站 select('mission_id'))。
+      //   原本全站撈,提交數超過 PostgREST 列上限(db_max_rows)時會漏抓 →
+      //   有打卡的任務被誤判「沒人打卡」而刪除(連帶刪提交、退分)。
+      //   改成依本期任務 id 分批(每 100 個一批,避免 URL 過長)查詢;
+      //   任何一批查詢失敗 → 為安全「中止刪除」,絕不在資訊不全時刪任務。
+      const submittedMissionIds = new Set<string>();
+      for (let i = 0; i < missionIds.length; i += 100) {
+        const chunk = missionIds.slice(i, i + 100);
+        const { data: subs, error: subsErr } = await supabase
+          .from('submissions')
+          .select('mission_id')
+          .in('mission_id', chunk);
+        if (subsErr) {
+          console.error('檢查任務打卡狀態失敗:', subsErr);
+          alert('檢查任務打卡狀態失敗,為安全起見暫不清除舊任務,請稍後再試。');
+          return;
+        }
+        (subs || []).forEach((s: any) => { if (s.mission_id) submittedMissionIds.add(s.mission_id); });
+      }
+
+      const missionsToDelete = missionIds.filter((id: string) => !submittedMissionIds.has(id));
 
       if (missionsToDelete.length > 0) {
         const { error: delMisErr } = await supabase.from('missions').delete().in('id', missionsToDelete);
