@@ -329,13 +329,15 @@ export function useMissionGen({ setIsSyncing, fetchData, batches, missionTemplat
 
       // 2. Insert batch missions
       if (newMissions.length > 0) {
-        await supabase.from('missions').insert(
+        // A2 修正:檢查 error,失敗就拋出(讓呼叫端顯示「失敗」而非用部分結果報「成功」)。
+        const { error: insErr } = await supabase.from('missions').insert(
           newMissions.map(m => ({
             ...m,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
           }))
         );
+        if (insErr) throw new Error(insErr.message || '產生任務寫入失敗');
       }
 
       await fetchData();

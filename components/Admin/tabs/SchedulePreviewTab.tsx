@@ -152,7 +152,7 @@ export function SchedulePreviewTab({ batches, missionTemplates, batchMissionTemp
             publishDate.setUTCDate(firstMonday.getUTCDate() + (w - 1) * 7 + (dayOffset - 1));
             
             const deadlineDate = new Date(publishDate);
-            deadlineDate.setUTCDate(publishDate.getUTCDate() + 6);
+            deadlineDate.setUTCDate(publishDate.getUTCDate() + 7);
             
             const pubStr = publishDate.toISOString().substring(0, 10);
             const deadStr = deadlineDate.toISOString().substring(0, 10);
@@ -163,7 +163,7 @@ export function SchedulePreviewTab({ batches, missionTemplates, batchMissionTemp
               type,
               points,
               publishAt: `${pubStr} 00:00:00`,
-              deadlineAt: `${deadStr} 23:59:59`,
+              deadlineAt: `${deadStr} 12:00:00`,
               templateId: rule.template_id,
               description: template.description,
               reviewType: template.review_type,
@@ -175,7 +175,7 @@ export function SchedulePreviewTab({ batches, missionTemplates, batchMissionTemp
           publishDate.setUTCDate(firstMonday.getUTCDate() + (weekOffset - 1) * 7 + (dayOffset - 1));
           
           const deadlineDate = new Date(publishDate);
-          deadlineDate.setUTCDate(publishDate.getUTCDate() + 6);
+          deadlineDate.setUTCDate(publishDate.getUTCDate() + 7);
           
           const pubStr = publishDate.toISOString().substring(0, 10);
           const deadStr = deadlineDate.toISOString().substring(0, 10);
@@ -186,7 +186,7 @@ export function SchedulePreviewTab({ batches, missionTemplates, batchMissionTemp
             type,
             points,
             publishAt: `${pubStr} 00:00:00`,
-            deadlineAt: `${deadStr} 23:59:59`,
+            deadlineAt: `${deadStr} 12:00:00`,
             templateId: rule.template_id,
             description: template.description,
             reviewType: template.review_type,
