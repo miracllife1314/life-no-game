@@ -9,11 +9,16 @@ export function ProofModal({ selectedTask, proofText, proofImg, proofLink, setPr
               <h3 className="text-lg font-black text-white mb-1.5">
               提交修行證明：{selectedTask.name || selectedTask.title}
             </h3>
-            {/* 任務說明(讓學員知道這個任務要做什麼、要交什麼) */}
+            {/* 任務條件:醒目框,讓學員清楚知道要做什麼、要交什麼 */}
             {(selectedTask.description) && (
-              <p className="text-xs text-slate-300 leading-relaxed mb-4 pb-3 border-b border-white/10 whitespace-pre-line">
-                {selectedTask.description}
-              </p>
+              <div className="mb-4 p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30">
+                <p className="text-xs font-black text-amber-400 mb-1.5 flex items-center gap-1.5">
+                  📋 任務條件
+                </p>
+                <p className="text-sm text-white leading-relaxed whitespace-pre-line">
+                  {selectedTask.description}
+                </p>
+              </div>
             )}
 
             <form onSubmit={handleModalSubmit} className="space-y-4">
