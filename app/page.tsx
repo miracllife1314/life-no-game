@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useLayoutEffect, useCallback, useRef, lazy, Suspense } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useCallback, useMemo, useRef, lazy, Suspense } from 'react';
 import { supabase } from '@/lib/supabase';
 import { BRAND } from '@/lib/brand';
 import { fetchAllTables } from '@/services/queries';
@@ -15,7 +15,6 @@ import { useAdminPeople } from '@/hooks/useAdminPeople';
 import { useMissionGen } from '@/hooks/useMissionGen';
 import { useGameActions } from '@/hooks/useGameActions';
 import { CheckCircle2, Clock, AlertCircle } from 'lucide-react';
-import * as Icons from 'lucide-react';
 import {
   Profile, Team, Task, ScoreLog,
   UserAchievement, UserRole,
@@ -589,6 +588,54 @@ export default function Home() {
   } = useAdminContent({ currentUser, setIsSyncing, fetchData, setAchievements, setUserAchievements });
 
 
+  // ⚠️ 效能:經驗明細(score_logs)顯示原本每次 render 全量 filter+map,且 map 內對
+  //   submissions/tasks/missions 做巢狀 .find(O(logs × 資料量))。改包 useMemo(相關資料變動才重算)
+  //   + 先建 id→物件 Map 讓查表 O(1)。行為與原本逐字相同。
+  //   ⚠️ 必須放在下面 early return 之前(hooks 規則),故在此就地把 panelUser 用同一套邏輯算出來。
+  const memoScoreLogs = useMemo(() => {
+    const vp = viewAsUserId ? profiles.find(p => p.id === viewAsUserId) : null;
+    const pu = vp || currentUser;
+    if (!pu) return [] as ScoreLog[];
+    const subById = new Map(submissions.map(s => [s.id, s]));
+    const taskById = new Map(tasks.map(t => [t.id, t]));
+    const missionById = new Map(missions.map(m => [m.id, m]));
+    return scoreLogs.filter((l: ScoreLog) => l.student_id === pu.id).map(log => {
+      let displayReason = log.reason;
+      if (displayReason === '完成任務' && log.submission_id) {
+        const sub = subById.get(log.submission_id);
+        if (sub) {
+          let taskName = '';
+          let taskType = '';
+          const targetId = sub.mission_id || sub.task_id;
+
+          const t = targetId ? taskById.get(targetId) : undefined;
+          if (t) {
+            taskName = t.name;
+            taskType = t.type;
+          } else {
+            const m = targetId ? missionById.get(targetId) : undefined;
+            if (m) {
+              taskName = m.title;
+              taskType = m.mission_type;
+            }
+          }
+
+          if (taskName) {
+            let prefix = '[特殊]';
+            if (taskType === 'daily') prefix = '[每日]';
+            else if (taskType === 'weekly') prefix = '[每週]';
+            else if (taskType === 'limited' || taskName.includes('限時') || taskName.includes('最後一週')) prefix = '[限時]';
+
+            displayReason = `完成任務：${prefix} ${taskName}`;
+          } else {
+            displayReason = `完成任務 (紀錄已移除)`;
+          }
+        }
+      }
+      return { ...log, reason: displayReason };
+    });
+  }, [scoreLogs, submissions, tasks, missions, currentUser, viewAsUserId, profiles]);
+
   // --- Render logic ---
   // 開機確認 session 期間顯示載入畫面，避免閃登入頁
   if (booting) {
@@ -715,41 +762,9 @@ export default function Home() {
 
   // Filter submissions / logs for the active tab context
   const filteredSubmissions = submissions.filter(s => s.student_id === panelUser.id);
-  const filteredScoreLogs = scoreLogs.filter((l: ScoreLog) => l.student_id === panelUser.id).map(log => {
-    let displayReason = log.reason;
-    if (displayReason === '完成任務' && log.submission_id) {
-      const sub = submissions.find(s => s.id === log.submission_id);
-      if (sub) {
-        let taskName = '';
-        let taskType = '';
-        const targetId = sub.mission_id || sub.task_id;
-        
-        const t = tasks.find(t => t.id === targetId);
-        if (t) {
-          taskName = t.name;
-          taskType = t.type;
-        } else {
-          const m = missions.find(m => m.id === targetId);
-          if (m) {
-            taskName = m.title;
-            taskType = m.mission_type;
-          }
-        }
-
-        if (taskName) {
-          let prefix = '[特殊]';
-          if (taskType === 'daily') prefix = '[每日]';
-          else if (taskType === 'weekly') prefix = '[每週]';
-          else if (taskType === 'limited' || taskName.includes('限時') || taskName.includes('最後一週')) prefix = '[限時]';
-          
-          displayReason = `完成任務：${prefix} ${taskName}`;
-        } else {
-          displayReason = `完成任務 (紀錄已移除)`;
-        }
-      }
-    }
-    return { ...log, reason: displayReason };
-  });
+  // filteredScoreLogs 已在元件上方以 useMemo 計算(memoScoreLogs);此處僅取用。
+  //   (useMemo 必須放在 early return 之前才不違反 hooks 規則,故不能寫在這裡。)
+  const filteredScoreLogs = memoScoreLogs;
 
   return (
     <div className="min-h-screen flex flex-col transition-colors duration-300 bg-slate-950 text-white light:bg-slate-925">

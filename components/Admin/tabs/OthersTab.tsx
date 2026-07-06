@@ -6,6 +6,7 @@ import { Calendar, Edit2, ImageIcon, Megaphone, Trophy, Trash2, X } from 'lucide
 import { Announcement, Course, Achievement, Batch, Mission } from '@/types';
 import { BRAND } from '@/lib/brand';
 import { BadgeIcon } from '../../BadgeIcon';
+import { PRESET_BADGE_ICONS } from '@/lib/badgeIcons';
 
 const ANNOUNCEMENT_TEMPLATES = [
   {
@@ -47,29 +48,6 @@ const COURSE_TEMPLATES = [
     courseName: '🌟 影響力大師精進班',
     description: '掌握核心影響力工具，實現卓越溝通。'
   }
-];
-
-const PRESET_BADGE_ICONS = [
-  // 1-10
-  'Brain', 'Eye', 'Map', 'Flame', 'Star', 'Wand', 'Rocket', 'Zap', 'Music', 'Globe',
-  // 11-20
-  'Sparkles', 'Lightbulb', 'Award', 'Unlock', 'BookOpen', 'Gift', 'Activity', 'Clock', 'UserPlus', 'HelpCircle',
-  // 21-30
-  'Users', 'Anchor', 'Mountain', 'Heart', 'Smile', 'HeartHandshake', 'MessageSquare', 'Mail', 'Video', 'Compass',
-  // 31-40
-  'Sun', 'Moon', 'Share2', 'Infinity', 'Trophy', 'Sword', 'Flag', 'Crown', 'Gem', 'Key',
-  // 41-50
-  'Shield', 'Lock', 'Target', 'Search', 'CheckCircle', 'Layers', 'GraduationCap', 'Tree', 'Coffee', 'Feather',
-  // 51-60
-  'Sparkle', 'Briefcase', 'Laptop', 'Camera', 'TrendingUp', 'Coins', 'CheckSquare', 'MapPin', 'HeartPulse', 'UserCheck',
-  // 61-70
-  'SmilePlus', 'Glasses', 'Book', 'Library', 'Fingerprint', 'Timer', 'AlarmClock', 'Gamepad2', 'Dumbbell', 'Milestone',
-  // 71-80
-  'ShieldAlert', 'LockOpen', 'KeyRound', 'Hammer', 'Wrench', 'Cpu', 'Database', 'Terminal', 'Code2', 'Hash',
-  // 81-90
-  'Calculator', 'Bike', 'Navigation', 'Paperclip', 'Link', 'Send', 'Smartphone', 'Headphones', 'Mic', 'Cloud',
-  // 91-100
-  'CloudLightning', 'Wind', 'Sunrise', 'Sunset', 'Palette', 'Brush', 'PenTool', 'Scissors', 'Binoculars', 'Ghost'
 ];
 
 interface OthersTabProps {
