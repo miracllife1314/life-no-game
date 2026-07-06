@@ -11,6 +11,7 @@ import {
   BookOpen, ImageIcon, Quote, Sparkles, ListChecks, Timer, ScrollText, Share2, Link
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { authHeaders } from '@/lib/authToken';
 import { nowTaipei, parseTaipei, taipeiDay } from '@/lib/time';
 import { getTaskTypeBadge } from '@/lib/captainLogic';
 import { ConfirmModal } from '@/components/Captain/modals/ConfirmModal';
@@ -86,8 +87,8 @@ const generateRelayText = (
   const dateNum = now.getDate();
   const dateTitle = `${month}月${dateNum}日`;
 
-  // Filter tasks to match current batch
-  const batchTasks = allTasks.filter(t => t.batch_id === targetTeam.batch_id);
+  // Filter tasks to match current batch —— 放行「通用任務」(batch_id 空)給所有期,與 page 端一致
+  const batchTasks = allTasks.filter(t => !t.batch_id || t.batch_id === targetTeam.batch_id);
 
   // 1. Get active daily tasks published today
   const todayDailyTasks = batchTasks.filter(t => {
@@ -645,7 +646,7 @@ export function CaptainDashboard({
     try {
       const res = await fetch('/api/captain/update-member-settings', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: await authHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({
           requesterId: currentUserId,
           memberId,

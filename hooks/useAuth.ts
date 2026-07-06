@@ -150,7 +150,10 @@ export function useAuth({
       profile_id: newId,
       name: safeName,
       phone: safePhone,
-      role: regData.role,
+      // ⚠️ 安全:自助註冊一律寫死 student,不可用前端自報的 regData.role——
+      //    否則任何人都能把自己註冊成 captain(權限提升)。隊長身分只能由後台指派。
+      //    RLS 端也同步收緊(見 docs/schema_fixes_35_register_role_student.sql)。
+      role: 'student',
       batch_id,
       team_id,
       captain_id,

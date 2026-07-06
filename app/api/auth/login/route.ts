@@ -88,14 +88,16 @@ export async function POST(req: Request) {
 
     // 1. 查 profiles（姓名+電話）。取完整資料 → 連同 token 回傳前端，省去前端再查一次。
     //    （auth_user_id 欄位正式/測試庫皆已存在；auth user id 仍以下方 generate_link 回傳為準。）
+    //    多期學員會有多筆同名同電話 profile → 取「最新優先」,且優先挑 status=active 那筆,
+    //    避免登進已結業的舊期(原本 limit=1 無 order,可能拿到任意一筆=舊期)。
     const lookupUrl =
       `${SUPA_URL}/rest/v1/profiles` +
       `?name=eq.${encodeURIComponent(safeName)}` +
       `&phone=eq.${encodeURIComponent(safePhone)}` +
-      `&select=*&limit=1`;
+      `&select=*&order=created_at.desc`;
     const pr = await fetch(lookupUrl, { headers: srHeaders });
-    const profiles = await pr.json().catch(() => []);
-    if (!Array.isArray(profiles) || profiles.length === 0) {
+    const profilesRaw = await pr.json().catch(() => []);
+    if (!Array.isArray(profilesRaw) || profilesRaw.length === 0) {
       return NextResponse.json({ error: 'not_found' }, { status: 404 });
     }
 
@@ -140,9 +142,12 @@ export async function POST(req: Request) {
     }
 
     // 6. 回傳票 + 該學員 profile 給前端 → 前端免再查一次 profiles(省一趟往返)
+    //    多筆同名同電話時:優先挑 status=active 那筆,否則取最新(order=created_at.desc 的第一筆)。
     //    回傳前先把 profile 的 auth_user_id 補成本次綁定的正確值,讓前端 state 與 DB 一致。
-    if (authUserId) profiles[0].auth_user_id = authUserId;
-    return NextResponse.json({ token_hash: link.hashed_token, profile: profiles[0] });
+    const chosen =
+      profilesRaw.find((p: any) => p?.status === 'active') || profilesRaw[0];
+    if (authUserId) chosen.auth_user_id = authUserId;
+    return NextResponse.json({ token_hash: link.hashed_token, profile: chosen });
   } catch (e: any) {
     return NextResponse.json({ error: 'server_error', detail: String(e?.message || e) }, { status: 500 });
   }

@@ -7,6 +7,7 @@
 //       這樣大隊長/小隊長指派永遠不會再被登入狀態擋掉。
 // =====================================================================
 import { NextResponse } from 'next/server';
+import { getAuthUidFromRequest } from '@/lib/serverAuth';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -41,11 +42,22 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: false, error: '缺少必要參數' }, { status: 400 });
     }
 
+    // 0. 驗身分:前端須帶 session JWT。取出可信 auth uid,後面比對 requester 確實是本人
+    //    (原本只信任前端自報的 requesterId → 任何人改 body 就能冒用別人身分指派)。
+    const authUid = await getAuthUidFromRequest(req);
+    if (!authUid) {
+      return NextResponse.json({ ok: false, error: '請重新登入(未帶有效登入憑證)' }, { status: 401 });
+    }
+
     // 1. 取 requester / member,做權限驗證
-    const requester = await getOne(`profiles?id=eq.${encodeURIComponent(requesterId)}&select=id,role,team_id`);
+    const requester = await getOne(`profiles?id=eq.${encodeURIComponent(requesterId)}&select=id,role,team_id,auth_user_id`);
     const member = await getOne(`profiles?id=eq.${encodeURIComponent(memberId)}&select=id,team_id`);
     if (!requester || !member) {
       return NextResponse.json({ ok: false, error: '找不到帳號' }, { status: 404 });
+    }
+    // 冒用防護:requesterId 這筆 profile 的 auth_user_id 必須就是驗出來的 uid
+    if (String(requester.auth_user_id || '') !== authUid) {
+      return NextResponse.json({ ok: false, error: '身分不符,請重新登入' }, { status: 403 });
     }
     const isAdmin = requester.role === 'admin';
     const isCaptainOfMember = requester.role === 'captain' && !!requester.team_id && requester.team_id === member.team_id;

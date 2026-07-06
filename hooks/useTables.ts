@@ -7,6 +7,7 @@
 
 import React, { useState, useCallback } from 'react';
 import { computeJoinedData } from '@/services/joinData';
+import { authHeaders } from '@/lib/authToken';
 import {
   Profile, Team, Task, Submission, ScoreLog,
   Course, CourseAttendance, Achievement, UserAchievement,
@@ -80,13 +81,14 @@ export function useTables() {
         );
         // 先用前端比對結果（即時顯示），再用伺服器權威結果覆蓋（回來才更新）。
         setUserEnrollments(clientEnrolls);
-        fetch('/api/auth/my-enrollments', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id: activeProfile.id }),
-        })
-          .then((res) => (res.ok ? res.json() : null))
-          .then((j) => {
+        authHeaders({ 'Content-Type': 'application/json' }).then((h) =>
+          fetch('/api/auth/my-enrollments', {
+            method: 'POST',
+            headers: h,
+            body: JSON.stringify({ id: activeProfile.id }),
+          }))
+          .then((res: Response | null) => (res && res.ok ? res.json() : null))
+          .then((j: any) => {
             if (j && Array.isArray(j.enrollments) && j.enrollments.length > 0) {
               setUserEnrollments(j.enrollments);
             }

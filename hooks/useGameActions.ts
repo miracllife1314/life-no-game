@@ -678,16 +678,21 @@ export function useGameActions(d: Deps) {
       return;
     }
 
+    // 連點鎖:同一格(學員×任務)進行中就忽略重複觸發,避免重複加/扣分。比照 checkInLock。
+    const lockKey = `cell-${studentId}-${taskId}`;
+    if (checkInLock.current.has(lockKey)) return;
+    checkInLock.current.add(lockKey);
     try {
       if (sortedPending.length > 0) {
-        await supabase.from('submissions').update({
+        const { error } = await supabase.from('submissions').update({
           status: 'approved',
           score_awarded: task.score,
           reviewed_by: currentUser.id,
           reviewed_at: new Date().toISOString()
         }).eq('id', sortedPending[0].id);
+        if (error) throw new Error(error.message);
       } else if (limit === 0 || approvedSubs.length < limit) {
-        await supabase.from('submissions').insert({
+        const { error } = await supabase.from('submissions').insert({
           mission_id: taskId,
           student_id: studentId,
           proof_text: '由小隊長於指揮所手動設定打卡',
@@ -699,12 +704,17 @@ export function useGameActions(d: Deps) {
           reviewed_at: new Date().toISOString(),
           created_at: new Date().toISOString()
         });
+        if (error) throw new Error(error.message);
       } else {
-        await supabase.from('submissions').delete().eq('id', sortedApproved[0].id);
+        const { error } = await supabase.from('submissions').delete().eq('id', sortedApproved[0].id);
+        if (error) throw new Error(error.message);
       }
       await fetchData();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error toggling cell:', err);
+      showToast('設定打卡失敗,請稍後再試 🙏', 'error');
+    } finally {
+      checkInLock.current.delete(lockKey);
     }
   };
 

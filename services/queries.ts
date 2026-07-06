@@ -143,8 +143,22 @@ async function fetchScoped(batchId: string, opts?: { studentId?: string; keepBat
   //   不含 proof_text(心得)等肥欄位。見證牆有 subsWitness 完整查詢、自己的有 subsOwn,不受影響。
   const SUB_COLS_SLIM = 'id,mission_id,task_id,student_id,status,created_at';
 
+  // 排行榜計數用:本期全班「非隱私」提交(不含心得/圖)——讀公開視圖 submissions_public。
+  //   ⚠️ base table 的 select RLS 收緊後(S2,見 schema_fixes_36),學員/隊長讀 base 只拿得到
+  //   自己+見證+本隊,批次計數(邀約王者/影響力之神)會少算 → 改從視圖拿完整本期名單來計數。
+  //   視圖繞過 base RLS 但只暴露非隱私欄位,不外洩心得。
+  const SUB_COLS_PUBLIC = 'id,mission_id,task_id,student_id,status,share_to_witness,created_at';
+
   // 第二批：大表，只撈本期學員的，以及所有入選見證牆的提交
-  const [subsCurrentBatch, subsOwn, subsWitness, subsImgBatch, subsImgWitness, scoreLogs, userPets, userAchs, attendance, notes] = await Promise.all([
+  const [subsPublicBatch, subsCurrentBatch, subsOwn, subsWitness, subsImgBatch, subsImgWitness, scoreLogs, userPets, userAchs, attendance, notes] = await Promise.all([
+    // 本期全班非隱私提交(計數用),讀視圖,不受 base RLS 收緊影響。
+    hasIds
+      ? supabase.from('submissions_public')
+          .select(SUB_COLS_PUBLIC)
+          .in('student_id', batchStudentIds)
+          .order('created_at', { ascending: false })
+          .limit(8000)
+      : EMPTY,
     // 最新優先 + 拉高上限:避免某期提交多時被 PostgREST 預設 1000 筆截掉最新待審(隊長也審核)。
     // slimMode(純學員):全期他人只撈精簡欄位;隊長/盯盯隊長維持完整欄位(要審核、看隊員進度)。
     hasIds
@@ -172,11 +186,12 @@ async function fetchScoped(batchId: string, opts?: { studentId?: string; keepBat
           .not('proof_image_url', 'is', null).not('proof_image_url', 'like', 'data:%')
       : EMPTY,
     supabase.from('submissions').select('id,proof_image_url').eq('status', 'approved').or('share_to_witness.eq.true,mission_id.eq.task-custom-post').not('proof_image_url', 'is', null).not('proof_image_url', 'like', 'data:%').limit(300),
-    hasIds ? supabase.from('score_logs').select('*').in('student_id', batchStudentIds) : EMPTY,
+    // ⚠️ 大表補 .order+.limit,避免 PostgREST 預設只回最舊 1000 筆(見 Part 1 陷阱)。
+    hasIds ? supabase.from('score_logs').select('*').in('student_id', batchStudentIds).order('created_at', { ascending: false }).limit(5000) : EMPTY,
     hasIds ? supabase.from('user_pets').select('*').in('student_id', batchStudentIds) : EMPTY,
-    hasIds ? supabase.from('user_achievements').select('*').in('student_id', batchStudentIds) : EMPTY,
-    hasIds ? supabase.from('course_attendance').select('*').in('student_id', batchStudentIds) : EMPTY,
-    hasIds ? supabase.from('student_notes').select('*').in('student_id', batchStudentIds) : EMPTY,
+    hasIds ? supabase.from('user_achievements').select('*').in('student_id', batchStudentIds).order('created_at', { ascending: false }).limit(5000) : EMPTY,
+    hasIds ? supabase.from('course_attendance').select('*').in('student_id', batchStudentIds).order('created_at', { ascending: false }).limit(5000) : EMPTY,
+    hasIds ? supabase.from('student_notes').select('*').in('student_id', batchStudentIds).order('created_at', { ascending: false }).limit(5000) : EMPTY,
   ]);
 
   // 合併並去重 submissions,並補回（非 base64 的）圖片。
@@ -185,6 +200,8 @@ async function fetchScoped(batchId: string, opts?: { studentId?: string; keepBat
   (d(subsImgBatch) as any[]).forEach((r: any) => imgMap.set(r.id, r.proof_image_url));
   (d(subsImgWitness) as any[]).forEach((r: any) => imgMap.set(r.id, r.proof_image_url));
   const mergedSubsMap = new Map<string, any>();
+  // 先鋪「本期全班非隱私」(視圖,計數用,無心得/圖),再讓下面有授權的完整資料覆蓋同一 id。
+  d(subsPublicBatch).forEach((s: any) => mergedSubsMap.set(s.id, { ...s, proof_image_url: imgMap.get(s.id) ?? null }));
   d(subsCurrentBatch).forEach((s: any) => mergedSubsMap.set(s.id, { ...s, proof_image_url: imgMap.get(s.id) ?? null }));
   d(subsOwn).forEach((s: any) => mergedSubsMap.set(s.id, { ...s, proof_image_url: imgMap.get(s.id) ?? null }));
   d(subsWitness).forEach((s: any) => mergedSubsMap.set(s.id, { ...s, proof_image_url: imgMap.get(s.id) ?? null }));
