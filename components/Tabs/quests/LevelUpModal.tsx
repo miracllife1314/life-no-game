@@ -1,5 +1,6 @@
 // 神獸升級成功 Modal —— 從 DailyQuestsTab 抽出，行為/UI 不變。
 import { Sparkles } from 'lucide-react';
+import { BRAND } from '@/lib/brand';
 export function LevelUpModal({ showLevelUpModal, setShowLevelUpModal, onEvolveNow, onContinue }: { showLevelUpModal: any; setShowLevelUpModal: (v: any) => void; onEvolveNow?: () => void; onContinue?: () => void }) {
   const finalLevel = showLevelUpModal.finalLevel ?? showLevelUpModal.newLevel;
   const isLastStep = showLevelUpModal.newLevel >= finalLevel;   // 已升到本次最終等級
@@ -20,7 +21,7 @@ export function LevelUpModal({ showLevelUpModal, setShowLevelUpModal, onEvolveNo
                 {showLevelUpModal.petName} 突破成長！
               </h2>
               <p className="text-xs text-slate-400 mt-1">
-                恭喜，您的 NLP 守護神獸獲得了新的力量！
+                {BRAND.petLevelUpLine}
               </p>
             </div>
 

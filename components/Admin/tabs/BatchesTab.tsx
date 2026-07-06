@@ -4,6 +4,7 @@
 import { useState } from 'react';
 import { Calendar } from 'lucide-react';
 import { Batch, Team } from '@/types';
+import { BRAND } from '@/lib/brand';
 
 interface BatchesTabProps {
   batches: Batch[];
@@ -94,7 +95,7 @@ export function BatchesTab({ batches, teams, isSyncing, onCreateBatch, onUpdateB
                   type="text"
                   value={newBatchName}
                   onChange={e => setNewBatchName(e.target.value)}
-                  placeholder="例如：NLP初階50期"
+                  placeholder={`例如：${BRAND.batchPrefix}50期`}
                   className="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl p-3 text-xs outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 transition-all light:bg-slate-50 light:border-slate-200 light:text-slate-900"
                 />
               </div>

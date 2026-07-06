@@ -1,5 +1,6 @@
 // 神獸進化成功 Modal —— 破蛋特效版:能量凝聚→蛋殼震動→爆裂破殼→揭曉新神獸。
 import { useState, useEffect } from 'react';
+import { BRAND } from '@/lib/brand';
 
 const cssStyles = `
 @keyframes lvk-shake {
@@ -75,7 +76,7 @@ export function SuccessModal({ showSuccessModal, setShowSuccessModal }: { showSu
             {/* 爆裂閃光 */}
             {phase === 'burst' && <div className="absolute w-40 h-40 bg-white rounded-full lvk-flash z-20" />}
           </div>
-          <p className="text-[11px] text-slate-400 italic">「NLP 修行能量正在突破極限...」</p>
+          <p className="text-[11px] text-slate-400 italic">{BRAND.petEnergyLine}</p>
         </div>
       </div>
     );
@@ -90,7 +91,7 @@ export function SuccessModal({ showSuccessModal, setShowSuccessModal }: { showSu
         {/* Header info */}
         <div>
           <span className="text-[10px] font-black tracking-widest text-pink-400 bg-pink-500/10 px-2.5 py-1 rounded-md">
-            NLP 守護神獸進化成功
+            {BRAND.petEvolveSuccessBadge}
           </span>
           {showSuccessModal.isSubsequent ? (
             <div className="mt-3 space-y-1">
@@ -133,14 +134,14 @@ export function SuccessModal({ showSuccessModal, setShowSuccessModal }: { showSu
 
         {/* Trait Card */}
         <div className="bg-slate-900/80 border border-white/5 p-4 rounded-2xl text-left space-y-1">
-          <div className="text-[10px] text-slate-400 font-bold">NLP 特質屬性</div>
+          <div className="text-[10px] text-slate-400 font-bold">{BRAND.petTraitLabel}</div>
           <div className="text-xs text-amber-400 font-mono font-black">{showSuccessModal.traits}</div>
           <div className="text-[11px] text-slate-300 pt-1 leading-relaxed">{showSuccessModal.desc}</div>
         </div>
 
         {/* Sharing slogan */}
         <p className="text-[10px] text-slate-400 italic">
-          「NLP 人性溝通術・神獸守護進化契約已突破」
+          {BRAND.petContractLine}
         </p>
 
         {/* Action Buttons */}

@@ -929,7 +929,7 @@ export function TeamsTab({ profiles, teams, batches, captainCandidates, notes, c
                                 // 只顯示「第X隊」：去掉期數前綴、不顯示組別與小隊長
                                 const short = batch && team.name.startsWith(batch.name)
                                   ? team.name.replace(batch.name, '').trim()
-                                  : (team.name.replace(/NLP.*?期/i, '').trim() || team.name);
+                                  : (team.name.replace(/(NLP|揚升).*?期/i, '').trim() || team.name);
                                 return short;
                               })()
                             ) : '—'}

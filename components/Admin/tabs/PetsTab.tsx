@@ -5,6 +5,7 @@
 import { useState, useRef, useMemo } from 'react';
 import { AlertCircle, Sparkles, Trash2, Upload } from 'lucide-react';
 import { supabase, isRealSupabase } from '@/lib/supabase';
+import { BRAND } from '@/lib/brand';
 import { parsePetOffset, trimCenterSquare, useTrimmedPetImage } from '@/lib/petImage';
 import { PetLine, PetStage, UserPet, MissionTemplate, Batch } from '@/types';
 
@@ -1130,7 +1131,7 @@ export function PetsTab({ petLines, petStages, userPets, missionTemplates, batch
                             type="text"
                             value={editLineTaskTitle}
                             onChange={e => setEditLineTaskTitle(e.target.value)}
-                            placeholder="例如：發表一次 NLP 主題感召分享"
+                            placeholder={BRAND.petTaskExamplePlaceholder}
                             className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2 text-xs text-white outline-none focus:border-red-500 light:bg-white light:border-slate-300 light:text-slate-800"
                           />
                         </div>
@@ -1236,7 +1237,7 @@ export function PetsTab({ petLines, petStages, userPets, missionTemplates, batch
                         rows={3}
                         value={editLineDesc}
                         onChange={e => setEditLineDesc(e.target.value)}
-                        placeholder="輸入對應神獸進化方向的成長背景與NLP溝通術流派介紹..."
+                        placeholder={BRAND.petLineDescPlaceholder}
                         className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white outline-none focus:border-red-500"
                       />
                     </div>

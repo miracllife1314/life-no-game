@@ -1,3 +1,5 @@
+import { BRAND } from '@/lib/brand';
+
 export interface GuideOffsetItem {
   id: string;
   title: string;
@@ -36,7 +38,7 @@ export const DEFAULT_BEGINNER_GUIDE: GuideVersionConfig = {
     { id: 'b-o1', title: '每週主題任務', points: 500, days: 1.5 },
     { id: 'b-o2', title: '邀約入門體驗課', points: 500, days: 1.5 },
     { id: 'b-o3', title: '推薦報名初階課', points: 1500, days: 4.2, highlight: true, desc: '讓破殼修行一鍵飛越！' },
-    { id: 'b-o4', title: '報名 NLP 複訓', points: 1000, days: 2.8 },
+    { id: 'b-o4', title: BRAND.retrainTitle, points: 1000, days: 2.8 },
     { id: 'b-o5', title: '入選見證牆', points: 200, days: 0.6, desc: '(需寫得好、照片清晰)' }
   ]
 };

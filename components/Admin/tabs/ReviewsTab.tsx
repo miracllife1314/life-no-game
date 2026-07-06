@@ -5,6 +5,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { Check, X, ScrollText, Share2, ChevronDown } from 'lucide-react';
 import { Submission, Task, Profile, Team, Batch } from '@/types';
 import { nowTaipei, parseTaipei } from '@/lib/time';
+import { BRAND } from '@/lib/brand';
 import { safeLinkHref, safeImageHref } from '@/lib/helpers';
 
 interface ReviewsTabProps {
@@ -127,7 +128,7 @@ const generateRelayText = (
   const weeklyBlock  = weeklyTasks.length  > 0 ? `\n\n【每週任務】已完成 ✅\n${weeklySection}`  : '';
   const limitedBlock = limitedTasks.length > 0 ? `\n\n【限時任務】已完成 ✅\n${limitedSection}` : '';
 
-  return `📅 【NLP 定課與修行任務接龍】 ${dateTitle}
+  return `📅 【${BRAND.chainTitle}】 ${dateTitle}
 ──────────────────────
 【每日定課】（請在名字後打勾）
 ${dailyQuestSection}${weeklyBlock}${limitedBlock}

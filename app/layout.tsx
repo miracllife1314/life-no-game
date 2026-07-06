@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { BRAND } from "@/lib/brand";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -13,11 +14,11 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "NLP 人性溝通術評分系統",
-  description: "NLP人性溝通術評分系統 - 每日修行打卡、挑戰任務與經驗排行榜",
+  title: BRAND.systemName,
+  description: BRAND.systemDesc,
   openGraph: {
-    title: "NLP 人性溝通術評分系統",
-    description: "NLP人性溝通術評分系統 - 每日修行打卡、挑戰任務與經驗排行榜",
+    title: BRAND.systemName,
+    description: BRAND.systemDesc,
     type: "website",
   }
 };

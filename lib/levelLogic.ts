@@ -1,5 +1,5 @@
 /**
- * NLP Game Pet Leveling Logic
+ * Game Pet Leveling Logic(品牌無關的核心等級邏輯)
  * Start at 600 XP, increases by 100 XP per evolved stage.
  * 20,000 XP is the final form (Stage 6, Level 25).
  */

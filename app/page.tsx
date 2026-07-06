@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useLayoutEffect, useCallback, useRef, lazy, Suspense } from 'react';
 import { supabase } from '@/lib/supabase';
+import { BRAND } from '@/lib/brand';
 import { fetchAllTables } from '@/services/queries';
 import { logEvent } from '@/lib/clientLog';
 import { useUiFeedback } from '@/hooks/useUiFeedback';
@@ -1117,7 +1118,7 @@ export default function Home() {
       </main>
       {/* Footer copyright select-none */}
       <footer className="w-full text-center py-6 border-t border-white/5 text-[10px] text-slate-600 uppercase font-mono select-none light:border-slate-200">
-        © {new Date().getFullYear()} NLP 人性溝通術評分系統 • 版權所有
+        © {new Date().getFullYear()} {BRAND.systemName} • 版權所有
       </footer>
 
       {/* Confetti styles injected dynamically */}

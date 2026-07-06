@@ -3,6 +3,7 @@
 //   —— 從 app/page.tsx 抽出，行為完全不變。
 // =====================================================================
 import { supabase } from '@/lib/supabase';
+import { BRAND } from '@/lib/brand';
 import { getChineseNumber } from '@/lib/helpers';
 import { Profile, Team, Batch, UserRole } from '@/types';
 
@@ -267,7 +268,8 @@ export function useAdminPeople({ setIsSyncing, fetchData, teams, profiles, gmMod
     if (error) { console.error(error); alert('建立期數失敗：' + error.message); return; }
 
     if (teamCount && teamCount > 0) {
-      const prefix = (batchData.name.includes('NLP') || batchData.name.includes('ＮＬＰ')) ? batchData.name : `NLP初階${batchData.name}`;
+      // 名稱已含任一品牌字樣就照用,否則補上目前品牌的前綴(includes 同時查兩品牌:相容混用/舊資料)
+      const prefix = (batchData.name.includes('揚升') || batchData.name.includes('NLP') || batchData.name.includes('ＮＬＰ')) ? batchData.name : `${BRAND.batchPrefix}${batchData.name}`;
       for (let i = 1; i <= teamCount; i++) {
         const chNum = getChineseNumber(i);
         const teamName = `${prefix}第${chNum}隊`;
@@ -308,7 +310,7 @@ export function useAdminPeople({ setIsSyncing, fetchData, teams, profiles, gmMod
       if (teamCount > currentCount) {
         const { data: dbBatch } = await supabase.from('batches').select('name').eq('id', batchId).single();
         const batchName = batchData.name || dbBatch?.name || '';
-        const prefix = batchName ? ((batchName.includes('NLP') || batchName.includes('ＮＬＰ')) ? batchName : `NLP初階${batchName}`) : 'NLP初階小隊';
+        const prefix = batchName ? ((batchName.includes('揚升') || batchName.includes('NLP') || batchName.includes('ＮＬＰ')) ? batchName : `${BRAND.batchPrefix}${batchName}`) : `${BRAND.batchPrefix}小隊`;
         for (let i = currentCount + 1; i <= teamCount; i++) {
           const chNum = getChineseNumber(i);
           const teamName = `${prefix}第${chNum}隊`;

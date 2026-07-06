@@ -95,7 +95,7 @@ export function Header({
                   if (userBatch && displayName.startsWith(userBatch.name)) {
                     displayName = displayName.substring(userBatch.name.length);
                   }
-                  const prefixes = ['NLP初階', 'NLP台中', 'NLP'];
+                  const prefixes = ['揚升初階', '揚升台中', '揚升', 'NLP初階', 'NLP台中', 'NLP'];
                   for (const prefix of prefixes) {
                     if (displayName.startsWith(prefix)) {
                       displayName = displayName.substring(prefix.length);

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Profile, Team, Task, Submission, StudentNote, ScoreLog, Batch, UserRole, SquadRoleDef } from '@/types';
+import { BRAND } from '@/lib/brand';
 import { 
   Compass, Users, MessageSquare, Check, CheckCircle2,
   Clock, AlertCircle, Circle, Save, Edit3, Filter, 
@@ -167,7 +168,7 @@ const generateRelayText = (
   const weeklyBlock  = weeklyTasks.length  > 0 ? `\n\n【每週任務】已完成 ✅\n${weeklySection}`  : '';
   const limitedBlock = limitedTasks.length > 0 ? `\n\n【限時任務】已完成 ✅\n${limitedSection}` : '';
 
-  return `📅 【NLP 定課與修行任務接龍】 ${dateTitle}
+  return `📅 【${BRAND.chainTitle}】 ${dateTitle}
 ──────────────────────
 【每日定課】（請在名字後打勾）
 ${dailyQuestSection}${weeklyBlock}${limitedBlock}

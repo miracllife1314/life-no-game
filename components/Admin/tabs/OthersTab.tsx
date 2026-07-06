@@ -4,6 +4,7 @@
 import { useState } from 'react';
 import { Calendar, Edit2, ImageIcon, Megaphone, Trophy, Trash2, X } from 'lucide-react';
 import { Announcement, Course, Achievement, Batch, Mission } from '@/types';
+import { BRAND } from '@/lib/brand';
 import { BadgeIcon } from '../../BadgeIcon';
 
 const ANNOUNCEMENT_TEMPLATES = [
@@ -30,9 +31,9 @@ const ANNOUNCEMENT_TEMPLATES = [
 const COURSE_TEMPLATES = [
   {
     id: 'course_basic',
-    name: '📖 基礎人性溝通術',
-    courseName: '📖 基礎人性溝通術',
-    description: '學習基礎人性溝通概念，奠定良好的修行基礎。'
+    name: BRAND.courseBasicName,
+    courseName: BRAND.courseBasicName,
+    description: BRAND.courseBasicDesc
   },
   {
     id: 'course_belief',
@@ -942,7 +943,7 @@ export function OthersTab({ announcements, courses, achievements, batches, missi
                 type="text"
                 value={cohortName}
                 onChange={e => setCohortName(e.target.value)}
-                placeholder="班次名稱 (如: NLP台中50期)"
+                placeholder={`班次名稱 (如: ${BRAND.shortName}台中50期)`}
                 className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white outline-none"
               />
               <div>

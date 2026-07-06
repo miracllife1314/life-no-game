@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { User, LogIn, ChevronRight, UserPlus } from 'lucide-react';
+import { BRAND } from '@/lib/brand';
 
 interface LoginFormProps {
   onLogin: (name: string, phone: string) => Promise<void>;
@@ -42,7 +43,7 @@ export function LoginForm({ onLogin, onGoToRegister, isSyncing }: LoginFormProps
             <User className="text-white w-10 h-10" />
           </div>
           <h1 className="text-3xl font-black tracking-widest text-white uppercase bg-clip-text">
-            NLP 人性溝通術
+            {BRAND.brandLine}
           </h1>
           <p className="text-amber-500 text-xs font-bold tracking-[0.4em] uppercase mt-2">
             課程計分與修行系統

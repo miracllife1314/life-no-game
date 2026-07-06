@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Task, Submission, Announcement, Profile, Mission, UserPet, PetStage, Batch, PetLine, MissionTemplate } from '@/types';
 import { nowTaipei, taipeiDateStr, taipeiDay } from '@/lib/time';
 import { supabase } from '@/lib/supabase';
+import { BRAND } from '@/lib/brand';
 import { parsePetOffset } from '@/lib/petImage';
 import { safeLinkHref } from '@/lib/helpers';
 import {
@@ -471,7 +472,7 @@ export function DailyQuestsTab({
           beastName: stage?.stage_name || '守護神獸',
           lineName: lineDetail?.name || '專屬系',
           traits: lineDetail?.core_traits || stage?.evolution_text || '未設定',
-          desc: stage?.description || '解鎖專屬的守護神獸，陪伴你的 NLP 修行。',
+          desc: stage?.description || BRAND.petCompanionLine,
           image: stage?.image_url || 'https://images.unsplash.com/photo-1516233758813-a38d024919c5?auto=format&fit=crop&q=80&w=300',
           glowColor: stage?.glow_color || '#A855F7'
         });
@@ -648,7 +649,7 @@ export function DailyQuestsTab({
           beastName: toStage?.stage_name || '守護神獸',
           lineName: lineDetail?.name || '專屬系',
           traits: lineDetail?.core_traits || toStage?.evolution_text || '未設定',
-          desc: toStage?.description || '解鎖專屬的守護神獸，陪伴您的 NLP 修行。',
+          desc: toStage?.description || BRAND.petCompanionLineFormal,
           image: toStage?.image_url || 'https://images.unsplash.com/photo-1516233758813-a38d024919c5?auto=format&fit=crop&q=80&w=300',
           glowColor: toStage?.glow_color || '#A855F7'
         });
@@ -1354,7 +1355,7 @@ export function DailyQuestsTab({
                   <span className="text-white text-sm font-black">{stageName}</span>
                 </span>
               ) : (
-                '孵化狀態與NLP經驗屬性'
+                BRAND.petHatchLabel
               )}
             </h3>
           </div>
@@ -2323,7 +2324,7 @@ export function DailyQuestsTab({
                           
                           {/* Bottom Plaque */}
                           <span className="text-[9px] font-black text-slate-500 bg-slate-950/60 px-3 py-1 rounded-full border border-white/5 uppercase tracking-widest shrink-0 z-10">
-                            NLP CULTIVATION
+                            {BRAND.engBadge}
                           </span>
                         </div>
                         
@@ -2633,7 +2634,7 @@ export function DailyQuestsTab({
                       🔮 靈能的突破共鳴
                     </h3>
                     <p className="text-xs text-slate-400 leading-relaxed max-w-xs mx-auto">
-                      你的神獸感應到你強大的 NLP 修行經驗，即將突破極限，進化至更高形態！
+                      {BRAND.petEvolveHint}
                     </p>
                     
                     <div className="bg-slate-900 border border-pink-500/30 p-4 rounded-2xl space-y-2 mt-2 text-center">
@@ -2688,7 +2689,7 @@ export function DailyQuestsTab({
                             beastName: nextStage?.stage_name || '新突破形態',
                             lineName: userPet.pet_line === 'dragon' ? '影響力龍系' : userPet.pet_line === 'lion' ? '行動力獅系' : userPet.pet_line === 'fox' ? '親和力狐系' : '穩定靈獸系',
                             traits: nextStage?.evolution_text || '經驗大突破',
-                            desc: nextStage?.description || '強大的神獸伴隨你繼續突破 NLP 修行。',
+                            desc: nextStage?.description || BRAND.petNextStageLine,
                             image: nextStage?.image_url || 'https://images.unsplash.com/photo-1516233758813-a38d024919c5?auto=format&fit=crop&q=80&w=300',
                             glowColor: nextStage?.glow_color || '#A855F7'
                           });

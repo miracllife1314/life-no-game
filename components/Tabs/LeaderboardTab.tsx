@@ -105,14 +105,14 @@ export function LeaderboardTab({
     return batch ? batch.name : '未知期數';
   };
 
-  // 顯示用:去掉「NLP」字樣讓排行榜版面更精簡(僅顯示,不影響配對/排序邏輯)
-  const stripNLP = (s: string) => (s || '').replace(/NLP\s*/gi, '').trim();
+  // 顯示用:去掉「揚升 / NLP」前綴字樣讓排行榜版面更精簡(僅顯示,不影響配對/排序邏輯;NLP 為相容舊資料)
+  const stripNLP = (s: string) => (s || '').replace(/NLP\s*/gi, '').replace(/揚升\s*/g, '').trim();
 
   const getSubTeamNameOnly = (teamName: string, batchName: string) => {
     if (batchName && teamName.startsWith(batchName)) {
       return teamName.replace(batchName, '').trim();
     }
-    return teamName.replace(/NLP.*?期/gi, '').trim() || teamName;
+    return teamName.replace(/(NLP|揚升).*?期/gi, '').trim() || teamName;
   };
 
   const getTeamDisplayName = (team: Team) => {
