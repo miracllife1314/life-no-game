@@ -1,10 +1,37 @@
-# CLAUDE.md
+# 開發前必讀 (CLAUDE.md)
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+本專案採 Router 制。任何任務**第一步**先讀 `docs/TASK_ROUTER.md`，
+依任務類型只讀對應文件，不要盲目全讀，也不要完全不讀規則就改。
 
-> 🔎 **檢查或修改程式前,請先讀 [`docs/開發脈絡與變更紀錄.md`](docs/開發脈絡與變更紀錄.md)。**
-> 它記了「容易誤判的脈絡/陷阱」(例如 profile_id 會被補成 id、captain_id 用 profile_id 比對但 director_id 用 id 比對、score_logs 是延後載入…)與「近期變更紀錄」。
-> **每次做重要改動,請在該文件 Part 2 最上面補一條(日期 + 改了什麼 + 為什麼)。**
+規則以 `docs/AI_RULES.md` 為單一事實來源。
+
+- 高風險（DB / RLS / migration / 權限 / production / 金流 / 個資寫入更新刪除 / 大量資料變更）
+  → 先停手，提出方案與風險，不得直接改
+- 其餘分級（小改 / Prototype / 中改）與處置：見 `docs/AI_RULES.md` §1～§5
+
+回報「完成」前，必須符合 `docs/AI_RULES.md` §10「完成的定義」與回報用語協定。
+
+涉及文件、規則、架構、資料流或公開行為時，依 `docs/AI_RULES.md` §8 做文件同步檢查，
+並更新 `logs/ai_sync_log.md`。
+
+完成較大功能時，提醒使用者做回饋 retro（機制見 `docs/FEEDBACK_LOOP.md`）。
+
+多角色協作：日常檢查用 `docs/AI_RULES.md` §4 六維 Technical Review（六維＝六個角色視角）；
+中改以上／高風險的集中審查交**乾淨的獨立 AI 實例（子代理）**審 diff＋需求
+（實作者不得自批，機制見 ROLE_SYSTEM §7，高風險用 `bash scripts/review.sh`）；
+UI 任務的風格選擇與 Mobile-first 硬性標準見 `docs/STYLE_PACKS.md` 與 `docs/BRAND_UI_SYSTEM.md` §12。
+
+SKILL 對照表與「啟動 1~8」用法（主打用法，使用者點名必執行）：見 `docs/TASK_ROUTER.md` §0；
+實際載入守衛/角色檔時，回報開頭標 `🛡️ 已載入：<名>`（AI_RULES §10）。
+需要可手貼的短版提示詞：見 `docs/CUSTOM_SYSTEM_PROMPT.md`。
+
+---
+
+## 🔎 專案說明與開發脈絡
+
+> 🔎 **檢查或修改程式前，請先讀 [`docs/開發脈絡與變更紀錄.md`](docs/開發脈絡與變更紀錄.md)。**
+> 它紀錄了「容易誤判的脈絡/陷阱」(例如 profile_id 會被補成 id、captain_id 用 profile_id 比對但 director_id 用 id 比對、score_logs 是延後載入…)與「近期變更紀錄」。
+> **每次做重要改動，請在該文件 Part 2 最上面補一條(日期 + 改了什麼 + 為什麼)。**
 
 ## Commands
 
@@ -80,27 +107,10 @@ Never perform database queries inside a loop or `.map()` in React client-side co
 
 ---
 
-## Environments & Database Routing (重要)
+## Environment Variables
 
-本專案有兩個資料庫：**測試庫** 與 **正式庫**，靠環境變數區分。
-
-連線優先序（`lib/supabase.ts`）：**只要有設 `_LOCAL` 變數就優先用 `_LOCAL`（測試庫），否則 fallback 到無後綴變數（正式庫）。**
-
-| 環境 | 連哪個資料庫 | 設哪組變數 |
-|---|---|---|
-| 本機 `npm run dev` | 🟢 測試庫 | `.env.local` 的 `_LOCAL` 那組 |
-| Vercel **`staging`（Preview）** | 🟢 測試庫 | Vercel Preview 設 `_LOCAL` 那組 |
-| Vercel **`main`（Production）** | 🔴 正式庫 | Vercel Production 設無後綴那組（**絕不可設 `_LOCAL`**） |
-
-`.env.local` 需要：
-- `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY`（正式庫）
-- `NEXT_PUBLIC_SUPABASE_URL_LOCAL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY_LOCAL`（測試庫，本機 dev 用）
-- `SUPABASE_SERVICE_ROLE_KEY`、`NEXT_PUBLIC_APP_URL`
-
-⚠️ **絕不可在 Vercel Production 設定 `_LOCAL` 變數**，否則正式站會連到測試庫、污染學員資料。
-
-## Deployment Workflow (部署規則)
-
-- `main` 分支 → 正式站（正式庫，學員正在使用）。`staging` 分支 → Preview 預覽站（測試庫）。
-- **每次要 push 到伺服器(GitHub/Vercel)時，必要時必須先問使用者：要放到 `main`（正式）還是 `staging`（測試）。不要自作主張直接推 `main`。**
-- 備份/還原腳本（`npm run backup` / `npm run restore`）：預設操作 **`_LOCAL`（測試庫）**；加 `--prod` 旗標才操作**正式庫**。動手前先確認目標環境。
+Requires `.env.local` with:
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `NEXT_PUBLIC_APP_URL`
