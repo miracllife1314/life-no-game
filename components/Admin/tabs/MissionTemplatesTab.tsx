@@ -4,6 +4,8 @@
 import { useState } from 'react';
 import { BookOpen, Sliders, X } from 'lucide-react';
 import { MissionTemplate } from '@/types';
+import { formatBrandText } from '@/lib/brand';
+
 
 interface MissionTemplatesTabProps {
   missionTemplates: MissionTemplate[];
@@ -460,8 +462,8 @@ export function MissionTemplatesTab({ missionTemplates, missionCategories, setMi
                                </>
                             ) : (
                               <>
-                                <td className="p-3 font-bold text-white light:text-slate-900 sticky left-0 z-10 bg-slate-950 light:bg-white border-r border-white/5 light:border-slate-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.2)]">{template.title}</td>
-                                <td className="p-3 text-slate-300 light:text-slate-700">{template.description}</td>
+                                <td className="p-3 font-bold text-white light:text-slate-900 sticky left-0 z-10 bg-slate-950 light:bg-white border-r border-white/5 light:border-slate-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.2)]">{formatBrandText(template.title)}</td>
+                                <td className="p-3 text-slate-300 light:text-slate-700">{formatBrandText(template.description)}</td>
                                 <td className="p-3 text-center select-none">
                                   <span className="text-[10px] font-black px-2 py-0.5 rounded bg-blue-500/10 text-blue-400">
                                     {template.category || '未分類'}

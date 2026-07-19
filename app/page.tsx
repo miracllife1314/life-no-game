@@ -43,6 +43,7 @@ import { HistoryTab } from '@/components/Tabs/HistoryTab';
 const CaptainDashboard = lazy(() => import('@/components/Captain/CaptainDashboard').then(m => ({ default: m.CaptainDashboard })));
 const AdminDashboard = lazy(() => import('@/components/Admin/AdminDashboard').then(m => ({ default: m.AdminDashboard })));
 import { WitnessTab } from '@/components/Tabs/WitnessTab';
+import { LifeNumberTab } from '@/components/Tabs/LifeNumberTab';
 
 // 階段0 開關：登入時是否先向後端換取真實 Supabase session。
 // 預設開；若新流程出狀況，設環境變數 NEXT_PUBLIC_USE_REAL_AUTH=false 即可退回舊「假登入」。
@@ -970,6 +971,13 @@ export default function Home() {
             teams={teams}
             onHideWitness={handleHideWitness}
             onDeleteWitness={handleDeleteWitness}
+            showToast={showToast}
+          />
+        )}
+
+        {activeTab === 'lifenumber' && (
+          <LifeNumberTab
+            currentUser={currentUser}
             showToast={showToast}
           />
         )}

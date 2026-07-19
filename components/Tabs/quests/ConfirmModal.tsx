@@ -1,5 +1,7 @@
 // 免證明直接簽到確認 Modal —— 從 DailyQuestsTab 抽出，行為/UI 不變。
 import { CheckCircle2 } from 'lucide-react';
+import { formatBrandText } from '@/lib/brand';
+
 export function ConfirmModal({ confirmTask, setShowConfirmModal, setConfirmTask, onCheckIn }: any) {
   return (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] flex items-center justify-center p-4 modal-force-dark">
@@ -14,7 +16,7 @@ export function ConfirmModal({ confirmTask, setShowConfirmModal, setConfirmTask,
                   確認完成此項任務？
                 </h3>
                 <p className="text-base font-bold text-amber-500">
-                  {confirmTask.name || confirmTask.title}
+                  {formatBrandText(confirmTask.name || confirmTask.title)}
                 </p>
                 <p className="text-xs text-slate-400 leading-relaxed max-w-xs mx-auto light:text-slate-600">
                   此任務為「免證明簽到」，確認後將直接完成打卡，並獲得 <span className="text-amber-500 font-bold">+{confirmTask.score !== undefined ? confirmTask.score : confirmTask.points}</span> 經驗積分。

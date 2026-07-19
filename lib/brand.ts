@@ -101,3 +101,77 @@ const ASCENSION: BrandConfig = {
 
 export const BRAND: BrandConfig =
   process.env.NEXT_PUBLIC_BRAND === 'ascension' ? ASCENSION : NLP;
+
+/**
+ * 將包含 "NLP" 與 "入門課" 的文字動態替換為當前品牌名（如果是揚升體系則換為「揚升」與「邀約出來聊天」）
+ */
+export function formatBrandText(text: string): string {
+  if (!text) return '';
+  if (process.env.NEXT_PUBLIC_BRAND === 'ascension') {
+    let res = text;
+    // 成功推薦 X 人報名 NLP 初階課 -> 成功傳愛 X 人報名能量學
+    res = res.replace(/成功推薦\s*(\d+)\s*人報名\s*(NLP|ＮＬＰ)\s*初階課/g, '成功傳愛 $1 人報名能量學');
+    res = res.replace(/成功推薦\s*(\d+)\s*人報名\s*初階課/g, '成功傳愛 $1 人報名能量學');
+    res = res.replace(/推薦報名初階/g, '傳愛成功');
+    res = res.replace(/推薦/g, '傳愛');
+    
+    // 處理成交相關任務與描述
+    res = res.replace(/成交\s*(NLP|ＮＬＰ)\s*初階\/能量學/g, '傳愛成功 能量學');
+    res = res.replace(/成交\s*(NLP|ＮＬＰ)\s*初階/g, '傳愛成功 能量學');
+    res = res.replace(/成功推薦並成交\s*(NLP|ＮＬＰ)\s*初階或能量學課程/g, '成功傳愛並報名能量學課程');
+    res = res.replace(/第四週主題任務：成交與締結/g, '第四週主題任務：傳愛與締結');
+    res = res.replace(/運用成交技巧/g, '運用傳愛技巧');
+    
+    res = res.replace(/參加\s*(NLP|ＮＬＰ)\s*入門課/g, '出來連結成功');
+    res = res.replace(/參加\s*入門課/g, '出來連結成功');
+    res = res.replace(/參與\s*(NLP|ＮＬＰ)\s*入門體驗課/g, '出來連結成功');
+    res = res.replace(/參加\s*(NLP|ＮＬＰ)\s*入門體驗課/g, '出來連結成功');
+    res = res.replace(/邀約\s*(NLP|ＮＬＰ)\s*入門課/g, '邀約出來連結成功');
+    res = res.replace(/邀約\s*入門課/g, '邀約出來連結成功');
+    res = res.replace(/(NLP|ＮＬＰ)\s*入門課/g, '出來連結成功');
+    res = res.replace(/入門課/g, '出來連結成功');
+    res = res.replace(/(NLP|ＮＬＰ)/g, '揚升');
+    res = res.replace(/初階課/g, '能量學');
+    res = res.replace(/初階/g, '能量學');
+    return res;
+  }
+  return text;
+}
+
+/**
+ * 專用於成就（Achievements）的文字格式化
+ * 揚升體系下：
+ *  - 所有的成就都「不含有」“揚升”二字，直接將 “NLP” 拿掉（置換為空字串）。
+ *  - “推廣先鋒” 改為 “傳愛先鋒”。
+ *  - 任何包含“成功推薦 X 人報名 NLP 初階課”改為“成功傳愛 X 人報名能量學”。
+ *  - 任何包含“參加/參與”的NLP入門體驗課改為“出來連結成功”。
+ *  - 任何“邀約”入門體驗課改為“邀約出來連結成功”。
+ */
+export function formatAchievementText(text: string): string {
+  if (!text) return '';
+  if (process.env.NEXT_PUBLIC_BRAND === 'ascension') {
+    let res = text;
+    res = res.replace(/推廣先鋒/g, '傳愛先鋒');
+    // 成功推薦 X 人報名 NLP 初階課 -> 成功傳愛 X 人報名能量學
+    res = res.replace(/成功推薦\s*(\d+)\s*人報名\s*(NLP|ＮＬＰ)\s*初階課/g, '成功傳愛 $1 人報名能量學');
+    res = res.replace(/成功推薦\s*(\d+)\s*人報名\s*初階課/g, '成功傳愛 $1 人報名能量學');
+    res = res.replace(/推薦報名初階/g, '傳愛成功');
+    res = res.replace(/推薦/g, '傳愛');
+    
+    res = res.replace(/參加\s*(NLP|ＮＬＰ)\s*入門課/g, '出來連結成功');
+    res = res.replace(/參加\s*入門課/g, '出來連結成功');
+    res = res.replace(/參與\s*(NLP|ＮＬＰ)\s*入門體驗課/g, '出來連結成功');
+    res = res.replace(/參加\s*(NLP|ＮＬＰ)\s*入門體驗課/g, '出來連結成功');
+    res = res.replace(/邀約\s*(NLP|ＮＬＰ)\s*入門課/g, '邀約出來連結成功');
+    res = res.replace(/邀約\s*入門課/g, '邀約出來連結成功');
+    res = res.replace(/(NLP|ＮＬＰ)\s*入門課/g, '出來連結成功');
+    res = res.replace(/入門課/g, '出來連結成功');
+    
+    res = res.replace(/(NLP|ＮＬＰ)\s*初階課/g, '能量學');
+    res = res.replace(/初階課/g, '能量學');
+    res = res.replace(/(NLP|ＮＬＰ)\s*/gi, '');
+    return res;
+  }
+  return text;
+}
+

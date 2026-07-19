@@ -4,6 +4,8 @@
 import { useState, useMemo } from 'react';
 import { Plus, Trash2, X, Pencil } from 'lucide-react';
 import { Task, Batch, TaskType, TaskTargetType } from '@/types';
+import { formatBrandText } from '@/lib/brand';
+
 
 interface TasksTabProps {
   tasks: Task[];
@@ -283,8 +285,8 @@ export function TasksTab({ tasks, batches, missionCategories, isSyncing, onCreat
                       +{task.score} 分
                     </span>
                   </div>
-                  <h4 className="font-bold text-white text-sm mt-1">{task.name}</h4>
-                  <p className="text-xs text-slate-400 mt-1 line-clamp-1 light:text-slate-500">{task.description}</p>
+                  <h4 className="font-bold text-white text-sm mt-1">{formatBrandText(task.name)}</h4>
+                  <p className="text-xs text-slate-400 mt-1 line-clamp-1 light:text-slate-500">{formatBrandText(task.description)}</p>
                 </div>
 
                 <div className="flex items-center gap-2 shrink-0">

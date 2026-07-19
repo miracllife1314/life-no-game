@@ -6,6 +6,8 @@ import { Trophy, Users, Award, Zap, Lock, Unlock, Eye, EyeOff, ShieldAlert } fro
 import { nowTaipei, parseTaipei } from '@/lib/time';
 import { calculateLevelFromExp } from '@/lib/levelLogic';
 import { supabase } from '@/lib/supabase';
+import { formatBrandText } from '@/lib/brand';
+
 
 interface LeaderboardTabProps {
   profiles: Profile[];
@@ -943,7 +945,7 @@ export function LeaderboardTab({
                   : <><Zap size={18} className="text-purple-400" /> 影響力之神</>}
               </h3>
               <p className="text-center text-[10px] font-bold text-slate-500 -mt-1">
-                {rankType === 'invite' ? '邀約入門課人數排名' : '推薦報名初階人數排名'}（{scope === 'current' ? stripNLP(activeBatchName) : '歷屆'}）
+                {formatBrandText(rankType === 'invite' ? '邀約入門課人數排名' : '推薦報名初階人數排名')}（{scope === 'current' ? stripNLP(activeBatchName) : '歷屆'}）
               </p>
               <div className="overflow-x-auto select-none pt-2">
                 <table className="w-full text-left text-xs border-collapse">

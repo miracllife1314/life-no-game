@@ -4,6 +4,7 @@
 // 顏色依門檻越高越華麗(高階用漸層金/紫),營造高級成就感。
 // =====================================================================
 import { Achievement } from '@/types';
+import { formatAchievementText } from '@/lib/brand';
 
 export interface RankTitle {
   title: string;       // 例:🪄 見習魔法師
@@ -11,7 +12,7 @@ export interface RankTitle {
   className: string;   // 徽章樣式(寫死字串,確保 Tailwind 收錄)
 }
 
-// 未達 1,000 經驗(尚無任何 total_score 成就)時的起始稱號。
+// 未達 1,000 經驗(尚無 any total_score 成就)時的起始稱號。
 const STARTER: RankTitle = {
   title: '🔰 修行學徒',
   value: 0,
@@ -37,7 +38,7 @@ export function getRankTitle(score: number, achievements: Achievement[]): RankTi
     .sort((a, b) => b.condition_value - a.condition_value);
   const reached = tiers.find(a => score >= a.condition_value);
   if (!reached) return STARTER;
-  return { title: reached.title, value: reached.condition_value, className: classForValue(reached.condition_value) };
+  return { title: formatAchievementText(reached.title), value: reached.condition_value, className: classForValue(reached.condition_value) };
 }
 
 // 取「下一個稱號」與還差多少經驗(供顯示進度提示,可選用)。
@@ -47,5 +48,5 @@ export function getNextRankTitle(score: number, achievements: Achievement[]): { 
     .sort((a, b) => a.condition_value - b.condition_value);
   const next = tiers.find(a => score < a.condition_value);
   if (!next) return null;
-  return { title: next.title, value: next.condition_value, remaining: next.condition_value - score };
+  return { title: formatAchievementText(next.title), value: next.condition_value, remaining: next.condition_value - score };
 }

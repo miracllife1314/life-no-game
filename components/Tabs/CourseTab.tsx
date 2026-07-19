@@ -3,6 +3,8 @@
 import React from 'react';
 import { Course, CourseAttendance, Profile, Team } from '@/types';
 import { Calendar, ExternalLink, Info, CheckCircle2, Clock } from 'lucide-react';
+import { formatBrandText } from '@/lib/brand';
+
 
 interface CourseTabProps {
   courses: Course[];
@@ -80,7 +82,7 @@ export function CourseTab({
                 <div className="flex-1 space-y-2 text-left">
                   <div className="flex items-center gap-2 flex-wrap">
                     <h3 className="font-black text-amber-500 text-base leading-snug light:text-amber-800">
-                      {course.name}
+                      {formatBrandText(course.name)}
                     </h3>
                     
                     {isAttended && (
@@ -98,7 +100,7 @@ export function CourseTab({
                   </div>
                   
                   <p className="text-xs text-slate-300 leading-relaxed light:text-slate-700 whitespace-pre-line font-medium">
-                    {course.description}
+                    {formatBrandText(course.description)}
                   </p>
                 </div>
 

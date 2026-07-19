@@ -4,6 +4,8 @@ import React, { useState } from 'react';
 import { Achievement, UserAchievement } from '@/types';
 import { Award, Lock, Zap } from 'lucide-react';
 import { BadgeIcon } from '../BadgeIcon';
+import { formatAchievementText } from '@/lib/brand';
+
 
 const TYPE_ORDER: Record<string, number> = {
   total_score: 1,
@@ -176,10 +178,10 @@ export function AchievementsTab({ achievements, userAchievements, studentScore }
                   {/* Title & Description */}
                   <div>
                     <h3 className="font-black text-base md:text-xl tracking-wide transition-colors" style={{ color: unlocked ? '#fbbf24' : '#94a3b8' }}>
-                      {ach.title}
+                      {formatAchievementText(ach.title)}
                     </h3>
                     <p className="text-[11px] md:text-xs mt-0.5 transition-colors leading-relaxed" style={{ color: unlocked ? '#e2e8f0' : '#64748b' }}>
-                      {ach.description}
+                      {formatAchievementText(ach.description)}
                     </p>
                   </div>
                 </div>

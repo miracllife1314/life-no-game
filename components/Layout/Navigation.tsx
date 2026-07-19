@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   Flame, Trophy, Medal, CalendarDays, 
   ScrollText, Compass, Swords, BookOpen,
-  MoreHorizontal, X
+  MoreHorizontal, X, Binary
 } from 'lucide-react';
 import { UserRole } from '@/types';
 
@@ -18,7 +18,8 @@ export type TabKey =
   | 'witness'
   | 'history' 
   | 'captain' 
-  | 'admin';
+  | 'admin'
+  | 'lifenumber';
 
 interface NavigationProps {
   activeTab: TabKey;
@@ -48,6 +49,7 @@ export function Navigation({ activeTab, setActiveTab, userRole, canViewSquad }: 
     { key: 'achievements' as TabKey, label: '成就', icon: Medal, color: 'bg-amber-500 text-slate-950 shadow-amber-500/25' },
     { key: 'course' as TabKey, label: '課程', icon: CalendarDays, color: 'bg-amber-500 text-slate-950 shadow-amber-500/25' },
     { key: 'witness' as TabKey, label: '見證分享', icon: BookOpen, color: 'bg-purple-500 text-white shadow-purple-500/25' },
+    { key: 'lifenumber' as TabKey, label: '生命數字', icon: Binary, color: 'bg-amber-500 text-slate-950 shadow-amber-500/25' },
     { key: 'history' as TabKey, label: '明細', icon: ScrollText, color: 'bg-amber-500 text-slate-950 shadow-amber-500/25' },
     ...(showCaptain ? [{ key: 'captain' as TabKey, label: '指揮所', icon: Compass, color: 'bg-amber-500 text-slate-950 shadow-amber-500/25' }] : []),
     ...(showAdmin ? [{ key: 'admin' as TabKey, label: '指揮部', icon: Swords, color: 'bg-amber-500 text-slate-950 shadow-amber-500/25' }] : [])
@@ -64,6 +66,7 @@ export function Navigation({ activeTab, setActiveTab, userRole, canViewSquad }: 
   // Mobile Bottom Bar extra items in Drawer
   const mobileMoreItems = [
     { key: 'achievements' as TabKey, label: '成就榮譽', icon: Medal },
+    { key: 'lifenumber' as TabKey, label: '生命數字', icon: Binary },
     { key: 'history' as TabKey, label: '修行明細', icon: ScrollText },
     ...(showCaptain ? [{ key: 'captain' as TabKey, label: '小隊指揮所', icon: Compass }] : []),
     ...(showAdmin ? [{ key: 'admin' as TabKey, label: '大隊指揮部', icon: Swords }] : [])

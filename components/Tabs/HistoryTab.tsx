@@ -99,7 +99,8 @@ export function HistoryTab({ logs, submissions = [], tasks = [], missions = [], 
     return groups;
   };
 
-  const getLogIcon = (reason: string) => {
+  const getLogIcon = (reason: string | null | undefined) => {
+    if (!reason) return <Award size={15} className="text-emerald-400" />;
     const r = reason.toLowerCase();
     if (r.includes('連勝') || r.includes('連續') || r.includes('streak')) return <Flame size={15} className="text-orange-400 fill-orange-400/10" />;
     if (r.includes('任務') || r.includes('簽到') || r.includes('daily') || r.includes('quest') || r.includes('定課')) return <CheckSquare size={15} className="text-purple-400" />;

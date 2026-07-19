@@ -4,7 +4,7 @@
 import { useState } from 'react';
 import { Calendar, Edit2, ImageIcon, Megaphone, Trophy, Trash2, X } from 'lucide-react';
 import { Announcement, Course, Achievement, Batch, Mission } from '@/types';
-import { BRAND } from '@/lib/brand';
+import { BRAND, formatBrandText, formatAchievementText } from '@/lib/brand';
 import { BadgeIcon } from '../../BadgeIcon';
 
 const ANNOUNCEMENT_TEMPLATES = [
@@ -580,7 +580,7 @@ export function OthersTab({ announcements, courses, achievements, batches, missi
                     return (
                       <div key={course.id} className="flex justify-between items-center text-[11px] p-2 rounded bg-slate-950/40 border border-white/5 light:bg-slate-50 light:border-slate-200">
                         <div className="min-w-0 flex-1 pr-2">
-                          <p className="font-bold text-white truncate light:text-slate-800" title={course.name}>{course.name}</p>
+                          <p className="font-bold text-white truncate light:text-slate-800" title={formatBrandText(course.name)}>{formatBrandText(course.name)}</p>
                           <p className="text-[9px] text-slate-500 mt-0.5">
                             {course.class_date} | {batch ? batch.name : '全體期數'}
                           </p>
@@ -860,7 +860,7 @@ export function OthersTab({ announcements, courses, achievements, batches, missi
                           <BadgeIcon name={ach.icon_url} unlocked={true} size={40} className="shrink-0" />
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between gap-2">
-                              <p className="text-sm font-bold text-white truncate">{ach.title}</p>
+                              <p className="text-sm font-bold text-white truncate">{formatAchievementText(ach.title)}</p>
                               <span className="text-[10px] text-amber-400 font-mono bg-amber-500/10 px-2 py-0.5 rounded-full shrink-0">
                                 {ach.condition_type === 'total_score' ? `${ach.condition_value} 分` :
                                  ach.condition_type === 'consecutive_checkins' ? `${ach.condition_value} 天` :
@@ -881,7 +881,7 @@ export function OthersTab({ announcements, courses, achievements, batches, missi
                                  `第 ${ach.condition_value} 階段`}
                               </span>
                             </div>
-                            <p className="text-[10px] text-slate-400 mt-1 line-clamp-1">{ach.description}</p>
+                            <p className="text-[10px] text-slate-400 mt-1 line-clamp-1">{formatAchievementText(ach.description)}</p>
                             <span className="text-[10px] text-slate-400 font-mono">
                                門檻：{
                                  ach.condition_type === 'total_score' ? `${ach.condition_value.toLocaleString()} 分` :

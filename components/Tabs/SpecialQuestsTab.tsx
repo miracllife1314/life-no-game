@@ -3,6 +3,8 @@
 import React, { useState } from 'react';
 import { Task, Submission } from '@/types';
 import { CheckCircle2, Clock, AlertCircle, FileText, Send, Calendar } from 'lucide-react';
+import { formatBrandText } from '@/lib/brand';
+
 
 interface SpecialQuestsTabProps {
   tasks: Task[];
@@ -150,10 +152,10 @@ export function SpecialQuestsTab({ tasks, submissions, onCheckIn, isSyncing }: S
                 {/* Content */}
                 <div className="mt-4">
                   <h3 className="font-black text-white text-base leading-snug">
-                    {task.name}
+                    {formatBrandText(task.name)}
                   </h3>
                   <p className="text-xs text-slate-400 mt-2 line-clamp-2 leading-relaxed light:text-slate-500">
-                    {task.description}
+                    {formatBrandText(task.description)}
                   </p>
                 </div>
 

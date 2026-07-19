@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Flame, Layers, CalendarCheck, Shield, Award, Sprout, X, Check, Lock } from 'lucide-react';
+import { formatAchievementText } from '@/lib/brand';
 
 interface MilestoneModalProps {
   milestone: {
@@ -106,7 +107,7 @@ export function MilestoneModal({ milestone, dailyStreak, onClose }: MilestoneMod
         {/* Title & Info */}
         <div className="space-y-1">
           <h3 className="text-lg font-black text-white">
-            {milestone.title}
+            {formatAchievementText(milestone.title)}
           </h3>
           <p className="text-xs text-slate-400 font-bold">
             {milestone.d === 0 ? '修行起點' : `連續定課修行 ${milestone.d} 天`}
@@ -118,7 +119,7 @@ export function MilestoneModal({ milestone, dailyStreak, onClose }: MilestoneMod
           <div>
             <span className="text-[10px] text-slate-500 font-bold block mb-1">里程碑成就內容</span>
             <p className="text-xs text-slate-200 leading-relaxed font-medium">
-              {milestone.desc}
+              {formatAchievementText(milestone.desc)}
             </p>
           </div>
 

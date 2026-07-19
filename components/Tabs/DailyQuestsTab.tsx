@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Task, Submission, Announcement, Profile, Mission, UserPet, PetStage, Batch, PetLine, MissionTemplate } from '@/types';
 import { nowTaipei, taipeiDateStr, taipeiDay } from '@/lib/time';
 import { supabase } from '@/lib/supabase';
-import { BRAND } from '@/lib/brand';
+import { BRAND, formatBrandText } from '@/lib/brand';
 import { parsePetOffset } from '@/lib/petImage';
 import { safeLinkHref } from '@/lib/helpers';
 import {
@@ -721,12 +721,54 @@ export function DailyQuestsTab({
   const animationClass = getAnimationClass(activeStage?.animation_type);
   const glowColor = activeStage?.glow_color || '#A855F7';
 
-  // Attributes calculation
-  // 四維指標：從 0 開始、隨累積分數逐漸成長（除數越大成長越慢、越晚滿 100%）
-  const attrAcuity = Math.min(100, Math.floor(activeProfile.score / 300));      // 100% ≈ 30000 分
-  const attrStability = Math.min(100, Math.floor(activeProfile.score / 360));   // 100% ≈ 36000 分
-  const attrRapport = Math.min(100, Math.floor(activeProfile.score / 280));     // 100% ≈ 28000 分
-  const attrReshaping = Math.min(100, Math.floor(activeProfile.score / 420));   // 100% ≈ 42000 分
+  // Attributes calculation (四力指標計算：基於學員審核通過的各類別任務量，加分有感且不會太快 100%)
+  const { attrAcuity, attrStability, attrRapport, attrReshaping } = (() => {
+    // 1. 篩選出本人審核通過的提交
+    const approvedSubs = (submissions || []).filter(
+      s => s.student_id === activeProfile.id && s.status === 'approved'
+    );
+
+    // 2. 建立任務 Map 快速索引
+    const missionMap = new Map<string, any>();
+    (missions || []).forEach((m: any) => {
+      missionMap.set(m.id, m);
+    });
+
+    let approvedDailyCount = 0;
+    let approvedNonDailyCount = 0; // 每週、特殊、限時
+    let approvedInviteCount = 0;   // 邀約成功
+    let approvedInfluenceCount = 0; // 傳愛成功 (推薦、成交)
+
+    approvedSubs.forEach(s => {
+      const m = missionMap.get(s.mission_id);
+      if (!m) return;
+
+      // 每日任務
+      if (m.mission_type === 'daily') {
+        approvedDailyCount++;
+      } else {
+        // 每週、特殊、限時
+        approvedNonDailyCount++;
+      }
+
+      // 邀約成功：任務標題包含「邀約」
+      if ((m.title || '').includes('邀約')) {
+        approvedInviteCount++;
+      }
+
+      // 傳愛成功：任務標題包含「推薦」或「成交」
+      if (/推薦|成交/.test(m.title || '')) {
+        approvedInfluenceCount++;
+      }
+    });
+
+    return {
+      attrAcuity: Math.min(100, approvedDailyCount * 4),         // 連結力 (每次 +4%，25次滿)
+      attrStability: Math.min(100, approvedNonDailyCount * 8),    // 行動力 (每次 +8%，13次滿)
+      attrRapport: Math.min(100, approvedInviteCount * 20),       // 影響力 (每次 +20%，5次滿)
+      attrReshaping: Math.min(100, approvedInfluenceCount * 25),  // 傳愛力 (每次 +25%，4次滿)
+    };
+  })();
 
   const now = nowTaipei();
   // 每日任務以「中午12點」為換日界線:午前(<12)算前一天、午後(>=12)算當天。
@@ -1591,7 +1633,7 @@ export function DailyQuestsTab({
               onClick={() => setShowAttrsDetail(!showAttrsDetail)}
               className="btn-action flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black bg-slate-900 border border-white/5 text-slate-400 hover:text-white transition-all light:bg-slate-100 light:border-slate-300 light:text-slate-600"
             >
-              <span>{showAttrsDetail ? '隱藏四維指標明細 ▲' : '展開四維指標明細 ▼'}</span>
+              <span>{showAttrsDetail ? '隱藏四力指標明細 ▲' : '展開四力指標明細 ▼'}</span>
             </button>
           </div>
 
@@ -1602,7 +1644,7 @@ export function DailyQuestsTab({
               {/* Attribute 1 */}
               <div className="space-y-1">
                 <div className="flex justify-between text-[11px] font-bold select-none">
-                  <span className="text-slate-400">👁️ 感官敏銳度 (Sensory Acuity)</span>
+                  <span className="text-slate-400">🔗 連結力 (Connection Power)</span>
                   <span className="text-amber-500">{attrAcuity}%</span>
                 </div>
                 <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-white/5 light:bg-slate-100 light:border-slate-300">
@@ -1616,7 +1658,7 @@ export function DailyQuestsTab({
               {/* Attribute 2 */}
               <div className="space-y-1">
                 <div className="flex justify-between text-[11px] font-bold select-none">
-                  <span className="text-slate-400">⚓ 心錨穩定度 (Anchor Stability)</span>
+                  <span className="text-slate-400">⚡ 行動力 (Action Power)</span>
                   <span className="text-amber-500">{attrStability}%</span>
                 </div>
                 <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-white/5 light:bg-slate-100 light:border-slate-300">
@@ -1630,7 +1672,7 @@ export function DailyQuestsTab({
               {/* Attribute 3 */}
               <div className="space-y-1">
                 <div className="flex justify-between text-[11px] font-bold select-none">
-                  <span className="text-slate-400">🤝 親和感共鳴 (Rapport Resonance)</span>
+                  <span className="text-slate-400">📣 影響力 (Influence Power)</span>
                   <span className="text-amber-500">{attrRapport}%</span>
                 </div>
                 <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-white/5 light:bg-slate-100 light:border-slate-300">
@@ -1644,7 +1686,7 @@ export function DailyQuestsTab({
               {/* Attribute 4 */}
               <div className="space-y-1">
                 <div className="flex justify-between text-[11px] font-bold select-none">
-                  <span className="text-slate-400">🧩 信念重塑力 (Belief Reshaping)</span>
+                  <span className="text-slate-400">💖 傳愛力 (Spread Love Power)</span>
                   <span className="text-amber-500">{attrReshaping}%</span>
                 </div>
                 <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-white/5 light:bg-slate-100 light:border-slate-300">
@@ -2127,14 +2169,14 @@ export function DailyQuestsTab({
                             ? 'text-slate-300 light:text-slate-800'
                             : 'text-white light:text-slate-900'
                         }`}>
-                          {task.name}
+                          {formatBrandText(task.name)}
                         </h3>
                         <p className={`text-xs mt-2 line-clamp-2 leading-relaxed ${
                           isDone
                             ? 'text-slate-500 light:text-slate-600'
                             : 'text-slate-300 light:text-slate-700'
                         }`}>
-                          {task.description}
+                          {formatBrandText(task.description)}
                         </p>
                       </div>
 

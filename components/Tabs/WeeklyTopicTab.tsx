@@ -4,6 +4,8 @@ import React, { useState } from 'react';
 import { Task, Submission } from '@/types';
 import { safeLinkHref } from '@/lib/helpers';
 import { CheckCircle2, Clock, AlertCircle, FileText, Send, ExternalLink, Circle } from 'lucide-react';
+import { formatBrandText } from '@/lib/brand';
+
 
 interface WeeklyTopicTabProps {
   tasks: Task[];
@@ -146,11 +148,11 @@ export function WeeklyTopicTab({ tasks, submissions, onCheckIn, isSyncing }: Wee
                   </div>
                   
                   <h3 className="font-black text-white text-lg leading-snug">
-                    {task.name}
+                    {formatBrandText(task.name)}
                   </h3>
                   
                   <p className="text-xs text-slate-400 leading-relaxed light:text-slate-500">
-                    {task.description}
+                    {formatBrandText(task.description)}
                   </p>
 
                   {/* Render submitted proof summary if any */}

@@ -1,13 +1,15 @@
 // 提交修行證明 Modal（上傳表單）—— 固定「淺色(白天)」配色,不分日夜,避免深淺字衝突。
 import { X, ImageIcon, AlertCircle, Sparkles, Send } from 'lucide-react';
 import { isEvolutionTask } from '@/lib/dailyQuestLogic';
+import { formatBrandText } from '@/lib/brand';
+
 export function ProofModal({ selectedTask, proofText, proofImg, proofLink, setProofText, setProofImg, setProofLink, setShowProofModal, setSelectedTask, handleModalSubmit, handleFileChange, compressing, submitting }: any) {
   return (
         <div className="fixed inset-0 z-[60] bg-black/70 overflow-y-auto overscroll-none" onClick={(e) => { if (e.target === e.currentTarget) { setShowProofModal(false); setSelectedTask(null); }}}>
           <div className="min-h-full flex items-center justify-center p-4" onClick={(e) => { if (e.target === e.currentTarget) { setShowProofModal(false); setSelectedTask(null); }}}>
             <div className="w-full max-w-md p-6 rounded-3xl border border-slate-200 shadow-2xl relative animate-in zoom-in-95 duration-200 bg-white" onClick={(e) => e.stopPropagation()}>
               <h3 className="text-lg font-black text-slate-900 mb-1.5">
-              提交修行證明：{selectedTask.name || selectedTask.title}
+              提交修行證明：{formatBrandText(selectedTask.name || selectedTask.title)}
             </h3>
             {/* 任務條件:紅色標籤 + 黑色內容,淺底 */}
             {(selectedTask.description) && (
@@ -16,7 +18,7 @@ export function ProofModal({ selectedTask, proofText, proofImg, proofLink, setPr
                   📋 任務條件
                 </p>
                 <p className="text-sm leading-relaxed whitespace-pre-line text-slate-900">
-                  {selectedTask.description}
+                  {formatBrandText(selectedTask.description)}
                 </p>
               </div>
             )}
