@@ -859,7 +859,7 @@ export function OthersTab({ announcements, courses, achievements, batches, missi
                                  `第 ${ach.condition_value} 階段`}
                               </span>
                             </div>
-                            <p className="text-[10px] text-slate-400 mt-1 line-clamp-1">{formatAchievementText(ach.description)}</p>
+                            <p className="text-[10px] text-slate-400 mt-1 line-clamp-1">{formatAchievementText(ach.description || '')}</p>
                             <span className="text-[10px] text-slate-400 font-mono">
                                門檻：{
                                  ach.condition_type === 'total_score' ? `${ach.condition_value.toLocaleString()} 分` :

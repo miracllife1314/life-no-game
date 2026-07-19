@@ -459,19 +459,19 @@ export function LifeNumberTab({ currentUser, showToast }: LifeNumberTabProps) {
           )}
 
           {/* Five Fortunes Section */}
-          {false && (
+          {report && false && (
             <div className="glass-panel p-6 rounded-3xl border border-white/5 space-y-4 light:bg-white light:border-slate-200">
             <div>
               <h4 className="text-sm font-black text-white light:text-slate-800">
                 五運・卡點與修煉功課
               </h4>
               <p className="text-[10px] text-slate-500 font-bold mt-1 leading-relaxed">
-                依您命盤加權判定：主命數 <span className="text-amber-500">{report.lifeNumber}</span>｜缺數 <span className="text-amber-500">{report.missing.map(m=>m.digit).join('、') || '無'}</span>｜過多 <span className="text-amber-500">{report.repeats.map(r=>r.digit).join('、') || '無'}</span>
+                依您命盤加權判定：主命數 <span className="text-amber-500">{report!.lifeNumber}</span>｜缺數 <span className="text-amber-500">{report!.missing.map(m=>m.digit).join('、') || '無'}</span>｜過多 <span className="text-amber-500">{report!.repeats.map(r=>r.digit).join('、') || '無'}</span>
               </p>
             </div>
 
             <div className="space-y-3 pt-2">
-              {report.fiveFortunes.map((fortune) => {
+              {report!.fiveFortunes.map((fortune) => {
                 const getStatusStyle = (status: string) => {
                   switch (status) {
                     case 'core': return 'text-amber-400 bg-amber-500/10 border-amber-500/20';
@@ -572,12 +572,12 @@ export function LifeNumberTab({ currentUser, showToast }: LifeNumberTabProps) {
                 </div>
 
                 {/* Missing Numbers */}
-                {false && (
+                {report && false && (
                   <div className="space-y-3">
                   <h5 className="text-xs font-bold text-slate-400 uppercase tracking-wider light:text-slate-500">
                     二、 缺少能量解析 (加權為0的數字)
                   </h5>
-                  {report.missing.length > 0 ? (
+                  {report!.missing.length > 0 ? (
                     <div className="w-full overflow-hidden border border-white/5 rounded-2xl light:border-slate-200">
                       <table className="w-full text-xs text-left border-collapse">
                         <thead>
@@ -587,7 +587,7 @@ export function LifeNumberTab({ currentUser, showToast }: LifeNumberTabProps) {
                           </tr>
                         </thead>
                         <tbody>
-                          {report.missing.map((m) => (
+                          {report!.missing.map((m) => (
                             <tr key={m.digit} className="border-b border-white/5 light:border-slate-200">
                               <td className="py-3 px-4 text-base font-black text-rose-500">{m.digit}</td>
                               <td className="py-3 px-4 font-medium text-slate-300 light:text-slate-700">{m.need}</td>
@@ -605,14 +605,14 @@ export function LifeNumberTab({ currentUser, showToast }: LifeNumberTabProps) {
                 )}
 
                 {/* Over/Strong Numbers */}
-                {false && (
+                {report && false && (
                   <div className="space-y-3">
                   <h5 className="text-xs font-bold text-slate-400 uppercase tracking-wider light:text-slate-500">
                     三、 重複/過多能量 (加權≥2的數字)
                   </h5>
-                  {report.repeats.length > 0 ? (
+                  {report!.repeats.length > 0 ? (
                     <div className="space-y-3">
-                      {report.repeats.map((rep) => (
+                      {report!.repeats.map((rep) => (
                         <div key={rep.digit} className="p-4 bg-slate-950/60 border border-white/5 rounded-2xl space-y-2 light:bg-slate-50 light:border-slate-200">
                           <div className="flex items-center justify-between">
                             <span className="w-6 h-6 flex items-center justify-center font-black rounded-full text-xs bg-rose-500/10 text-rose-400 border border-rose-500/20">

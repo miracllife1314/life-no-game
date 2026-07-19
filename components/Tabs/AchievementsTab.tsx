@@ -181,7 +181,7 @@ export function AchievementsTab({ achievements, userAchievements, studentScore }
                       {formatAchievementText(ach.title)}
                     </h3>
                     <p className="text-[11px] md:text-xs mt-0.5 transition-colors leading-relaxed" style={{ color: unlocked ? '#e2e8f0' : '#64748b' }}>
-                      {formatAchievementText(ach.description)}
+                      {formatAchievementText(ach.description || '')}
                     </p>
                   </div>
                 </div>

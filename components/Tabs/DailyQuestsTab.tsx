@@ -747,7 +747,7 @@ export function DailyQuestsTab({
     let approvedInfluenceCount = 0; // 傳愛成功 (推薦、成交)
 
     approvedSubs.forEach(s => {
-      const m = missionMap.get(s.mission_id);
+      const m = missionMap.get(s.mission_id || '');
       if (!m) return;
 
       // 每日任務

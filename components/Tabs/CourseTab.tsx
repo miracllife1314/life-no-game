@@ -100,7 +100,7 @@ export function CourseTab({
                   </div>
                   
                   <p className="text-xs text-slate-300 leading-relaxed light:text-slate-700 whitespace-pre-line font-medium">
-                    {formatBrandText(course.description)}
+                    {formatBrandText(course.description || '')}
                   </p>
                 </div>
 
