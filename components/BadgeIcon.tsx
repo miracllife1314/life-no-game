@@ -1,8 +1,8 @@
 'use client';
 
 import React from 'react';
-import * as Icons from 'lucide-react';
 import { Award } from 'lucide-react';
+import { BADGE_ICON_MAP } from '@/lib/badgeIcons';
 
 interface BadgeIconProps {
   name: string | null;
@@ -38,8 +38,8 @@ export function BadgeIcon({ name, unlocked = true, size = 48, className = '' }: 
   const fillColor = unlocked ? '#0e0b06' : '#18181b';
   const iconColor = unlocked ? '#fef08a' : '#71717a';
 
-  // Find the matching Lucide icon as the central emblem
-  const LucideIcon = (Icons as unknown as Record<string, React.ComponentType<{ size?: number; className?: string }>>)[iconKey] || Award;
+  // Find the matching Lucide icon as the central emblem(白名單查表,查無 fallback Award)
+  const LucideIcon = BADGE_ICON_MAP[iconKey] || Award;
 
   // Custom frame geometries for 20 different badge designs
   // This ensures they all look unique, yet share the premium golden neon theme.

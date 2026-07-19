@@ -11,7 +11,7 @@ import {
   parseLocalTime, isEvolutionTask, getActiveStage, getCountdownText,
   isTodayLocal, isTodayInRangeLocal, compressImage,
 } from '@/lib/dailyQuestLogic';
-import { getAllGuides } from '@/lib/guideConfig';
+import { getAllGuides, loadGuidesFromDB } from '@/lib/guideConfig';
 import { calculateLevelFromExp, getExpProgressInCurrentLevel, getExpThresholdForLevel } from '@/lib/levelLogic';
 import { SuccessModal } from '@/components/Tabs/quests/SuccessModal';
 import { LevelUpModal } from '@/components/Tabs/quests/LevelUpModal';
@@ -409,14 +409,21 @@ export function DailyQuestsTab({
   React.useEffect(() => {
     if (typeof window !== 'undefined') {
       try {
-        const stored = localStorage.getItem('nlp_read_announcements');
-        if (stored) {
-          setReadAnnouncements(JSON.parse(stored));
-        }
+        // 已讀公告改為「每個使用者一份」(key 加 profile.id 後綴)——共用裝置不會互相吃掉未讀。
+        // 註:nlp_ 前綴是內部代號,不隨品牌改;只加 user 後綴。
+        const stored = localStorage.getItem(`nlp_read_announcements_${activeProfile.id}`);
+        setReadAnnouncements(stored ? JSON.parse(stored) : []);
       } catch (e) {
         console.error(e);
       }
     }
+  }, [activeProfile.id]);
+
+  // 攻略清單已搬進 DB(app_config)——從 DB 補水後 bump 一次,讓「查看攻略」讀到最新內容
+  // (原本大隊長編輯只存自己 localStorage,學員永遠看預設值)。
+  const [, setGuidesVersion] = React.useState(0);
+  React.useEffect(() => {
+    loadGuidesFromDB().then(() => setGuidesVersion(v => v + 1));
   }, []);
 
   React.useEffect(() => {
@@ -485,13 +492,13 @@ export function DailyQuestsTab({
     if (readAnnouncements.includes(annId)) return;
     const next = [...readAnnouncements, annId];
     setReadAnnouncements(next);
-    localStorage.setItem('nlp_read_announcements', JSON.stringify(next));
+    localStorage.setItem(`nlp_read_announcements_${activeProfile.id}`, JSON.stringify(next));
   };
 
   const markAllAsRead = () => {
     const allIds = announcements.map(ann => ann.id);
     setReadAnnouncements(allIds);
-    localStorage.setItem('nlp_read_announcements', JSON.stringify(allIds));
+    localStorage.setItem(`nlp_read_announcements_${activeProfile.id}`, JSON.stringify(allIds));
   };
 
   const toggleAnnouncement = (annId: string) => {

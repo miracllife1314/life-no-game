@@ -1,4 +1,5 @@
 import { BRAND } from '@/lib/brand';
+import { realSupabase } from '@/lib/supabase';
 
 export interface GuideOffsetItem {
   id: string;
@@ -68,30 +69,97 @@ const DEFAULT_GUIDES: GuideDefinition[] = [
   { key: 'advanced', name: '🔥 進階修煉', config: DEFAULT_ADVANCED_GUIDE }
 ];
 
-export function getAllGuides(): GuideDefinition[] {
-  if (typeof window === 'undefined') {
-    return DEFAULT_GUIDES;
-  }
+// ⚠️ 攻略清單已搬進 DB(app_config, key='guide_list')。
+//    大隊長在後台編輯 → 寫進 DB → 全體學員都看得到(原本只存編輯者自己的 localStorage,
+//    學員永遠只看得到預設值)。詳見 docs/schema_fixes_34_app_config_guides.sql。
+//
+// 讀取策略:同步 getAllGuides() 讀「記憶體快取 cachedGuides」;
+//    App 啟動時呼叫 loadGuidesFromDB() 從 DB 補水(hydrate)並更新快取。
+//    localStorage 只當「離線鏡像/首屏 fallback」,不再是唯一真相來源。
+//    ⚠️ nlp_guide_list 這個 localStorage key 是內部代號,不可改名。
+const DB_CONFIG_KEY = 'guide_list';
+const LS_MIRROR_KEY = 'nlp_guide_list';
+
+let cachedGuides: GuideDefinition[] | null = null;
+
+function readLocalMirror(): GuideDefinition[] | null {
+  if (typeof window === 'undefined') return null;
   try {
-    const key = 'nlp_guide_list';
-    const stored = localStorage.getItem(key);
-    if (stored) {
-      return JSON.parse(stored);
-    }
+    const stored = localStorage.getItem(LS_MIRROR_KEY);
+    if (stored) return JSON.parse(stored);
   } catch (e) {
-    console.error('Failed to load guide list:', e);
+    console.error('Failed to read guide mirror:', e);
   }
+  return null;
+}
+
+function writeLocalMirror(guides: GuideDefinition[]): void {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(LS_MIRROR_KEY, JSON.stringify(guides));
+  } catch (e) {
+    console.error('Failed to write guide mirror:', e);
+  }
+}
+
+export function getAllGuides(): GuideDefinition[] {
+  if (cachedGuides) return cachedGuides;
+  const mirror = readLocalMirror();
+  if (mirror && Array.isArray(mirror) && mirror.length > 0) return mirror;
   return DEFAULT_GUIDES;
 }
 
-export function saveAllGuides(guides: GuideDefinition[]): void {
-  if (typeof window === 'undefined') return;
+// 從 DB 補水:App 啟動 / 後台開啟攻略頁時呼叫。成功則更新快取+鏡像並回傳最新清單;
+// 失敗(離線/無 Supabase)則沿用 getAllGuides() 的 fallback。
+export async function loadGuidesFromDB(): Promise<GuideDefinition[]> {
+  if (!realSupabase) return getAllGuides();
   try {
-    const key = 'nlp_guide_list';
-    localStorage.setItem(key, JSON.stringify(guides));
+    const { data, error } = await realSupabase
+      .from('app_config')
+      .select('value')
+      .eq('key', DB_CONFIG_KEY)
+      .maybeSingle();
+    if (error) {
+      console.error('Failed to load guides from DB:', error.message);
+      return getAllGuides();
+    }
+    const value = data?.value;
+    if (Array.isArray(value) && value.length > 0) {
+      cachedGuides = value as GuideDefinition[];
+      writeLocalMirror(cachedGuides);
+      return cachedGuides;
+    }
   } catch (e) {
-    console.error('Failed to save guide list:', e);
+    console.error('Failed to load guides from DB:', e);
   }
+  return getAllGuides();
+}
+
+// 寫回 DB(僅後台管理員,RLS 由 is_admin() 把關)。先更新快取+鏡像(即時反映),再 upsert。
+// 回傳 { error } 讓呼叫端能提示成功/失敗(依鐵律:寫入 DB 一律檢查 error)。
+export async function saveGuidesToDB(
+  guides: GuideDefinition[],
+): Promise<{ error: string | null }> {
+  cachedGuides = guides;
+  writeLocalMirror(guides);
+  if (!realSupabase) return { error: null };
+  try {
+    const { error } = await realSupabase
+      .from('app_config')
+      .upsert(
+        { key: DB_CONFIG_KEY, value: guides, updated_at: new Date().toISOString() },
+        { onConflict: 'key' },
+      );
+    return { error: error ? error.message : null };
+  } catch (e: any) {
+    return { error: String(e?.message || e) };
+  }
+}
+
+// 舊介面(僅寫 localStorage 鏡像)。保留給尚未改用 DB 的呼叫端;新程式請用 saveGuidesToDB。
+export function saveAllGuides(guides: GuideDefinition[]): void {
+  cachedGuides = guides;
+  writeLocalMirror(guides);
 }
 
 export function loadGuideConfig(key: string): GuideVersionConfig {

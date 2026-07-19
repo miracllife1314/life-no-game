@@ -204,9 +204,14 @@ export function LeaderboardTab({
     return streaks;
   }, [profiles, submissions, missions]);
 
+  // 同分/同均分時的穩定次要排序(避免名次每次 render 隨機互換):較早建立者在前,再退回 id。
+  const tieByCreated = (a: any, b: any) =>
+    (new Date(a?.created_at || 0).getTime() - new Date(b?.created_at || 0).getTime())
+    || String(a?.id || '').localeCompare(String(b?.id || ''));
+
   // 1. DATA PREPARATION: Current Batch Individual (排除大隊長)
   const currentBatchProfiles = profiles.filter(p => p.batch_id === selectedBatchId && p.status !== 'inactive' && p.role !== 'admin');
-  const sortedIndividual = [...currentBatchProfiles].sort((a, b) => b.score - a.score);
+  const sortedIndividual = [...currentBatchProfiles].sort((a, b) => (b.score - a.score) || tieByCreated(a, b));
   const topIndividual = sortedIndividual.slice(0, 3);
   const remainingIndividual = sortedIndividual.slice(3);
 
@@ -223,14 +228,14 @@ export function LeaderboardTab({
       averageScore: avgScore,
       totalLevel
     };
-  }).sort((a, b) => b.averageScore - a.averageScore);
+  }).sort((a, b) => (b.averageScore - a.averageScore) || tieByCreated(a, b));
   const topTeams = enrichedTeams.slice(0, 3);
   const remainingTeams = enrichedTeams.slice(3);
 
   // 3. DATA PREPARATION: All-Time Individual (神人榜) - Limit to top 50
   const sortedAllTimeIndividual = [...profiles]
     .filter(p => p.role !== 'admin' && p.status !== 'inactive') // Exclude GMs and inactive from hall of fame
-    .sort((a, b) => b.score - a.score)
+    .sort((a, b) => (b.score - a.score) || tieByCreated(a, b))
     .slice(0, 50);
 
   // 4. DATA PREPARATION: All-Time Team (神隊榜) - Limit to top 30
@@ -245,7 +250,7 @@ export function LeaderboardTab({
       averageScore: avgScore,
       totalLevel
     };
-  }).sort((a, b) => b.averageScore - a.averageScore).slice(0, 30);
+  }).sort((a, b) => (b.averageScore - a.averageScore) || tieByCreated(a, b)).slice(0, 30);
 
   // 5. 邀約王者 / 影響力之神:依「任務名稱關鍵字」數該學員「審核通過」的提交筆數(= 人數)
   //    邀約王者 = 任務名含「邀約」;影響力之神 = 任務名含「推薦」或「成交」
@@ -273,7 +278,7 @@ export function LeaderboardTab({
     scopeProfiles
       .map(p => ({ p, count: counts[p.id] || 0 }))
       .filter(x => x.count > 0)
-      .sort((a, b) => b.count - a.count)
+      .sort((a, b) => (b.count - a.count) || tieByCreated(a.p, b.p))
       .slice(0, 50);
   // 歷屆(hall):用 RPC 跨期統計;當期(current):用前端本期統計。RPC 還沒回來時暫退回前端統計。
   const inviteCounts = (scope === 'hall' && allTimeCounts) ? allTimeCounts.invite : inviteCountByStudent;

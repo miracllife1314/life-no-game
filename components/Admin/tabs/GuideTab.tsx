@@ -7,7 +7,8 @@ import {
   GuideVersionConfig,
   GuideOffsetItem,
   getAllGuides,
-  saveAllGuides,
+  loadGuidesFromDB,
+  saveGuidesToDB,
   DEFAULT_BEGINNER_GUIDE,
   DEFAULT_ADVANCED_GUIDE
 } from '@/lib/guideConfig';
@@ -26,11 +27,21 @@ export function GuideTab({ isSyncing }: GuideTabProps) {
   const [newName, setNewName] = useState('');
   const [templateType, setTemplateType] = useState<'beginner' | 'advanced'>('beginner');
 
-  // Load guide list on mount
+  // Load guide list on mount(先給快取/鏡像即時顯示,再從 DB 補水成最新)
   useEffect(() => {
-    const list = getAllGuides();
-    setAllGuides(list);
+    setAllGuides(getAllGuides());
+    loadGuidesFromDB().then(list => setAllGuides(list));
   }, []);
+
+  // 統一寫回 DB(僅後台管理員,RLS 把關);失敗時提示,不吞錯。
+  const persistGuides = async (next: GuideDefinition[], successMsg?: string) => {
+    const { error } = await saveGuidesToDB(next);
+    if (error) {
+      alert(`❌ 儲存失敗,請稍後再試。\n(${error})`);
+      return;
+    }
+    if (successMsg) alert(successMsg);
+  };
 
   const activeGuide = allGuides.find(g => g.key === activeKey);
   const config = activeGuide?.config || null;
@@ -40,8 +51,7 @@ export function GuideTab({ isSyncing }: GuideTabProps) {
   }
 
   const handleSave = () => {
-    saveAllGuides(allGuides);
-    alert('✅ 攻略排版儲存成功！學員端重整後將會依據班次名稱自動載入對應的攻略。');
+    persistGuides(allGuides, '✅ 攻略排版儲存成功！學員端重整後將會依據班次名稱自動載入對應的攻略。');
   };
 
   const handleReset = () => {
@@ -61,7 +71,7 @@ export function GuideTab({ isSyncing }: GuideTabProps) {
       });
 
       setAllGuides(updated);
-      saveAllGuides(updated);
+      persistGuides(updated);
     }
   };
 
@@ -74,7 +84,7 @@ export function GuideTab({ isSyncing }: GuideTabProps) {
     if (window.confirm(`確定要刪除「${activeGuide.name}」的課程攻略嗎？這動作無法復原。`)) {
       const nextList = allGuides.filter(g => g.key !== activeKey);
       setAllGuides(nextList);
-      saveAllGuides(nextList);
+      persistGuides(nextList);
       setActiveKey('beginner');
     }
   };
@@ -106,7 +116,7 @@ export function GuideTab({ isSyncing }: GuideTabProps) {
 
     const nextList = [...allGuides, newDef];
     setAllGuides(nextList);
-    saveAllGuides(nextList);
+    persistGuides(nextList);
     setActiveKey(cleanKey);
 
     // Reset form

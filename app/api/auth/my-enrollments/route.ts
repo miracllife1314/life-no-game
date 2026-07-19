@@ -8,6 +8,7 @@
 //       只回自己的資料、且不外洩他人，安全。
 // =====================================================================
 import { NextResponse } from 'next/server';
+import { getAuthUidFromRequest } from '@/lib/serverAuth';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -30,13 +31,21 @@ export async function POST(req: Request) {
     const safeId = String(id || '').trim();
     if (!safeId) return NextResponse.json({ error: 'missing_id', enrollments: [] }, { status: 400 });
 
-    // 1. 用自己的 id 反查 phone
+    // 0. 驗身分:前端須帶 session JWT。取可信 auth uid,下面比對「這個 id 確實是本人」
+    //    (原本只信任前端自報的 id → 拿別人 profile id 就能撈到別人各期報名=手機歸戶外洩)。
+    const authUid = await getAuthUidFromRequest(req);
+    if (!authUid) return NextResponse.json({ error: 'unauthorized', enrollments: [] }, { status: 401 });
+
+    // 1. 用自己的 id 反查 phone(同時取 auth_user_id 做本人比對)
     const meRes = await fetch(
-      `${SUPA_URL}/rest/v1/profiles?id=eq.${encodeURIComponent(safeId)}&select=phone&limit=1`,
+      `${SUPA_URL}/rest/v1/profiles?id=eq.${encodeURIComponent(safeId)}&select=phone,auth_user_id&limit=1`,
       { headers: srHeaders },
     );
     const me = await meRes.json().catch(() => []);
-    const phone = Array.isArray(me) && me[0]?.phone ? String(me[0].phone) : '';
+    if (!Array.isArray(me) || !me[0] || String(me[0].auth_user_id || '') !== authUid) {
+      return NextResponse.json({ error: 'forbidden', enrollments: [] }, { status: 403 });
+    }
+    const phone = me[0]?.phone ? String(me[0].phone) : '';
     if (!phone) {
       // 沒手機就只回自己這一筆（無法歸戶）
       return NextResponse.json({ enrollments: [] });
