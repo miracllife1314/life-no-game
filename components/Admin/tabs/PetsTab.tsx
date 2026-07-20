@@ -42,6 +42,13 @@ export function PetsTab({ petLines, petStages, userPets, missionTemplates, batch
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [uploadError, setUploadError] = useState('');
   const [bgWarning, setBgWarning] = useState('');
+  const [copiedTip, setCopiedTip] = useState(false);
+
+  const handleCopyTip = () => {
+    navigator.clipboard.writeText('透明背景 PNG / WebP | 尺寸 1024x1024 | 主體置中 | 不要白底 | 不要方框 | 不要卡片背景。');
+    setCopiedTip(true);
+    setTimeout(() => setCopiedTip(false), 2000);
+  };
 
   const checkImageTransparency = (file: File): Promise<boolean> => {
     return new Promise((resolve) => {
@@ -586,8 +593,15 @@ export function PetsTab({ petLines, petStages, userPets, missionTemplates, batch
                                 </>
                               )}
                             </label>
-                            <p className="text-[9px] text-slate-500 font-bold mt-1.5 leading-relaxed">
-                              💡 建議上傳：透明背景 PNG / WebP | 尺寸 1024x1024 | 主體置中 | 不要白底 | 不要方框 | 不要卡片背景。
+                            <p 
+                              onClick={handleCopyTip}
+                              className="text-[9px] text-slate-500 font-bold mt-1.5 leading-relaxed cursor-pointer hover:text-red-400 active:scale-95 transition-all select-none flex items-center gap-1.5"
+                              title="點擊複製此提示詞"
+                            >
+                              <span>💡 建議上傳：透明背景 PNG / WebP | 尺寸 1024x1024 | 主體置中 | 不要白底 | 不要方框 | 不要卡片背景。</span>
+                              <span className={`text-[8px] px-1 py-0.5 rounded transition-all shrink-0 font-extrabold ${copiedTip ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/35' : 'bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700'}`}>
+                                {copiedTip ? '✓ 已複製提示詞' : '📋 點擊複製'}
+                              </span>
                             </p>
                           </div>
 
