@@ -27,18 +27,18 @@ export interface GuideDefinition {
 export const DEFAULT_BEGINNER_GUIDE: GuideVersionConfig = {
   seriousSpeed: '300 EXP/天',
   seriousBullets: [
-    '每日五感恩：堅持每日感恩打卡 ➔ +100 EXP/天',
-    '每週實作打卡：每週完成 1~2 項實作 ➔ +500 ~ +1000 EXP/週'
+    '每日定課：每日五感恩/肯定/VAK讚美打卡 ➔ +50 ~ +150 EXP/天',
+    '每週任務：完成每週主題實作與小組演練 ➔ +500 ~ +1000 EXP/週'
   ],
   activeSpeed: '700 EXP/天',
   activeBullets: [
-    '全數打卡：每日定課 + 每週任務全通（主題任務/小組通話）➔ 平均 +314 EXP/天',
+    '全數打卡：每日定課 + 每週任務全通（主題任務/小組通話）➔ 平均 +350+ EXP/天',
     '高分加碼：分享寫得好被選到上傳到見證牆額外 +200 EXP (需寫得好、照片清晰)、締結產品 (3000元以上)、填寫限時問卷等'
   ],
   offsets: [
     { id: 'b-o1', title: '每週主題任務', points: 500, days: 1.5 },
-    { id: 'b-o2', title: '邀約入門體驗課', points: 500, days: 1.5 },
-    { id: 'b-o3', title: '推薦報名初階課', points: 1500, days: 4.2, highlight: true, desc: '讓破殼修行一鍵飛越！' },
+    { id: 'b-o2', title: '邀約 NLP 入門課', points: 500, days: 1.5 },
+    { id: 'b-o3', title: '推薦初階', points: 1500, days: 4.2, highlight: true, desc: '讓破殼修行一鍵飛越！' },
     { id: 'b-o4', title: BRAND.retrainTitle, points: 1000, days: 2.8 },
     { id: 'b-o5', title: '入選見證牆', points: 200, days: 0.6, desc: '(需寫得好、照片清晰)' }
   ]
@@ -47,19 +47,19 @@ export const DEFAULT_BEGINNER_GUIDE: GuideVersionConfig = {
 export const DEFAULT_ADVANCED_GUIDE: GuideVersionConfig = {
   seriousSpeed: '300 EXP/天',
   seriousBullets: [
-    '每日感恩與肯定：堅持每日雙定課打卡 ➔ +100 EXP/天',
-    '每週實作打卡：每週完成 1~2 項實作 ➔ +500 ~ +1000 EXP/週'
+    '每日定課：雙定課打卡（五感恩＋肯定伴侶）➔ +100 EXP/天',
+    '每週實作：每週完成心錨/卓越圈等演練 ➔ +500 ~ +1000 EXP/週'
   ],
   activeSpeed: '700 EXP/天',
   activeBullets: [
-    '全數打卡：每日定課 + 每週任務全通（影片/心錨/卓越圈）➔ 平均 +314 EXP/天',
-    '高分加碼：分享寫得好被選到上傳到見證牆額外 +200 EXP (需寫得好、照片清晰)、完成次感元個案、填寫限時问卷等'
+    '全數打卡：每日定課 + 每週任務全通（影片/心錨/卓越圈）➔ 平均 +350+ EXP/天',
+    '高分加碼：分享寫得好被選到上傳到見證牆額外 +200 EXP (需寫得好、照片清晰)、完成次感元個案 3次、推薦初階等'
   ],
   offsets: [
     { id: 'a-o1', title: '每週實作任務', points: 500, days: 1.5 },
-    { id: 'a-o2', title: '邀約入門體驗課', points: 500, days: 1.5 },
-    { id: 'a-o3', title: '推薦報名初階課', points: 1500, days: 4.2, highlight: true, desc: '讓破殼修行一鍵飛越！' },
-    { id: 'a-o4', title: '次感元個案 3 次', points: 1000, days: 2.8 },
+    { id: 'a-o2', title: '邀約 NLP 入門課', points: 500, days: 1.5 },
+    { id: 'a-o3', title: '推薦初階', points: 1500, days: 4.2, highlight: true, desc: '讓破殼修行一鍵飛越！' },
+    { id: 'a-o4', title: '完成次感元個案 3次', points: 1000, days: 2.8 },
     { id: 'a-o5', title: '入選見證牆', points: 200, days: 0.6, desc: '(需寫得好、照片清晰)' }
   ]
 };
