@@ -112,6 +112,7 @@ export function formatBrandText(text: string): string {
     // 成功推薦 X 人報名 NLP 初階課 -> 成功傳愛 X 人報名能量學
     res = res.replace(/成功推薦\s*(\d+)\s*人報名\s*(NLP|ＮＬＰ)\s*初階課/g, '成功傳愛 $1 人報名能量學');
     res = res.replace(/成功推薦\s*(\d+)\s*人報名\s*初階課/g, '成功傳愛 $1 人報名能量學');
+    res = res.replace(/推薦報名初階課/g, '傳愛成功');
     res = res.replace(/推薦報名初階/g, '傳愛成功');
     res = res.replace(/推薦/g, '傳愛');
     
@@ -126,7 +127,8 @@ export function formatBrandText(text: string): string {
     res = res.replace(/參加\s*入門課/g, '出來連結成功');
     res = res.replace(/參與\s*(NLP|ＮＬＰ)\s*入門體驗課/g, '出來連結成功');
     res = res.replace(/參加\s*(NLP|ＮＬＰ)\s*入門體驗課/g, '出來連結成功');
-    res = res.replace(/邀約\s*(NLP|ＮＬＰ)\s*入門課/g, '邀約出來連結成功');
+    res = res.replace(/邀約\s*(NLP|ＮＬＰ)?\s*入門體驗課/g, '邀約出來連結成功');
+    res = res.replace(/邀約\s*(NLP|ＮＬＰ)?\s*入門課/g, '邀約出來連結成功');
     res = res.replace(/邀約\s*入門課/g, '邀約出來連結成功');
     res = res.replace(/(NLP|ＮＬＰ)\s*入門課/g, '出來連結成功');
     res = res.replace(/入門課/g, '出來連結成功');
@@ -155,6 +157,7 @@ export function formatAchievementText(text: string): string {
     // 成功推薦 X 人報名 NLP 初階課 -> 成功傳愛 X 人報名能量學
     res = res.replace(/成功推薦\s*(\d+)\s*人報名\s*(NLP|ＮＬＰ)\s*初階課/g, '成功傳愛 $1 人報名能量學');
     res = res.replace(/成功推薦\s*(\d+)\s*人報名\s*初階課/g, '成功傳愛 $1 人報名能量學');
+    res = res.replace(/推薦報名初階課/g, '傳愛成功');
     res = res.replace(/推薦報名初階/g, '傳愛成功');
     res = res.replace(/推薦/g, '傳愛');
     
@@ -162,7 +165,8 @@ export function formatAchievementText(text: string): string {
     res = res.replace(/參加\s*入門課/g, '出來連結成功');
     res = res.replace(/參與\s*(NLP|ＮＬＰ)\s*入門體驗課/g, '出來連結成功');
     res = res.replace(/參加\s*(NLP|ＮＬＰ)\s*入門體驗課/g, '出來連結成功');
-    res = res.replace(/邀約\s*(NLP|ＮＬＰ)\s*入門課/g, '邀約出來連結成功');
+    res = res.replace(/邀約\s*(NLP|ＮＬＰ)?\s*入門體驗課/g, '邀約出來連結成功');
+    res = res.replace(/邀約\s*(NLP|ＮＬＰ)?\s*入門課/g, '邀約出來連結成功');
     res = res.replace(/邀約\s*入門課/g, '邀約出來連結成功');
     res = res.replace(/(NLP|ＮＬＰ)\s*入門課/g, '出來連結成功');
     res = res.replace(/入門課/g, '出來連結成功');

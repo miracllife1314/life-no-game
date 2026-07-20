@@ -1586,7 +1586,7 @@ export function DailyQuestsTab({
                           </div>
                           <ul className="list-disc pl-4 text-slate-400 space-y-0.5 font-medium light:text-slate-500">
                             {config.seriousBullets.map((bullet, i) => (
-                              <li key={i}>{renderBulletText(bullet)}</li>
+                              <li key={i}>{renderBulletText(formatBrandText(bullet))}</li>
                             ))}
                           </ul>
                         </div>
@@ -1598,7 +1598,7 @@ export function DailyQuestsTab({
                           </div>
                           <ul className="list-disc pl-4 text-slate-400 space-y-0.5 font-medium light:text-slate-500">
                             {config.activeBullets.map((bullet, i) => (
-                              <li key={i}>{renderBulletText(bullet)}</li>
+                              <li key={i}>{renderBulletText(formatBrandText(bullet))}</li>
                             ))}
                           </ul>
                         </div>
@@ -1617,10 +1617,10 @@ export function DailyQuestsTab({
                                 }`}
                               >
                                 <span className="text-slate-300 block font-bold light:text-slate-800">
-                                  {offset.title} (+{offset.points} EXP)
+                                  {formatBrandText(offset.title)} (+{offset.points} EXP)
                                 </span>
                                 時間立減 <span className="text-emerald-400 font-black light:text-emerald-600">{offset.days} 天</span>！
-                                {offset.desc && <span className="text-[9px] text-slate-500 block mt-0.5">{offset.desc}</span>}
+                                {offset.desc && <span className="text-[9px] text-slate-500 block mt-0.5">{formatBrandText(offset.desc)}</span>}
                               </div>
                             ))}
                           </div>

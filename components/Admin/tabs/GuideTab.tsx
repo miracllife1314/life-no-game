@@ -12,6 +12,7 @@ import {
   DEFAULT_BEGINNER_GUIDE,
   DEFAULT_ADVANCED_GUIDE
 } from '@/lib/guideConfig';
+import { formatBrandText } from '@/lib/brand';
 
 interface GuideTabProps {
   isSyncing: boolean;
@@ -569,7 +570,7 @@ export function GuideTab({ isSyncing }: GuideTabProps) {
               </div>
               <ul className="list-disc pl-4 text-slate-400 space-y-0.5 font-medium light:text-slate-500">
                 {config.seriousBullets.map((bullet, i) => (
-                  <li key={i}>{renderBulletText(bullet)}</li>
+                  <li key={i}>{renderBulletText(formatBrandText(bullet))}</li>
                 ))}
               </ul>
             </div>
@@ -581,7 +582,7 @@ export function GuideTab({ isSyncing }: GuideTabProps) {
               </div>
               <ul className="list-disc pl-4 text-slate-400 space-y-0.5 font-medium light:text-slate-500">
                 {config.activeBullets.map((bullet, i) => (
-                  <li key={i}>{renderBulletText(bullet)}</li>
+                  <li key={i}>{renderBulletText(formatBrandText(bullet))}</li>
                 ))}
               </ul>
             </div>
@@ -600,10 +601,10 @@ export function GuideTab({ isSyncing }: GuideTabProps) {
                     }`}
                   >
                     <span className="text-slate-300 block font-bold light:text-slate-800">
-                      {offset.title} (+{offset.points} EXP)
+                      {formatBrandText(offset.title)} (+{offset.points} EXP)
                     </span>
                     時間立減 <span className="text-emerald-400 font-black light:text-emerald-600">{offset.days} 天</span>！
-                    {offset.desc && <span className="text-[9px] text-slate-500 block mt-0.5">{offset.desc}</span>}
+                    {offset.desc && <span className="text-[9px] text-slate-500 block mt-0.5">{formatBrandText(offset.desc)}</span>}
                   </div>
                 ))}
               </div>
