@@ -266,7 +266,7 @@ export function DailyQuestsTab({
   const [petBubble, setPetBubble] = useState<string | null>(null);
 
   React.useEffect(() => {
-    let msg = isCohortEnded ? "本期修煉已圓滿結束，我是你的修行夥伴！" : "混沌初開...等主人帶我破殼！🐣";
+    let msg = isCohortEnded ? "本期修煉已圓滿結束，我是你的修行夥伴！" : "創造初開...等主人帶我破殼！🐣";
     if (!isCohortEnded && userPet && userPet.current_stage_index > 1) {
       if (userPet.pet_line === 'dragon') msg = "尊者降臨！今天想拆解什麼限制信念？🐉";
       else if (userPet.pet_line === 'lion') msg = "吼！目標已鎖定，讓我們以卓越執行力迅速行動！🦁";
@@ -293,7 +293,7 @@ export function DailyQuestsTab({
     let pool: string[] = [];
     if (!userPet || userPet.current_stage_index === 1) {
       pool = [
-        "混沌初開...等主人帶我破殼！🐣",
+        "創造初開...等主人帶我破殼！🐣",
         "蛋殼熱呼提示...主人加油！🔥",
         "咕嚕咕嚕...我正在吸收你的修行能量...",
         "（蛋殼輕微晃動了一下，發出微光）✨",
@@ -722,8 +722,8 @@ export function DailyQuestsTab({
     return `animate-${type}`;
   };
 
-  const stageName = activeStage?.stage_name || '混沌的蛋';
-  const stageDesc = activeStage?.description || '蘊含著無限可能的混沌的蛋，靜靜等待能量積累以尋找其未來的進化方向。';
+  const stageName = (activeStage?.stage_name || '創造的蛋').replace(/混沌/g, '創造');
+  const stageDesc = (activeStage?.description || '蘊含著無限可能的創造的蛋，靜靜等待能量積累以尋找其未來的進化方向。').replace(/混沌/g, '創造');
   const stageImage = activeStage?.image_url || ''; // 無圖時不顯示隨機備用照，改用蛋佔位（見下方渲染）
   const animationClass = getAnimationClass(activeStage?.animation_type);
   const glowColor = activeStage?.glow_color || '#A855F7';
@@ -1362,7 +1362,7 @@ export function DailyQuestsTab({
                 <span className="text-amber-400 font-bold block animate-pulse">
                   {approvedEvoLine
                     ? '考驗任務已通過！點擊下方按鈕即可直接破殼進化。'
-                    : '你的混沌的蛋已經覺醒！完成對應的神秘考驗任務，即可解鎖該方向並破殼進化。'}
+                    : '你的創造的蛋已經覺醒！完成對應的神秘考驗任務，即可解鎖該方向並破殼進化。'}
                 </span>
               ) : (
                 stageDesc
@@ -1384,7 +1384,7 @@ export function DailyQuestsTab({
               >
                 {approvedEvoLine && (!userPet || userPet.current_stage_index <= 1)
                   ? '🔥 考驗通過・立即破殼進化'
-                  : ((!userPet || userPet.current_stage_index <= 1) ? '✨ 混沌破殼・開始進化' : '✨ 靈能突破・開始進化')}
+                  : ((!userPet || userPet.current_stage_index <= 1) ? '✨ 創造破殼・開始進化' : '✨ 靈能突破・開始進化')}
               </button>
             )}
           </div>
@@ -2460,7 +2460,7 @@ export function DailyQuestsTab({
       {showConfirmEvolve && (() => {
         const isFirst = !userPet || userPet.current_stage_index <= 1;
         
-        // ── 1. 混沌的蛋初次進化：完成對應任務即可選擇進化方向 ──
+        // ── 1. 創造的蛋初次進化：完成對應任務即可選擇進化方向 ──
         if (isFirst) {
           const activeLines = [...petLines]
             .filter(l => l.is_active !== false)
@@ -2489,7 +2489,7 @@ export function DailyQuestsTab({
               <div className="glass-panel w-full max-w-3xl p-6 rounded-3xl border border-white/10 shadow-2xl relative bg-gradient-to-b from-slate-900 via-slate-950 to-slate-950 space-y-6">
                 <div className="text-center space-y-2">
                   <span className="text-[10px] font-black tracking-widest text-amber-500 bg-amber-500/10 px-2.5 py-1 rounded-md">
-                    🔮 混沌破殼・選擇你的神秘進化方向
+                    🔮 創造破殼・選擇你的神秘進化方向
                   </span>
                   <h3 className="text-lg font-black text-white">
                     選擇一個進化方向

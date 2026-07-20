@@ -1413,7 +1413,7 @@ export function PetsTab({ petLines, petStages, userPets, missionTemplates, batch
                     <option value="lion">行動力獅系</option>
                     <option value="fox">親和力狐系</option>
                     <option value="spirit">穩定靈獸系</option>
-                    <option value="none">混沌的蛋</option>
+                    <option value="none">創造的蛋</option>
                   </select>
 
                   {/* 排序方式 */}
@@ -1459,11 +1459,11 @@ export function PetsTab({ petLines, petStages, userPets, missionTemplates, batch
                       </tr>
                     ) : (
                       sortedUserPets.map(up => {
-                        const lineLabel = up.pet_line === 'dragon' ? '影響力龍系' : up.pet_line === 'lion' ? '行動力獅系' : up.pet_line === 'fox' ? '親和力狐系' : up.pet_line === 'spirit' ? '穩定靈獸系' : '無/混沌的蛋';
+                        const lineLabel = up.pet_line === 'dragon' ? '影響力龍系' : up.pet_line === 'lion' ? '行動力獅系' : up.pet_line === 'fox' ? '親和力狐系' : up.pet_line === 'spirit' ? '穩定靈獸系' : '無/創造的蛋';
                         const evolved = up.current_stage_index > 1;
                         
                         // Determine evolution status description
-                        let evolutionStatusText = '混沌的蛋';
+                        let evolutionStatusText = '創造的蛋';
                         if (evolved) {
                           evolutionStatusText = `已進化 (${up.stage?.stage_name || '神獸型態'})`;
                         } else if (up.level >= 5) {
