@@ -2267,13 +2267,13 @@ export function DailyQuestsTab({
           {/* Left / Info Area */}
           <div className="flex-1 space-y-3 text-center md:text-left">
             <h2 className="text-xl font-black bg-gradient-to-r from-yellow-300 via-amber-400 to-orange-500 bg-clip-text text-transparent light:from-amber-600 light:to-orange-700">
-              以終為始
+              C 圈祝福抽卡
             </h2>
             <p className="text-xs text-slate-400 leading-relaxed font-bold max-w-md light:text-slate-600">
-              每天可抽取一張「以終為始」修行卡。
+              每天可抽取一張「C 圈給你的祝福」卡片。
               <br />
-              <span className="text-amber-400 light:text-amber-700">今日挑戰：</span>
-              在日常對話中引導他人主動說出卡片上的雙字詞彙，完成無形中的溝通引導修煉！
+              <span className="text-amber-400 light:text-amber-700">今日祝福：</span>
+              請帶著這份祝福與覺察，度過美好的今天！
             </p>
           </div>
 
@@ -2364,10 +2364,10 @@ export function DailyQuestsTab({
                           {/* Prompt Text */}
                           <div className="space-y-2 text-center z-10">
                             <p className="text-sm font-black tracking-widest text-amber-400 uppercase">
-                              以終為始
+                              C 圈給你的祝福
                             </p>
                             <p className="text-[11px] text-slate-400 font-bold px-2 leading-relaxed animate-pulse">
-                              🔮 點擊抽取今日修行卡
+                              🔮 點擊抽取今日祝福卡
                             </p>
                           </div>
                           
@@ -2396,10 +2396,10 @@ export function DailyQuestsTab({
                           <div className="absolute bottom-3.5 right-3.5 w-3 h-3 border-b border-r border-amber-500/40 pointer-events-none" />
                           
                           <div className="text-[10px] font-black tracking-wider text-amber-400/80 uppercase z-10 flex flex-col items-center gap-0.5">
-                            <span>★ 今日以終為始修行 ★</span>
+                            <span>★ C 圈給你的祝福 ★</span>
                             {dailyDraw?.drawnDate && (
                               <span className="text-[9px] text-slate-400 font-bold bg-slate-950/40 px-2 py-0.5 rounded-full border border-white/5">
-                                修行日期：{dailyDraw.drawnDate}
+                                祝福日期：{dailyDraw.drawnDate}
                               </span>
                             )}
                           </div>
@@ -2409,16 +2409,16 @@ export function DailyQuestsTab({
                               {dailyDraw?.word}
                             </span>
                             <span className="text-[11px] text-slate-400 font-bold block mt-1">
-                              今日修煉詞
+                              今日祝福詞
                             </span>
                           </div>
                           
                           <div className="w-full space-y-2.5 z-10">
                             <p 
-                              onClick={() => showToast?.('💡 這是今日修行提醒，無須點擊提交。您只要在對話中成功引導他人說出此詞彙即可！', 'info')}
+                              onClick={() => showToast?.('💡 這是今日祝福詞，請帶著這份祝福與覺察度過美好的一天！', 'info')}
                               className="text-[11px] text-amber-400 bg-slate-950/70 border border-amber-500/30 px-3 py-2.5 rounded-xl leading-relaxed font-bold text-center shadow-inner cursor-pointer hover:bg-slate-900/80 transition-colors"
                             >
-                              🎯 引導他人說出這個詞彙以完成今日修行
+                              ✨ 這是 C 圈給你的今日祝福，請帶著這份祝福與覺察度過今天
                             </p>
                             <div className="flex items-center justify-center gap-1 text-[9px] text-slate-400 font-black">
                               <CheckCircle2 size={10} className="text-emerald-500" />
