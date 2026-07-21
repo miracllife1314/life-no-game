@@ -25,41 +25,41 @@ export interface GuideDefinition {
 }
 
 export const DEFAULT_BEGINNER_GUIDE: GuideVersionConfig = {
-  seriousSpeed: '300 EXP/天',
+  seriousSpeed: '260 EXP/天',
   seriousBullets: [
-    '每日定課：每日五感恩/肯定/VAK讚美打卡 ➔ +50 ~ +150 EXP/天',
-    '每週任務：完成每週主題實作與小組演練 ➔ +500 ~ +1000 EXP/週'
+    '每日定課：解生命數字、跟朋友連結、跟小組長回報與覆盤 ➔ +60 ~ +260 EXP/天',
+    '每週任務：分享的心得、每週小組復盤會議 ➔ +300 ~ +800 EXP/週'
   ],
-  activeSpeed: '700 EXP/天',
+  activeSpeed: '600 EXP/天',
   activeBullets: [
-    '全數打卡：每日定課 + 每週任務全通（主題任務/小組通話）➔ 平均 +350+ EXP/天',
-    '高分加碼：分享寫得好被選到上傳到見證牆額外 +200 EXP (需寫得好、照片清晰)、締結產品 (3000元以上)、填寫限時問卷等'
+    '全數打卡：每日定課 + 每週任務全通（復盤會議/心得分享）➔ 平均 +374 EXP/天',
+    '高分加碼：分享心得選上見證牆額外 +200 EXP (需寫得好、照片清晰)、參加課後課、傳愛成功等'
   ],
   offsets: [
-    { id: 'b-o1', title: '每週主題任務', points: 500, days: 1.5 },
-    { id: 'b-o2', title: '邀約 NLP 入門課', points: 500, days: 1.5 },
-    { id: 'b-o3', title: '推薦初階', points: 1500, days: 4.2, highlight: true, desc: '讓破殼修行一鍵飛越！' },
-    { id: 'b-o4', title: BRAND.retrainTitle, points: 1000, days: 2.8 },
+    { id: 'b-o1', title: '每週小組復盤會議', points: 500, days: 1.5 },
+    { id: 'b-o2', title: '分享的心得', points: 300, days: 0.9 },
+    { id: 'b-o3', title: '傳愛成功', points: 2000, days: 5.6, highlight: true, desc: '讓破殼修行一鍵飛越！' },
+    { id: 'b-o4', title: '參加課後課', points: 1000, days: 2.8 },
     { id: 'b-o5', title: '入選見證牆', points: 200, days: 0.6, desc: '(需寫得好、照片清晰)' }
   ]
 };
 
 export const DEFAULT_ADVANCED_GUIDE: GuideVersionConfig = {
-  seriousSpeed: '300 EXP/天',
+  seriousSpeed: '260 EXP/天',
   seriousBullets: [
-    '每日定課：雙定課打卡（五感恩＋肯定伴侶）➔ +100 EXP/天',
-    '每週實作：每週完成心錨/卓越圈等演練 ➔ +500 ~ +1000 EXP/週'
+    '每日定課：解生命數字、跟朋友連結、跟小組長回報與覆盤 ➔ +60 ~ +260 EXP/天',
+    '每週任務：分享的心得、每週小組復盤會議 ➔ +300 ~ +800 EXP/週'
   ],
-  activeSpeed: '700 EXP/天',
+  activeSpeed: '600 EXP/天',
   activeBullets: [
-    '全數打卡：每日定課 + 每週任務全通（影片/心錨/卓越圈）➔ 平均 +350+ EXP/天',
-    '高分加碼：分享寫得好被選到上傳到見證牆額外 +200 EXP (需寫得好、照片清晰)、完成次感元個案 3次、推薦初階等'
+    '全數打卡：每日定課 + 每週任務全通（復盤會議/心得分享）➔ 平均 +374 EXP/天',
+    '高分加碼：分享心得選上見證牆額外 +200 EXP (需寫得好、照片清晰)、參加課後課、傳愛成功等'
   ],
   offsets: [
-    { id: 'a-o1', title: '每週實作任務', points: 500, days: 1.5 },
-    { id: 'a-o2', title: '邀約 NLP 入門課', points: 500, days: 1.5 },
-    { id: 'a-o3', title: '推薦初階', points: 1500, days: 4.2, highlight: true, desc: '讓破殼修行一鍵飛越！' },
-    { id: 'a-o4', title: '完成次感元個案 3次', points: 1000, days: 2.8 },
+    { id: 'a-o1', title: '每週小組復盤會議', points: 500, days: 1.5 },
+    { id: 'a-o2', title: '分享的心得', points: 300, days: 0.9 },
+    { id: 'a-o3', title: '傳愛成功', points: 2000, days: 5.6, highlight: true, desc: '讓破殼修行一鍵飛越！' },
+    { id: 'a-o4', title: '參加課後課', points: 1000, days: 2.8 },
     { id: 'a-o5', title: '入選見證牆', points: 200, days: 0.6, desc: '(需寫得好、照片清晰)' }
   ]
 };
