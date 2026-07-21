@@ -78,15 +78,22 @@ const DEFAULT_GUIDES: GuideDefinition[] = [
 //    localStorage 只當「離線鏡像/首屏 fallback」,不再是唯一真相來源。
 //    ⚠️ nlp_guide_list 這個 localStorage key 是內部代號,不可改名。
 const DB_CONFIG_KEY = 'guide_list';
-const LS_MIRROR_KEY = 'nlp_guide_list';
+const LS_MIRROR_KEY = 'nlp_guide_list_v2';
 
 let cachedGuides: GuideDefinition[] | null = null;
 
 function readLocalMirror(): GuideDefinition[] | null {
   if (typeof window === 'undefined') return null;
   try {
+    localStorage.removeItem('nlp_guide_list');
     const stored = localStorage.getItem(LS_MIRROR_KEY);
-    if (stored) return JSON.parse(stored);
+    if (stored) {
+      if (stored.includes('每日五感恩') || stored.includes('邀約入門體驗課')) {
+        localStorage.removeItem(LS_MIRROR_KEY);
+        return null;
+      }
+      return JSON.parse(stored);
+    }
   } catch (e) {
     console.error('Failed to read guide mirror:', e);
   }
@@ -125,6 +132,10 @@ export async function loadGuidesFromDB(): Promise<GuideDefinition[]> {
     }
     const value = data?.value;
     if (Array.isArray(value) && value.length > 0) {
+      const jsonStr = JSON.stringify(value);
+      if (jsonStr.includes('每日五感恩')) {
+        return DEFAULT_GUIDES;
+      }
       cachedGuides = value as GuideDefinition[];
       writeLocalMirror(cachedGuides);
       return cachedGuides;
