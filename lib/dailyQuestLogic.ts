@@ -2,11 +2,16 @@
 // DailyQuestsTab 純邏輯輔助函式 —— 從 components/Tabs/DailyQuestsTab.tsx 抽出，行為完全不變。
 // （日期/週次判斷、倒數、進化任務判斷、神獸階段、圖片壓縮）
 // =====================================================================
-import { nowTaipei, parseTaipei } from '@/lib/time';
+import { nowTaipei, parseTaipei, parseTaipeiEnd } from '@/lib/time';
 
 // 一律以台灣時間 (UTC+8) 解讀儲存的時間字串
 export function parseLocalTime(dateStr: string | undefined | null): Date {
   return parseTaipei(dateStr);
+}
+
+// 解析結束/截止時間（日期微調至 23:59:59.999）
+export function parseLocalTimeEnd(dateStr: string | undefined | null): Date {
+  return parseTaipeiEnd(dateStr);
 }
 
 // 是否為「進化/升級任務」（這類任務強制要上傳照片）

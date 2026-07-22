@@ -3,7 +3,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Profile, Team, Batch } from '@/types';
 import { Trophy, Users, Award, Zap, Lock, Unlock, Eye, EyeOff, ShieldAlert } from 'lucide-react';
-import { nowTaipei, parseTaipei } from '@/lib/time';
+import { nowTaipei, parseTaipei, parseTaipeiEnd } from '@/lib/time';
 import { calculateLevelFromExp } from '@/lib/levelLogic';
 import { supabase } from '@/lib/supabase';
 import { formatBrandText } from '@/lib/brand';
@@ -65,8 +65,7 @@ export function LeaderboardTab({
     return currentUser.batch_id || (batches.find(b => b.status === 'active')?.id) || batches[0]?.id || '';
   });
 
-  // 從 Header 切換期數時(currentUser 會換成該期帳號),排行榜立即跟著切到該期,
-  // 不必重新整理或切到別的分頁再回來。(管理員用下方查詢選單時 currentUser 不變,不受影響)
+  // 從 Header 切換期數時(currentUser 會換成該期帳號),排行榜圖片與資訊切換到該期
   useEffect(() => {
     if (currentUser.batch_id) setSelectedBatchId(currentUser.batch_id);
   }, [currentUser.batch_id]);
@@ -74,31 +73,29 @@ export function LeaderboardTab({
   const activeBatch = batches.find(b => b.id === selectedBatchId);
   const activeBatchName = activeBatch ? activeBatch.name : '當期';
 
-  // 7 days check (7 * 24 * 60 * 60 * 1000 = 604,800,000 ms)
+  // 7 days check: 結束前 7 天內 (結束時間以當天 23:59:59 計算)
   const isWithinLast7Days = activeBatch
-    ? (new Date(activeBatch.end_date).getTime() - now.getTime()) <= 7 * 86400000
+    ? (parseTaipeiEnd(activeBatch.end_date).getTime() - now.getTime()) <= 7 * 86400000
     : false;
 
   // Rankings visible setting:
-  // - If explicitly true: visible.
-  // - If explicitly false: locked.
-  // - If undefined/null: lock if within 7 days of graduation, else visible.
+  // - true: 手動公開
+  // - false: 手動封印
   const rankingsVisibleSetting = activeBatch?.rankings_visible;
 
-  // Rankings lock status for normal students/captains
+  // Rankings lock status for normal students/captains:
+  // 倒數 7 天內強制封印（除非管理員手動點選「公開排行」`rankingsVisibleSetting === true`）
   let isRankingsLocked = false;
   if (currentUiRole !== 'admin' && activeBatch) {
-    if (rankingsVisibleSetting === false) {
-      isRankingsLocked = true;
-    } else if (rankingsVisibleSetting === true) {
-      isRankingsLocked = false;
+    if (isWithinLast7Days) {
+      isRankingsLocked = rankingsVisibleSetting !== true;
     } else {
-      isRankingsLocked = isWithinLast7Days;
+      isRankingsLocked = rankingsVisibleSetting === false;
     }
   }
 
   // Combined visibility lock flag for students view representation (used in admin UI labels)
-  const isLockedForStudents = rankingsVisibleSetting === false || (rankingsVisibleSetting !== true && isWithinLast7Days);
+  const isLockedForStudents = isWithinLast7Days ? rankingsVisibleSetting !== true : rankingsVisibleSetting === false;
 
   // Display name helpers
   const getBatchName = (batchId?: string | null) => {

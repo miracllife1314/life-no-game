@@ -3,12 +3,13 @@
 import React, { useState, useEffect } from 'react';
 import { Task, Submission, Announcement, Profile, Mission, UserPet, PetStage, Batch, PetLine, MissionTemplate } from '@/types';
 import { nowTaipei, taipeiDateStr, taipeiDay } from '@/lib/time';
+import { isBatchEnded } from '@/lib/batchStatus';
 import { supabase } from '@/lib/supabase';
 import { BRAND, formatBrandText } from '@/lib/brand';
 import { parsePetOffset } from '@/lib/petImage';
 import { safeLinkHref } from '@/lib/helpers';
 import {
-  parseLocalTime, isEvolutionTask, getActiveStage, getCountdownText,
+  parseLocalTime, parseLocalTimeEnd, isEvolutionTask, getActiveStage, getCountdownText,
   isTodayLocal, isTodayInRangeLocal, compressImage,
 } from '@/lib/dailyQuestLogic';
 import { getAllGuides, loadGuidesFromDB } from '@/lib/guideConfig';
@@ -119,7 +120,7 @@ export function DailyQuestsTab({
   const activeBatch = batches.find(b => b.id === profile.batch_id);
   const userPet = allUserPets.find(up => up.student_id === activeProfile.id) || propUserPet;
   const batchStartDate = activeBatch ? activeBatch.start_date : propBatchStartDate;
-  const isCohortEnded = profile.status === 'ended' || profile.status === 'inactive' || (activeBatch ? activeBatch.status === 'ended' : false);
+  const isCohortEnded = profile.status === 'ended' || profile.status === 'inactive' || isBatchEnded(activeBatch);
   const isUserAdvanced = !!(activeBatch?.name?.includes('進階') || activeBatch?.name?.includes('高階') || activeBatch?.name?.includes('班長班'));
   const isAdmin = profile.role === 'admin';
 
@@ -907,14 +908,14 @@ export function DailyQuestsTab({
     if (!matchesTab) return false;
 
     const publishTime = parseLocalTime(t.publish_time);
-    const deadlineTime = parseLocalTime(t.end_time);
+    const deadlineTime = parseLocalTimeEnd(t.end_time);
     const { isDone } = getTaskProgress(t.id);
 
     // 1. 未到 publish_at
     if (now.getTime() < publishTime.getTime()) return false;
 
-    // 3. 超過 end_at：前台不要顯示在進行中任務
-    if (now.getTime() > deadlineTime.getTime() && !isDone) return false;
+    // 3. 超過 end_at：過期自動從進行中任務頁面隱藏
+    if (now.getTime() > deadlineTime.getTime()) return false;
 
     // 5. 每日任務：只顯示 publish_at 在今天的每日任務
     if (t.type === 'daily') {
@@ -933,16 +934,16 @@ export function DailyQuestsTab({
         // 進化任務只在寵物進化流程出現，不列入一般任務列表
         if (isEvolutionTask(m)) return false;
         const publishTime = parseLocalTime(m.publish_at);
-        const deadlineTime = parseLocalTime(m.deadline_at);
+        const deadlineTime = parseLocalTimeEnd(m.deadline_at);
         const sub = submissions.find(s => s.mission_id === m.id);
         const isCompleted = sub && (sub.status === 'approved' || sub.status === 'pending');
 
         // 1. 未到 publish_at：前台不可顯示
         if (now.getTime() < publishTime.getTime()) return false;
 
-        // 3. 超過 end_at：前台不要顯示在進行中任務 (若已完成則保留顯示)
+        // 3. 超過 end_at：過期自動從進行中任務頁面隱藏
         //    每日任務改由「中午換日界線(dailyAnchor)」決定可見範圍,不受 deadline 過期影響。
-        if (m.mission_type !== 'daily' && now.getTime() > deadlineTime.getTime() && !isCompleted) return false;
+        if (m.mission_type !== 'daily' && now.getTime() > deadlineTime.getTime()) return false;
 
         // 5. 每日任務:以中午12點為界 —— 只顯示 publish_at 屬於「目前換日週期」那天的每日任務
         //    (午前算前一天、午後算當天)

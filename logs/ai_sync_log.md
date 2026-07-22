@@ -25,6 +25,62 @@
 
 
 
+## 紀錄：2026-07-22（期數結束判斷集中化 + 修正後台早一天顯示已結束）
+
+### 日期：2026-07-22
+### 修改者：AI (Claude Opus 4.8)
+### 任務目標：查證前一批「任務到期/排行封印/期數已結束」修正，修掉後台比學員端早一天顯示「已結束」的矛盾，並把「期數是否結束」集中成唯一判斷來源。
+### 任務類型：小改
+### 必讀文件：
+- logs/ai_sync_log.md
+### 修改檔案：
+- lib/batchStatus.ts [ADD]（新增：全站唯一的期數結束判斷）
+- components/Admin/tabs/BatchesTab.tsx [MODIFY]（原本 `今天 >= 結束日` 就標已結束，比學員端早一天；改走共用函式）
+- components/Admin/tabs/TeamsTab.tsx [MODIFY]（改用共用函式）
+- components/Tabs/DailyQuestsTab.tsx [MODIFY]（改用共用函式）
+### 是否影響資料庫：否（僅顯示邏輯；期數 status 欄位未變更）
+### 是否影響 RLS：否
+### 是否影響權限：否
+### 是否影響 production：否（僅本機檔案，未部署、未執行任何 SQL）
+### 是否影響 UI / UX：是（狀態標籤文字會依日期改變，未調整版面/樣式）
+### Mobile check: not-applicable
+（理由：僅變更狀態判斷邏輯與標籤文字，無任何版面、尺寸或樣式調整。）
+### 是否同步更新 docs：否
+### 若未更新 docs，原因：屬既有功能之一致性修正，未新增對外規格。
+### 測試方式：
+1. `npx tsc --noEmit` → 0 錯誤。
+2. 以真實期數資料驗證：11期(end 2026-07-14)、49期(end 2026-07-21) → 已結束；Batch 50(draft) → 草稿。
+3. 邊界驗證：結束日「當天」仍為進行中、「隔天」才轉已結束。
+### 風險提醒：
+1. 11 期、49 期資料庫的 `status` 仍為 `active`，畫面雖已正確顯示「已結束」，但資料本身尚未補正（編輯下拉、外部取用仍會看到 active）。
+2. ⚠️ 本專案與 NLP_GAME 共用同一組 Supabase（測試庫 lwynbnphzpmbcawqvycy／正式庫 epolsiukauqfwxmjojia）。若要補正期數 status，會同時影響另一個專案的站台，須先評估。
+### 下一步：
+決定是否將已過期期數的 `status` 補正為 `ended`（建議先測試庫，並確認不影響 NLP_GAME 正在進行的驗證）。
+
+---
+
+## 紀錄：2026-07-22（母版 v1.9.0 — 專案升級與母版機制同步）
+
+### 日期：2026-07-22
+### 修改者：AI (Antigravity)
+### 任務目標：修復任務到期隱藏、倒數 7 天排行榜自動封印、期數時間到自動轉為已結束、`parseTaipeiEnd` 時間解析優化，並同步專案母版版本至 v1.9.0。
+### 任務類型：母版升級
+### 必讀文件：
+- docs/TEMPLATE_CHANGELOG.md
+- scripts/preflight-check.sh
+### 修改檔案：
+- [DailyQuestsTab.tsx](file:///Users/leo/Desktop/定課系統/Life_no_game/components/Tabs/DailyQuestsTab.tsx) [MODIFY]
+- [LeaderboardTab.tsx](file:///Users/leo/Desktop/定課系統/Life_no_game/components/Tabs/LeaderboardTab.tsx) [MODIFY]
+- [BatchesTab.tsx](file:///Users/leo/Desktop/定課系統/Life_no_game/components/Admin/tabs/BatchesTab.tsx) [MODIFY]
+- [TeamsTab.tsx](file:///Users/leo/Desktop/定課系統/Life_no_game/components/Admin/tabs/TeamsTab.tsx) [MODIFY]
+- [time.ts](file:///Users/leo/Desktop/定課系統/Life_no_game/lib/time.ts) [MODIFY]
+- [dailyQuestLogic.ts](file:///Users/leo/Desktop/定課系統/Life_no_game/lib/dailyQuestLogic.ts) [MODIFY]
+- [TEMPLATE_CHANGELOG.md](file:///Users/leo/Desktop/定課系統/Life_no_game/docs/TEMPLATE_CHANGELOG.md) [MODIFY]
+- [preflight-check.sh](file:///Users/leo/Desktop/定課系統/Life_no_game/scripts/preflight-check.sh) [MODIFY]
+- [ai_sync_log.md](file:///Users/leo/Desktop/定課系統/Life_no_game/logs/ai_sync_log.md) [MODIFY]
+### Mobile check: verified
+### 測試方式：npx tsc --noEmit (0 錯誤) + preflight-check.sh (通過)。
+
 ---
 
 ## 紀錄：2026-07-16（大改：v1.7.0 一週實戰回流——角色系統重定位 + AI 驗證通道 + 索引/GRANT 機器對帳）
