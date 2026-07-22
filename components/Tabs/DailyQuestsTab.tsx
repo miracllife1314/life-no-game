@@ -2267,15 +2267,13 @@ export function DailyQuestsTab({
           {/* Left / Info Area */}
           <div className="flex-1 space-y-3 text-center md:text-left">
             <h2 className="text-xl font-black bg-gradient-to-r from-yellow-300 via-amber-400 to-orange-500 bg-clip-text text-transparent light:from-amber-600 light:to-orange-700">
-              {BRAND.key === 'ascension' ? 'C 圈祝福抽卡' : '以終為始每日抽卡'}
+              以終為始每日抽卡
             </h2>
             <p className="text-xs text-slate-400 leading-relaxed font-bold max-w-md light:text-slate-600">
-              {BRAND.key === 'ascension' ? '每天可抽取一張「C 圈給你的祝福」卡片。' : '每天可抽取一張「以終為始」卡片。'}
+              每天可抽取一張「以終為始」卡片。
               <br />
-              <span className="text-amber-400 light:text-amber-700">
-                {BRAND.key === 'ascension' ? '今日祝福：' : '今日修煉詞彙：'}
-              </span>
-              {BRAND.key === 'ascension' ? '請帶著這份祝福與覺察，度過美好的今天！' : '嘗試在對話中引導他人說出此詞彙！'}
+              <span className="text-amber-400 light:text-amber-700">今日修煉詞彙：</span>
+              嘗試在對話中引導他人說出此詞彙！
             </p>
           </div>
 
@@ -2366,10 +2364,10 @@ export function DailyQuestsTab({
                           {/* Prompt Text */}
                           <div className="space-y-2 text-center z-10">
                             <p className="text-sm font-black tracking-widest text-amber-400 uppercase">
-                              {BRAND.key === 'ascension' ? 'C 圈給你的祝福' : '以終為始每日抽卡'}
+                              以終為始每日抽卡
                             </p>
                             <p className="text-[11px] text-slate-400 font-bold px-2 leading-relaxed animate-pulse">
-                              {BRAND.key === 'ascension' ? '🔮 點擊抽取今日祝福卡' : '🔮 點擊抽取今日修煉詞彙'}
+                              🔮 點擊抽取今日修煉詞彙
                             </p>
                           </div>
                           
@@ -2398,10 +2396,10 @@ export function DailyQuestsTab({
                           <div className="absolute bottom-3.5 right-3.5 w-3 h-3 border-b border-r border-amber-500/40 pointer-events-none" />
                           
                           <div className="text-[10px] font-black tracking-wider text-amber-400/80 uppercase z-10 flex flex-col items-center gap-0.5">
-                            <span>{BRAND.key === 'ascension' ? '★ C 圈給你的祝福 ★' : '★ 以終為始 ★'}</span>
+                            <span>★ 以終為始 ★</span>
                             {dailyDraw?.drawnDate && (
                               <span className="text-[9px] text-slate-400 font-bold bg-slate-950/40 px-2 py-0.5 rounded-full border border-white/5">
-                                {BRAND.key === 'ascension' ? '祝福日期：' : '抽卡日期：'}{dailyDraw.drawnDate}
+                                抽卡日期：{dailyDraw.drawnDate}
                               </span>
                             )}
                           </div>
@@ -2411,18 +2409,16 @@ export function DailyQuestsTab({
                               {dailyDraw?.word}
                             </span>
                             <span className="text-[11px] text-slate-400 font-bold block mt-1">
-                              {BRAND.key === 'ascension' ? '今日祝福詞' : '今日修煉詞彙'}
+                              今日修煉詞彙
                             </span>
                           </div>
                           
                           <div className="w-full space-y-2.5 z-10">
                             <p 
-                              onClick={() => showToast?.(BRAND.key === 'ascension' ? '💡 這是今日祝福詞，請帶著這份祝福與覺察度過美好的一天！' : '💡 嘗試在今日對話中引導他人說出此詞彙！', 'info')}
+                              onClick={() => showToast?.('💡 嘗試在今日對話中引導他人說出此詞彙！', 'info')}
                               className="text-[11px] text-amber-400 bg-slate-950/70 border border-amber-500/30 px-3 py-2.5 rounded-xl leading-relaxed font-bold text-center shadow-inner cursor-pointer hover:bg-slate-900/80 transition-colors"
                             >
-                              {BRAND.key === 'ascension' 
-                                ? '✨ 這是 C 圈給你的今日祝福，請帶著這份祝福與覺察度過今天'
-                                : '🎯 引導他人說出這個詞彙以完成今日修行'}
+                              🎯 引導他人說出這個詞彙以完成今日修行
                             </p>
                             <div className="flex items-center justify-center gap-1 text-[9px] text-slate-400 font-black">
                               <CheckCircle2 size={10} className="text-emerald-500" />
