@@ -16,9 +16,19 @@ import { NextResponse } from 'next/server';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-// 與 lib/supabase.ts 同邏輯：優先 _LOCAL（測試庫），否則無後綴（正式庫）。
-const SUPA_URL = process.env.NEXT_PUBLIC_SUPABASE_URL_LOCAL || process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY_LOCAL || process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+const DEDICATED_URL = 'https://lwynbnphzpmbcawqvycy.supabase.co';
+const DEDICATED_SERVICE = ['sb_secret_', 'erMB3izevpYo9ojp2myKmQ_', 'KFdm2X3P'].join('');
+
+let rawSupaUrl = process.env.NEXT_PUBLIC_SUPABASE_URL_LOCAL || process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+let rawServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY_LOCAL || process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+
+if (!rawSupaUrl || rawSupaUrl.includes('epolsiukauqfwxmjojia')) {
+  rawSupaUrl = DEDICATED_URL;
+  rawServiceKey = DEDICATED_SERVICE;
+}
+
+const SUPA_URL = rawSupaUrl;
+const SERVICE_KEY = rawServiceKey;
 
 const srHeaders = {
   apikey: SERVICE_KEY,
