@@ -5,6 +5,7 @@
 import { useState, useEffect } from 'react';
 import { Settings, ShieldCheck, UserPlus } from 'lucide-react';
 import { Profile, Team, Batch, StudentNote, CaptainCandidate, UserRole } from '@/types';
+import { isBatchEnded } from '@/lib/batchStatus';
 
 const QUEST_ROLES_DEFS = [
   { id: 'role-lantern', name: '提燈人', duties: ['協助引導隊員打卡', '記錄分享會要點'] },
@@ -935,13 +936,17 @@ export function TeamsTab({ profiles, teams, batches, captainCandidates, notes, c
                             ) : '—'}
                           </td>
                           <td className="p-3 text-slate-200 light:text-slate-800 select-none">
-                            {(!p.status || p.status === 'active') ? (
-                              <span className="text-emerald-400 font-black">進行中</span>
-                            ) : p.status === 'ended' ? (
-                              <span className="text-slate-400 font-bold">已結束</span>
-                            ) : (
-                              <span className="text-red-400 font-bold">已停用</span>
-                            )}
+                            {(() => {
+                              const batchEnded = isBatchEnded(batch);
+                              const effectiveStatus = (p.status === 'ended' || batchEnded) ? 'ended' : (p.status === 'inactive' ? 'inactive' : 'active');
+                              return effectiveStatus === 'active' ? (
+                                <span className="text-emerald-400 font-black">進行中</span>
+                              ) : effectiveStatus === 'ended' ? (
+                                <span className="text-slate-400 font-bold">已結束</span>
+                              ) : (
+                                <span className="text-red-400 font-bold">已停用</span>
+                              );
+                            })()}
                           </td>
                           <td className="p-3 text-right font-black text-amber-500 select-none">{p.score.toLocaleString()}</td>
                           <td className="p-3 text-center">

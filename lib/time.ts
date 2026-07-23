@@ -32,6 +32,18 @@ export function parseTaipei(dateStr?: string | null): Date {
   return new Date(safe.replace(' ', 'T'));
 }
 
+// 解析結束時間字串：若只有日期（如 2026-07-22）或 midnight (00:00:00)，設為該日深夜 23:59:59.999
+export function parseTaipeiEnd(dateStr?: string | null): Date {
+  if (!dateStr) return nowTaipei();
+  const stripped = dateStr.replace(/(Z|[+-]\d{2}:?\d{2})$/, '');
+  const [datePart, timePart] = stripped.split(/[T ]/);
+  if (!timePart || timePart.startsWith('00:00')) {
+    return new Date(`${datePart}T23:59:59.999`);
+  }
+  return new Date(stripped.replace(' ', 'T'));
+}
+
+
 // 產生台灣時間的日期字串（YYYY-MM-DD），用於寫入需要「台灣牆上時鐘」的欄位
 export function taipeiDateStr(d: Date = nowTaipei()): string {
   const p = (n: number) => String(n).padStart(2, '0');

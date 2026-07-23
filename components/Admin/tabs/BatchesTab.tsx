@@ -5,6 +5,8 @@ import { useState } from 'react';
 import { Calendar } from 'lucide-react';
 import { Batch, Team } from '@/types';
 import { BRAND } from '@/lib/brand';
+import { parseTaipeiEnd } from '@/lib/time';
+import { getEffectiveBatchStatus } from '@/lib/batchStatus';
 
 interface BatchesTabProps {
   batches: Batch[];
@@ -178,6 +180,9 @@ export function BatchesTab({ batches, teams, isSyncing, onCreateBatch, onUpdateB
                   {batches.map(batch => {
                     const isEditing = editingBatchId === batch.id;
                     const teamCount = teams.filter(t => t.batch_id === batch.id).length;
+                    // 期數是否結束一律走共用判斷(lib/batchStatus),全站一致。
+                    const effectiveStatus = getEffectiveBatchStatus(batch);
+
                     return (
                       <tr key={batch.id} className="hover:bg-white/[0.01] light:hover:bg-slate-100/30">
                         {isEditing ? (
@@ -255,22 +260,22 @@ export function BatchesTab({ batches, teams, isSyncing, onCreateBatch, onUpdateB
                             <td className="p-3 text-center text-amber-500 font-bold font-mono">{teamCount} 組</td>
                             <td className="p-3 text-center select-none">
                               <span className={`text-[10px] font-black px-2 py-0.5 rounded ${
-                                batch.status === 'active'
+                                effectiveStatus === 'active'
                                   ? 'bg-emerald-500/10 text-emerald-400'
-                                  : batch.status === 'draft'
+                                  : effectiveStatus === 'draft'
                                   ? 'bg-amber-500/10 text-amber-500'
                                   : 'bg-slate-800 text-slate-400'
                               }`}>
-                                {batch.status === 'active'
+                                {effectiveStatus === 'active'
                                   ? '進行中'
-                                  : batch.status === 'draft'
+                                  : effectiveStatus === 'draft'
                                   ? '草稿'
                                   : '已結束'}
                               </span>
                             </td>
                             <td className="p-3 text-center select-none">
                               {(() => {
-                                const isEndWithin7Days = (new Date(batch.end_date).getTime() - Date.now()) <= 7 * 86400000;
+                                const isEndWithin7Days = (parseTaipeiEnd(batch.end_date).getTime() - Date.now()) <= 7 * 86400000;
                                 return (
                                   <span className={`text-[10px] font-black px-2 py-0.5 rounded ${
                                     batch.rankings_visible === true
@@ -300,8 +305,8 @@ export function BatchesTab({ batches, teams, isSyncing, onCreateBatch, onUpdateB
                                 編輯期數
                               </button>
                               {(() => {
-                                const isEndWithin7Days = (new Date(batch.end_date).getTime() - Date.now()) <= 7 * 86400000;
-                                const isCurrentlyLocked = batch.rankings_visible === false || (batch.rankings_visible !== true && isEndWithin7Days);
+                                const isEndWithin7Days = (parseTaipeiEnd(batch.end_date).getTime() - Date.now()) <= 7 * 86400000;
+                                const isCurrentlyLocked = isEndWithin7Days ? batch.rankings_visible !== true : batch.rankings_visible === false;
                                 return (
                                   <button
                                     onClick={() => onUpdateBatch?.(batch.id, { rankings_visible: isCurrentlyLocked })}

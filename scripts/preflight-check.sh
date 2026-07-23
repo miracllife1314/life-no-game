@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =============================================================
-# preflight-check.sh — 紅線掃描（機器護欄）  v1.7.0
+# preflight-check.sh — 紅線掃描（機器護欄）  v1.9.0
 #
 # 這是輔助護欄，不取代人工審查。
 # 目前需手動執行；待專案 git init 後，應掛成 .git/hooks/pre-commit
