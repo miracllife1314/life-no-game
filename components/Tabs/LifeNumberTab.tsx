@@ -222,31 +222,6 @@ export function LifeNumberTab({ currentUser, showToast }: LifeNumberTabProps) {
       {report && (
         <div className="space-y-6 animate-in slide-in-from-bottom duration-300">
           
-          {/* Action Bar */}
-          <div className="flex gap-3">
-            <button
-              onClick={handleSaveResult}
-              disabled={isSaved}
-              className={`flex-1 font-black py-3 px-4 rounded-2xl border transition-all active:scale-98 cursor-pointer flex items-center justify-center gap-2 text-xs uppercase tracking-wider ${
-                isSaved
-                  ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 cursor-default'
-                  : 'bg-slate-900 border-white/5 text-slate-300 hover:bg-slate-800 hover:text-white light:bg-white light:border-slate-300 light:text-slate-700 light:hover:bg-slate-50'
-              }`}
-            >
-              {isSaved ? (
-                <>
-                  <Check size={14} />
-                  已儲存到我的紀錄
-                </>
-              ) : (
-                <>
-                  <Save size={14} />
-                  儲存這次結果
-                </>
-              )}
-            </button>
-          </div>
-
           {/* Houtian & Life Chain Card */}
           <div className="glass-panel p-6 rounded-3xl border border-white/5 text-center space-y-4 light:bg-white light:border-slate-200">
             {name && (
@@ -710,6 +685,29 @@ export function LifeNumberTab({ currentUser, showToast }: LifeNumberTabProps) {
               </div>
             )}
           </div>
+
+          {/* 儲存按鈕:放最下面、我的紀錄正上方,明顯好按 */}
+          <button
+            onClick={handleSaveResult}
+            disabled={isSaved}
+            className={`w-full font-black py-4 px-4 rounded-2xl transition-all active:scale-98 flex items-center justify-center gap-2 text-sm ${
+              isSaved
+                ? 'bg-emerald-500/15 border border-emerald-500/40 text-emerald-400 cursor-default'
+                : 'bg-gradient-to-r from-red-500 to-orange-500 text-white shadow-lg shadow-red-500/30 hover:brightness-110 cursor-pointer'
+            }`}
+          >
+            {isSaved ? (
+              <>
+                <Check size={18} />
+                已儲存到我的紀錄
+              </>
+            ) : (
+              <>
+                <Save size={18} />
+                儲存這次結果到「我的紀錄」
+              </>
+            )}
+          </button>
         </div>
       )}
 
