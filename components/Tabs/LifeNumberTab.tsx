@@ -7,6 +7,7 @@ import {
   ChevronDown, ChevronUp, Save
 } from 'lucide-react';
 import { parseNumerologyInput, generateReport, NumerologyReport, GridCell } from '@/lib/numerologyCalc';
+import { supabase } from '@/lib/supabase';
 
 interface SavedRecord {
   id: string;
@@ -31,31 +32,29 @@ export function LifeNumberTab({ currentUser, showToast }: LifeNumberTabProps) {
   // Collapse sections
   const [showFullText, setShowFullText] = useState(false);
 
-  // Load history from localStorage on mount
+  // 「我的紀錄」存在資料庫(life_number_records),綁定 student_id=本帳號。
+  // RLS 只讓「本人(auth.uid()=profiles.auth_user_id)＋管理員」讀寫 →
+  // 跨裝置都看得到自己的,別人的帳號看不到。詳見 docs/schema_fixes_life_number_records.sql。
   useEffect(() => {
     loadSavedList();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUser?.id]);
 
-  const loadSavedList = () => {
-    if (typeof window !== 'undefined') {
-      try {
-        const stored = localStorage.getItem('nlp_lifenumber_history');
-        if (stored) {
-          setSavedList(JSON.parse(stored));
-        } else {
-          // Pre-seed default test records so that it's not empty on first load
-          const defaultRecords: SavedRecord[] = [
-            { id: 'seed-1', name: '測試gm', birthday: '1988-08-08', lifeNumber: 5 },
-            { id: 'seed-2', name: '測試劉定洋', birthday: '1985-05-15', lifeNumber: 7 },
-            { id: 'seed-3', name: '測試蘇士淵', birthday: '1990-10-10', lifeNumber: 4 }
-          ];
-          localStorage.setItem('nlp_lifenumber_history', JSON.stringify(defaultRecords));
-          setSavedList(defaultRecords);
-        }
-      } catch (e) {
-        console.error('Failed to load history', e);
-      }
+  const loadSavedList = async () => {
+    if (!currentUser?.id || !supabase) { setSavedList([]); return; }
+    const { data, error } = await supabase
+      .from('life_number_records')
+      .select('id, name, birthday, life_number')
+      .eq('student_id', currentUser.id)
+      .order('created_at', { ascending: false });
+    if (error) {
+      console.error('載入生命數字紀錄失敗', error);
+      setSavedList([]);
+      return;
     }
+    setSavedList((data || []).map((r: any) => ({
+      id: r.id, name: r.name, birthday: r.birthday, lifeNumber: r.life_number,
+    })));
   };
 
   const handleCalculate = (e: React.FormEvent) => {
@@ -83,40 +82,53 @@ export function LifeNumberTab({ currentUser, showToast }: LifeNumberTabProps) {
     setIsSaved(exists);
   };
 
-  const handleSaveResult = () => {
+  const handleSaveResult = async () => {
     if (!report) return;
+    if (!currentUser?.id || !supabase) { showToast?.('請先登入才能儲存紀錄', 'error'); return; }
     const cleanName = name.trim();
     const bd = report.birth
       ? `${report.birth.birthDigits.slice(0, 4)}-${report.birth.birthDigits.slice(4, 6)}-${report.birth.birthDigits.slice(6, 8)}`
       : '';
+    const recName = cleanName || '未命名';
 
-    const newRecord: SavedRecord = {
-      id: Date.now().toString(),
-      name: cleanName || '未命名',
+    // 同一帳號、同名同生日視為同一筆 → 先刪舊的再插入(等同「更新」),避免重複。
+    await supabase.from('life_number_records')
+      .delete()
+      .eq('student_id', currentUser.id)
+      .eq('name', recName)
+      .eq('birthday', bd);
+
+    const { error } = await supabase.from('life_number_records').insert({
+      student_id: currentUser.id,
+      name: recName,
       birthday: bd,
-      lifeNumber: report.lifeNumber,
-    };
-
-    const updated = [newRecord, ...savedList.filter(x => !(x.name === newRecord.name && x.birthday === newRecord.birthday))];
-    localStorage.setItem('nlp_lifenumber_history', JSON.stringify(updated));
-    setSavedList(updated);
-    setIsSaved(true);
-
-    if (showToast) {
-      showToast('測算結果已儲存到「我的紀錄」', 'success');
+      life_number: report.lifeNumber,
+    });
+    if (error) {
+      console.error('儲存生命數字紀錄失敗', error);
+      showToast?.('儲存失敗,請稍後再試 🙏', 'error');
+      return;
     }
+    await loadSavedList();
+    setIsSaved(true);
+    showToast?.('測算結果已儲存到「我的紀錄」', 'success');
   };
 
-  const handleDeleteRecord = (id: string, e: React.MouseEvent) => {
+  const handleDeleteRecord = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
+    if (!supabase) return;
     const target = savedList.find(x => x.id === id);
     const who = target ? `「${target.name}」` : '這筆';
-    
+
     if (confirm(`確定要刪除${who}的測算紀錄嗎？`)) {
-      const updated = savedList.filter((item) => item.id !== id);
-      localStorage.setItem('nlp_lifenumber_history', JSON.stringify(updated));
-      setSavedList(updated);
-      if (showToast) showToast('紀錄已刪除', 'info');
+      const { error } = await supabase.from('life_number_records').delete().eq('id', id);
+      if (error) {
+        console.error('刪除生命數字紀錄失敗', error);
+        showToast?.('刪除失敗,請稍後再試 🙏', 'error');
+        return;
+      }
+      setSavedList((prev) => prev.filter((item) => item.id !== id));
+      showToast?.('紀錄已刪除', 'info');
     }
   };
 
