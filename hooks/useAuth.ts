@@ -43,6 +43,8 @@ export function useAuth({
       const safePhone = (phone || '').trim();
 
       let apiProfile: any = null;
+      let apiErrorMessage: string | null = null;
+
       if (USE_REAL_AUTH && typeof (supabase as any)?.auth?.verifyOtp === 'function') {
         try {
           const res = await fetch('/api/auth/login', {
@@ -50,20 +52,33 @@ export function useAuth({
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ name: safeName, phone: safePhone }),
           });
-          if (res.ok) {
-            const { token_hash, profile: p } = await res.json();
-            if (token_hash) {
-              await supabase.auth.verifyOtp({ token_hash, type: 'email' });
+          const resData = await res.json().catch(() => ({}));
+          if (res.ok && resData.profile) {
+            apiProfile = resData.profile;
+            if (resData.token_hash) {
+              try {
+                await supabase.auth.verifyOtp({ token_hash: resData.token_hash, type: 'email' });
+              } catch (vErr) {
+                console.warn('[auth] verifyOtp non-fatal warning on mobile:', vErr);
+              }
             }
-            // 後端已回傳該學員 profile → 省下前端再查一次 profiles(實測約 -339ms)
-            apiProfile = p || null;
+          } else if (res.status === 404 || resData.error === 'not_found') {
+            apiErrorMessage = '姓名與手機號碼（通行證）不符，請再確認後重試';
+          } else if (res.status === 429) {
+            apiErrorMessage = '登入嘗試次數過多，請稍後再試';
+          } else if (resData.error) {
+            apiErrorMessage = `登入失敗：${resData.error}`;
           }
         } catch (e) {
           console.warn('[auth] 後端核發 session 失敗，退回姓名+電話比對：', e);
         }
       }
 
-      // 只有「後端沒回 profile」(USE_REAL_AUTH 關閉或 API 失敗)才退回前端自查 —— 保留安全退路
+      if (apiErrorMessage) {
+        throw new Error(apiErrorMessage);
+      }
+
+      // 只有「後端沒回 profile」(USE_REAL_AUTH 關閉或 API 失敗)才退回前端自查
       let profile: any = apiProfile;
       if (!profile) {
         const { data, error } = await supabase
