@@ -26,6 +26,24 @@ export function useAdminMisc({ currentUser, setIsSyncing, fetchData, userPets }:
     await fetchData();
   };
 
+  // 批次建立任務(臨時任務套組「一鍵發布」用):一次 insert 多筆 + 只刷新一次。回傳是否成功。
+  const handleCreateTasksBulk = async (
+    tasksData: Omit<Task, 'id' | 'created_at' | 'created_by'>[],
+  ): Promise<boolean> => {
+    if (!currentUser) return false;
+    if (!tasksData.length) return false;
+    const rows = tasksData.map(t => ({
+      id: crypto.randomUUID(),
+      ...t,
+      created_by: currentUser.id,
+      created_at: new Date().toISOString(),
+    }));
+    const { error } = await supabase.from('tasks').insert(rows);
+    if (error) { console.error(error); alert('批次建立任務失敗：' + error.message); return false; }
+    await fetchData();
+    return true;
+  };
+
   const handleDeleteTask = async (taskId: string) => {
     const { error } = await supabase.from('tasks').delete().eq('id', taskId);
     if (error) { console.error(error); alert('刪除任務失敗：' + error.message); return; }
@@ -241,7 +259,7 @@ export function useAdminMisc({ currentUser, setIsSyncing, fetchData, userPets }:
   };
 
   return {
-    handleCreateTask, handleDeleteTask, handleUpdateTask,
+    handleCreateTask, handleCreateTasksBulk, handleDeleteTask, handleUpdateTask,
     handleAddCaptainCandidate, handleUpdateCaptainCandidate, handleDeleteCaptainCandidate,
     handleCreateMissionTemplate, handleUpdateMissionTemplate, handleDeleteMissionTemplate,
     handleDeleteMission, handleUpdateMission, handleManualAdjustScore,

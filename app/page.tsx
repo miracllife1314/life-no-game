@@ -561,7 +561,7 @@ export default function Home() {
   });
 
   const {
-    handleCreateTask, handleDeleteTask, handleUpdateTask,
+    handleCreateTask, handleCreateTasksBulk, handleDeleteTask, handleUpdateTask,
     handleAddCaptainCandidate, handleUpdateCaptainCandidate, handleDeleteCaptainCandidate,
     handleCreateMissionTemplate, handleUpdateMissionTemplate, handleDeleteMissionTemplate,
     handleDeleteMission, handleUpdateMission, handleManualAdjustScore,
@@ -1086,6 +1086,7 @@ export default function Home() {
             onUpdatePetLine={handleUpdatePetLine}
             onReviewSubmission={handleReviewSubmission}
             onCreateTask={handleCreateTask}
+            onCreateTasksBulk={handleCreateTasksBulk}
             onDeleteTask={handleDeleteTask}
             onUpdateTask={handleUpdateTask}
             onAssignTeam={handleAssignTeam}
