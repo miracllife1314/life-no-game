@@ -992,7 +992,7 @@ export default function Home() {
 
         {activeTab === 'lifenumber' && (
           <LifeNumberTab
-            currentUser={currentUser}
+            currentUser={panelUser}
             showToast={showToast}
           />
         )}
