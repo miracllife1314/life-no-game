@@ -286,11 +286,29 @@ export function LifeNumberTab({ currentUser, showToast }: LifeNumberTabProps) {
             <div className="grid grid-cols-3 gap-4 max-w-sm mx-auto">
               {report.grid.cells.map((cell) => {
                 const { digit: d, circles, triangle, square } = cell;
-                const marked = circles > 0 || triangle || square;
+                const marked = circles > 0 || triangle > 0 || square > 0;
                 const circlesList = [];
                 for (let i = 0; i < circles; i++) {
                   const r = 32 - (circles - 1) * 6 + i * 12;
                   circlesList.push(r);
+                }
+                // 三角形:有幾個就畫幾個,由外而內層層縮小(主數 11 → 兩個,看得出來)
+                const triCentroid = { x: 50, y: 61.3 };
+                const triBase = [[50, 8], [92, 88], [8, 88]];
+                const triList = [];
+                for (let i = 0; i < triangle; i++) {
+                  const s = 1 - (triangle - 1 - i) * 0.22;   // 最內圈最小,最外圈原尺寸
+                  triList.push(
+                    triBase
+                      .map(([x, y]) => `${triCentroid.x + (x - triCentroid.x) * s},${triCentroid.y + (y - triCentroid.y) * s}`)
+                      .join(' ')
+                  );
+                }
+                // 正方形:同理,有幾個畫幾個(由外而內內縮)
+                const sqList = [];
+                for (let i = 0; i < square; i++) {
+                  const inset = (square - 1 - i) * 9;
+                  sqList.push({ x: 12 + inset, y: 12 + inset, w: 76 - inset * 2, h: 76 - inset * 2 });
                 }
                 return (
                   <div 
@@ -309,25 +327,27 @@ export function LifeNumberTab({ currentUser, showToast }: LifeNumberTabProps) {
                           strokeWidth="4"
                         />
                       ))}
-                      {triangle && (
-                        <polygon 
-                          points="50,8 92,88 8,88" 
-                          fill="none" 
-                          stroke="#10b981" 
+                      {triList.map((pts, idx) => (
+                        <polygon
+                          key={`t${idx}`}
+                          points={pts}
+                          fill="none"
+                          stroke="#10b981"
                           strokeWidth="4"
                         />
-                      )}
-                      {square && (
-                        <rect 
-                          x="12" 
-                          y="12" 
-                          width="76" 
-                          height="76" 
-                          fill="none" 
-                          stroke="#ef4444" 
+                      ))}
+                      {sqList.map((r, idx) => (
+                        <rect
+                          key={`s${idx}`}
+                          x={r.x}
+                          y={r.y}
+                          width={r.w}
+                          height={r.h}
+                          fill="none"
+                          stroke="#ef4444"
                           strokeWidth="4"
                         />
-                      )}
+                      ))}
                       <text
                         x="50"
                         y="52"

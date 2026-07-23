@@ -25,8 +25,8 @@ export interface ParseResult {
 export interface GridCell {
   digit: number;
   circles: number;
-  triangle: boolean;
-  square: boolean;
+  triangle: number;   // 幾個三角形(後天/中間數重複幾次就幾個,如主數 11 → 兩個)
+  square: number;     // 幾個正方形
 }
 
 export interface FiveFortuneDetail {
@@ -307,14 +307,23 @@ function buildClosing(core: any): string {
 
 function buildGrid(parsed: ParseResult) {
   let circleCounts: Record<number, number>;
-  let triangleSet: Set<number>;
-  let squareSet: Set<number>;
+  let triangleCounts: Record<number, number>;
+  let squareCounts: Record<number, number>;
   let incomplete: boolean;
+
+  const countDigits = (arr: number[]): Record<number, number> => {
+    const m: Record<number, number> = {};
+    for (let i = 1; i <= 9; i++) m[i] = 0;
+    arr.forEach((d) => { if (d >= 1 && d <= 9) m[d]++; });
+    return m;
+  };
 
   if (parsed.mode === 'birthday' && parsed.birth) {
     circleCounts = parsed.birth.birthCounts;
-    triangleSet = new Set(parsed.birth.triangleDigits);
-    squareSet = new Set(parsed.birth.squareDigits);
+    // ⚠️ 用「數量」不用 Set —— 主數(如 11)後天/中間數會有重複數字,
+    //    要畫成幾個三角形才看得出來,不能被 Set 去重成一個。
+    triangleCounts = countDigits(parsed.birth.triangleDigits);
+    squareCounts = countDigits(parsed.birth.squareDigits);
     incomplete = false;
   } else {
     circleCounts = {};
@@ -326,8 +335,8 @@ function buildGrid(parsed: ParseResult) {
         const d = Number(c);
         if (d >= 1 && d <= 9) circleCounts[d]++;
       });
-    triangleSet = new Set();
-    squareSet = new Set();
+    triangleCounts = countDigits([]);
+    squareCounts = countDigits([]);
     incomplete = true;
   }
   const cells = [];
@@ -335,8 +344,8 @@ function buildGrid(parsed: ParseResult) {
     cells.push({
       digit: d,
       circles: circleCounts[d] || 0,
-      triangle: triangleSet.has(d),
-      square: squareSet.has(d),
+      triangle: triangleCounts[d] || 0,
+      square: squareCounts[d] || 0,
     });
   }
   return { cells, incomplete };
