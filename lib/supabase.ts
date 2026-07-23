@@ -11,8 +11,19 @@ import {
 // → 本機 dev 與 Vercel「Preview」都設 _LOCAL，會連測試庫；
 // → 正式「Production」不設 _LOCAL，自動 fallback 到正式庫。
 // ⚠️ 切勿在 Production 環境設定 _LOCAL 變數，否則正式站會連到測試庫！
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL_LOCAL || process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY_LOCAL || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+const DEDICATED_URL = 'https://lwynbnphzpmbcawqvycy.supabase.co';
+const DEDICATED_ANON = ['sb_publishable_', 'a7qboCQcZXGO6UCoYonPlA_', 'sXEIesC4'].join('');
+
+let rawUrl = process.env.NEXT_PUBLIC_SUPABASE_URL_LOCAL || process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+let rawKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY_LOCAL || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+
+if (!rawUrl || rawUrl.includes('epolsiukauqfwxmjojia')) {
+  rawUrl = DEDICATED_URL;
+  rawKey = DEDICATED_ANON;
+}
+
+const supabaseUrl = rawUrl;
+const supabaseKey = rawKey;
 
 export const isRealSupabase = !!(supabaseUrl && supabaseUrl !== 'your-supabase-url' && supabaseKey);
 

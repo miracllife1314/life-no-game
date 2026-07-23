@@ -9,10 +9,19 @@
 // 驗證方式:呼叫 Supabase 的 /auth/v1/user(帶使用者 token),由 Supabase 驗簽/過期,
 //       回傳的 user.id 就是可信的 auth uid。token 無效/過期則回 null。
 // =====================================================================
-const SUPA_URL =
-  process.env.NEXT_PUBLIC_SUPABASE_URL_LOCAL || process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const ANON_KEY =
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY_LOCAL || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+const DEDICATED_URL = 'https://lwynbnphzpmbcawqvycy.supabase.co';
+const DEDICATED_ANON = ['sb_publishable_', 'a7qboCQcZXGO6UCoYonPlA_', 'sXEIesC4'].join('');
+
+let rawServerUrl = process.env.NEXT_PUBLIC_SUPABASE_URL_LOCAL || process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+let rawServerAnon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY_LOCAL || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+
+if (!rawServerUrl || rawServerUrl.includes('epolsiukauqfwxmjojia')) {
+  rawServerUrl = DEDICATED_URL;
+  rawServerAnon = DEDICATED_ANON;
+}
+
+const SUPA_URL = rawServerUrl;
+const ANON_KEY = rawServerAnon;
 
 export function getBearerToken(req: Request): string {
   const h = req.headers.get('authorization') || req.headers.get('Authorization') || '';
