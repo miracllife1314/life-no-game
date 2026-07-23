@@ -66,6 +66,7 @@ interface AdminDashboardProps {
   onUpdatePetLine?: (lineId: string, updatedFields: Partial<PetLine>) => Promise<void>;
   onReviewSubmission: (submissionId: string, status: 'approved' | 'rejected', shareToWitness?: boolean) => Promise<void>;
   onCreateTask: (taskData: Omit<Task, 'id' | 'created_at' | 'created_by'>) => Promise<void>;
+  onCreateTasksBulk: (tasksData: Omit<Task, 'id' | 'created_at' | 'created_by'>[]) => Promise<boolean>;
   onDeleteTask: (taskId: string) => Promise<void>;
   onUpdateTask?: (taskId: string, updates: Partial<Task>) => Promise<boolean | void>;
   onAssignTeam: (studentId: string, teamId: string | null, role: UserRole, batchId?: string | null, divisionName?: string | null, directorId?: string | null, status?: 'active' | 'ended' | 'inactive') => Promise<void>;
@@ -152,6 +153,7 @@ export function AdminDashboard({
   batchMissionTemplates,
   onReviewSubmission,
   onCreateTask,
+  onCreateTasksBulk,
   onDeleteTask,
   onUpdateTask,
   onAssignTeam,
@@ -320,6 +322,7 @@ export function AdminDashboard({
           missionCategories={missionCategories}
           isSyncing={isSyncing}
           onCreateTask={onCreateTask}
+          onCreateTasksBulk={onCreateTasksBulk}
           onDeleteTask={onDeleteTask}
           onUpdateTask={onUpdateTask}
         />

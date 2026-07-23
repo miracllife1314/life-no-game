@@ -5,6 +5,7 @@ import { useState, useMemo } from 'react';
 import { Plus, Trash2, X, Pencil } from 'lucide-react';
 import { Task, Batch, TaskType, TaskTargetType } from '@/types';
 import { formatBrandText } from '@/lib/brand';
+import { TaskBundlesSection } from './TaskBundlesSection';
 
 
 interface TasksTabProps {
@@ -13,11 +14,12 @@ interface TasksTabProps {
   missionCategories: string[];
   isSyncing: boolean;
   onCreateTask: (taskData: Omit<Task, 'id' | 'created_at' | 'created_by'>) => Promise<void>;
+  onCreateTasksBulk: (tasksData: Omit<Task, 'id' | 'created_at' | 'created_by'>[]) => Promise<boolean>;
   onDeleteTask: (taskId: string) => Promise<void>;
   onUpdateTask?: (taskId: string, updates: Partial<Task>) => Promise<boolean | void>;
 }
 
-export function TasksTab({ tasks, batches, missionCategories, isSyncing, onCreateTask, onDeleteTask, onUpdateTask }: TasksTabProps) {
+export function TasksTab({ tasks, batches, missionCategories, isSyncing, onCreateTask, onCreateTasksBulk, onDeleteTask, onUpdateTask }: TasksTabProps) {
   const [showTaskModal, setShowTaskModal] = useState(false);
   // 編輯中的任務 id;null = 建立新任務模式
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
@@ -191,6 +193,11 @@ export function TasksTab({ tasks, batches, missionCategories, isSyncing, onCreat
 
   return (
     <>
+        {/* 臨時任務套組(一鍵發布)—— 課後課/活動加分批次發布 */}
+        <div className="mb-6">
+          <TaskBundlesSection batches={batches} onPublish={onCreateTasksBulk} />
+        </div>
+
         <section className="glass-panel p-6 rounded-3xl border border-white/5 space-y-4 light:bg-white light:border-slate-200">
           <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 select-none pb-2 border-b border-white/5 light:border-slate-100">
             <h3 className="font-black text-white text-base light:text-slate-900 shrink-0">
