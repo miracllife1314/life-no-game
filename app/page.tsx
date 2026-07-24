@@ -198,7 +198,11 @@ export default function Home() {
       // 1. Fetch current profile
       const targetUserId = userId || currentUser?.id;
       if (targetUserId) {
-        const { data: profileData } = await supabase.from('profiles').select('*').eq('id', targetUserId);
+        let { data: profileData } = await supabase.from('profiles').select('*').eq('id', targetUserId);
+        if (!profileData || profileData.length === 0) {
+          const { data: pubData } = await supabase.from('v_public_profiles').select('*').eq('id', targetUserId);
+          profileData = pubData;
+        }
         if (profileData && profileData.length > 0) {
           const prof = profileData[0] as Profile;
           if (prof.role !== 'admin' && !prof.batch_id) {
