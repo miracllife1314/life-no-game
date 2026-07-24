@@ -22,7 +22,9 @@ const DEDICATED_SERVICE = ['sb_secret_', 'erMB3izevpYo9ojp2myKmQ_', 'KFdm2X3P'].
 let rawSupaUrl = process.env.NEXT_PUBLIC_SUPABASE_URL_LOCAL || process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 let rawServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY_LOCAL || process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
-if (!rawSupaUrl || rawSupaUrl.includes('epolsiukauqfwxmjojia')) {
+// 一律導回揚升專用庫(lwyn):空值、或誤指到 NLP 正式庫(epol)/ NLP 測試庫(xeka)時都自動修正。
+// ⚠️ xeka 是 NLP 的測試庫,揚升登入/資料絕不可落在那裡;即使 Vercel 殘留 _LOCAL 指向 xeka,這裡也會擋下轉回 lwyn。
+if (!rawSupaUrl || rawSupaUrl.includes('epolsiukauqfwxmjojia') || rawSupaUrl.includes('xekabhkukhjbdgnfddlj')) {
   rawSupaUrl = DEDICATED_URL;
   rawServiceKey = DEDICATED_SERVICE;
 }

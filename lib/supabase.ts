@@ -17,7 +17,9 @@ const DEDICATED_ANON = ['sb_publishable_', 'a7qboCQcZXGO6UCoYonPlA_', 'sXEIesC4'
 let rawUrl = process.env.NEXT_PUBLIC_SUPABASE_URL_LOCAL || process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 let rawKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY_LOCAL || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
-if (!rawUrl || rawUrl.includes('epolsiukauqfwxmjojia')) {
+// 一律導回揚升專用庫(lwyn):空值、或誤指到 NLP 正式庫(epol)/ NLP 測試庫(xeka)時都自動修正。
+// ⚠️ xeka 是 NLP 的測試庫,揚升絕不可寫進去;即使 Vercel 的 _LOCAL 變數殘留指向 xeka,這裡也會擋下轉回 lwyn。
+if (!rawUrl || rawUrl.includes('epolsiukauqfwxmjojia') || rawUrl.includes('xekabhkukhjbdgnfddlj')) {
   rawUrl = DEDICATED_URL;
   rawKey = DEDICATED_ANON;
 }
