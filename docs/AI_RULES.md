@@ -1,6 +1,6 @@
-# AI RULES — AI 開發總規則（單一事實來源）
+# AI RULES — AI 開發總規則（單一事實來源 v1.9.0）
 
-> 本檔是所有 AI 開發規則的**單一事實來源（Single Source of Truth）**。
+> 本檔是所有 AI 開發規則的**單一事實來源（Single Source of Truth v1.9.0）**。
 > `docs/TASK_ROUTER.md` 與 `.claude/skills/*/SKILL.md` 只做指路與摘要，不重抄本檔全文。
 > 其他文件引用本檔時，請用「第 N 節」純文字指路。各節標題請保持穩定。
 
